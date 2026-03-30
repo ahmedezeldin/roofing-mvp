@@ -23,20 +23,21 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
+
 # ----------------------------
 # STRIPE CONFIG
 # ----------------------------
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
 
-APP_BASE_URL = os.getenv("APP_BASE_URL", "https://www.roofingfrontdesk.com")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+APP_BASE_URL = os.getenv("APP_BASE_URL", "https://www.roofingfrontdesk.com").strip()
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 
-STRIPE_PRICE_PILOT = os.getenv("STRIPE_PRICE_PILOT", "")
-STRIPE_PRICE_PILOT_SETUP = os.getenv("STRIPE_PRICE_PILOT_SETUP", "")
+STRIPE_PRICE_PILOT = os.getenv("STRIPE_PRICE_PILOT", "").strip()
+STRIPE_PRICE_PILOT_SETUP = os.getenv("STRIPE_PRICE_PILOT_SETUP", "").strip()
 
-STRIPE_PRICE_GROWTH = os.getenv("STRIPE_PRICE_GROWTH", "")
-STRIPE_PRICE_GROWTH_SETUP = os.getenv("STRIPE_PRICE_GROWTH_SETUP", "")
+STRIPE_PRICE_GROWTH = os.getenv("STRIPE_PRICE_GROWTH", "").strip()
+STRIPE_PRICE_GROWTH_SETUP = os.getenv("STRIPE_PRICE_GROWTH_SETUP", "").strip()
 
 
 def format_dt(dt: Optional[datetime]) -> str:
@@ -46,6 +47,20 @@ def format_dt(dt: Optional[datetime]) -> str:
 
 
 templates.env.globals["format_dt"] = format_dt
+
+
+def stripe_attr(obj, name: str, default=None):
+    try:
+        value = getattr(obj, name)
+        return default if value is None else value
+    except Exception:
+        pass
+
+    try:
+        value = obj[name]
+        return default if value is None else value
+    except Exception:
+        return default
 
 
 def get_response_sla_label(priority: Optional[str]) -> str:
@@ -387,7 +402,7 @@ def billing_page(
     plan: str = Query("growth"),
     canceled: int = Query(0),
 ):
-    normalized_plan = plan.lower()
+    normalized_plan = (plan or "growth").lower()
 
     if normalized_plan == "pilot":
         selected_plan = "Pilot"
@@ -421,33 +436,100 @@ def billing_success_page(
     session_id: Optional[str] = Query(None),
 ):
     session_data = None
+    session_status = "unknown"
+    customer_email = None
+    subscription_id = None
 
     if session_id and stripe.api_key:
         try:
             session_data = stripe.checkout.Session.retrieve(session_id)
-        except Exception:
-            session_data = None
+            session_status = stripe_attr(session_data, "status", "unknown")
+            customer_email = stripe_attr(session_data, "customer_email")
+            subscription_id = stripe_attr(session_data, "subscription")
+        except Exception as exc:
+            session_status = f"error: {exc}"
 
-    return templates.TemplateResponse(
-        request,
-        "billing_success.html",
-        {
-            "page_title": "Billing Success",
-            "session_id": session_id,
-            "session_data": session_data,
-        },
+    return HTMLResponse(
+        f"""
+        <html>
+          <head>
+            <title>Billing Success</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <style>
+              body {{
+                font-family: Arial, sans-serif;
+                background: #f5f7fb;
+                padding: 40px 20px;
+                color: #111827;
+              }}
+              .card {{
+                max-width: 760px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 18px;
+                padding: 32px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+              }}
+              h1 {{
+                margin-top: 0;
+                font-size: 36px;
+              }}
+              p {{
+                line-height: 1.6;
+              }}
+              .meta {{
+                background: #f8fafc;
+                padding: 16px;
+                border-radius: 12px;
+                margin: 20px 0;
+              }}
+              .btn {{
+                display: inline-block;
+                margin-top: 18px;
+                padding: 12px 18px;
+                border-radius: 12px;
+                background: #2563eb;
+                color: white;
+                text-decoration: none;
+                font-weight: 600;
+              }}
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h1>Payment received</h1>
+              <p>Your Stripe checkout reached the success page correctly.</p>
+
+              <div class="meta">
+                <p><strong>Session ID:</strong> {session_id or "None"}</p>
+                <p><strong>Session status:</strong> {session_status}</p>
+                <p><strong>Customer email:</strong> {customer_email or "Not available"}</p>
+                <p><strong>Subscription ID:</strong> {subscription_id or "Not available"}</p>
+              </div>
+
+              <p>
+                Your payment flow is working. The next step is wiring any post-purchase onboarding,
+                account activation, or CRM updates you want after checkout.
+              </p>
+
+              <a class="btn" href="/billing?plan=growth">Back to billing</a>
+            </div>
+          </body>
+        </html>
+        """
     )
 
 
 # ----------------------------
 # STRIPE CHECKOUT
 # ----------------------------
+
 @app.post("/stripe/create-checkout-session")
 def create_checkout_session(plan: str = Form(...)):
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Missing STRIPE_SECRET_KEY")
 
-    _, line_items = get_checkout_prices(plan)
+    plan_name, line_items = get_checkout_prices(plan)
 
     try:
         checkout_session = stripe.checkout.Session.create(
@@ -456,10 +538,16 @@ def create_checkout_session(plan: str = Form(...)):
             success_url=f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{APP_BASE_URL}/billing?plan={plan}&canceled=1",
             allow_promotion_codes=True,
+            metadata={
+                "plan": plan.lower(),
+                "plan_name": plan_name,
+                "source": "roofing_front_desk_billing",
+            },
         )
         return RedirectResponse(url=checkout_session.url, status_code=303)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Stripe checkout error: {exc}")
+
 
 @app.post("/stripe/webhook")
 async def stripe_webhook(request: Request):
@@ -484,30 +572,63 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid signature")
 
     event_type = event["type"]
+    obj = event["data"]["object"]
 
     if event_type == "checkout.session.completed":
-        session = event["data"]["object"]
-        print("checkout.session.completed", session.get("id"))
+        session_id = stripe_attr(obj, "id")
+        customer_id = stripe_attr(obj, "customer")
+        subscription_id = stripe_attr(obj, "subscription")
+        metadata = stripe_attr(obj, "metadata", {}) or {}
+
+        print("checkout.session.completed", session_id)
+        print("customer_id", customer_id)
+        print("subscription_id", subscription_id)
+        print("metadata", metadata)
 
     elif event_type == "customer.subscription.created":
-        subscription = event["data"]["object"]
-        print("customer.subscription.created", subscription.get("id"))
+        subscription_id = stripe_attr(obj, "id")
+        status = stripe_attr(obj, "status")
+        customer_id = stripe_attr(obj, "customer")
+
+        print("customer.subscription.created", subscription_id)
+        print("subscription_status", status)
+        print("customer_id", customer_id)
 
     elif event_type == "customer.subscription.updated":
-        subscription = event["data"]["object"]
-        print("customer.subscription.updated", subscription.get("id"))
+        subscription_id = stripe_attr(obj, "id")
+        status = stripe_attr(obj, "status")
+        customer_id = stripe_attr(obj, "customer")
+
+        print("customer.subscription.updated", subscription_id)
+        print("subscription_status", status)
+        print("customer_id", customer_id)
 
     elif event_type == "customer.subscription.deleted":
-        subscription = event["data"]["object"]
-        print("customer.subscription.deleted", subscription.get("id"))
+        subscription_id = stripe_attr(obj, "id")
+        status = stripe_attr(obj, "status")
+        customer_id = stripe_attr(obj, "customer")
+
+        print("customer.subscription.deleted", subscription_id)
+        print("subscription_status", status)
+        print("customer_id", customer_id)
 
     elif event_type == "invoice.paid":
-        invoice = event["data"]["object"]
-        print("invoice.paid", invoice.get("id"))
+        invoice_id = stripe_attr(obj, "id")
+        customer_id = stripe_attr(obj, "customer")
+        subscription_id = stripe_attr(obj, "subscription")
+
+        print("invoice.paid", invoice_id)
+        print("customer_id", customer_id)
+        print("subscription_id", subscription_id)
 
     elif event_type == "invoice.payment_failed":
-        invoice = event["data"]["object"]
-        print("invoice.payment_failed", invoice.get("id"))
+        invoice_id = stripe_attr(obj, "id")
+        customer_id = stripe_attr(obj, "customer")
+        subscription_id = stripe_attr(obj, "subscription")
+
+        print("invoice.payment_failed", invoice_id)
+        print("customer_id", customer_id)
+        print("subscription_id", subscription_id)
 
     return JSONResponse({"received": True})
 
