@@ -31,9 +31,12 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
 
 APP_BASE_URL = os.getenv("APP_BASE_URL", "https://www.roofingfrontdesk.com")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
 STRIPE_PRICE_PILOT = os.getenv("STRIPE_PRICE_PILOT", "")
+STRIPE_PRICE_PILOT_SETUP = os.getenv("STRIPE_PRICE_PILOT_SETUP", "")
+
 STRIPE_PRICE_GROWTH = os.getenv("STRIPE_PRICE_GROWTH", "")
-STRIPE_PRICE_SETUP = os.getenv("STRIPE_PRICE_SETUP", "")
+STRIPE_PRICE_GROWTH_SETUP = os.getenv("STRIPE_PRICE_GROWTH_SETUP", "")
 
 
 def format_dt(dt: Optional[datetime]) -> str:
@@ -263,15 +266,22 @@ def get_checkout_prices(plan: str) -> tuple[str, list[dict]]:
     if normalized == "pilot":
         if not STRIPE_PRICE_PILOT:
             raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_PILOT")
-        return "Roofing Front Desk Pilot", [{"price": STRIPE_PRICE_PILOT, "quantity": 1}]
+
+        line_items = [{"price": STRIPE_PRICE_PILOT, "quantity": 1}]
+
+        if STRIPE_PRICE_PILOT_SETUP:
+            line_items.append({"price": STRIPE_PRICE_PILOT_SETUP, "quantity": 1})
+
+        return "Roofing Front Desk Pilot", line_items
 
     if normalized == "growth":
         if not STRIPE_PRICE_GROWTH:
             raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_GROWTH")
 
         line_items = [{"price": STRIPE_PRICE_GROWTH, "quantity": 1}]
-        if STRIPE_PRICE_SETUP:
-            line_items.append({"price": STRIPE_PRICE_SETUP, "quantity": 1})
+
+        if STRIPE_PRICE_GROWTH_SETUP:
+            line_items.append({"price": STRIPE_PRICE_GROWTH_SETUP, "quantity": 1})
 
         return "Roofing Front Desk Growth", line_items
 
