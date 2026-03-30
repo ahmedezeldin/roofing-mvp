@@ -1,0 +1,133 @@
+{% extends "website.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+{% endblock %}
+
+{% block content %}
+<div class="auth-page-shell">
+  <section class="auth-card auth-card-main">
+    <div class="auth-badge">Start Setup</div>
+    <h1 class="auth-title">Create your Roofing Front Desk account</h1>
+    <p class="auth-subtitle">
+      Start with your company details, then move into workflow setup and phone configuration.
+    </p>
+
+    <form class="auth-form" method="get" action="/onboarding/company">
+      <div class="auth-field">
+        <label class="auth-label">Full Name</label>
+        <input
+          type="text"
+          name="full_name"
+          class="input"
+          placeholder="Your full name"
+          required
+        />
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Work Email</label>
+        <input
+          type="email"
+          name="email"
+          class="input"
+          placeholder="you@roofingcompany.com"
+          required
+        />
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Company Name</label>
+        <input
+          type="text"
+          name="company_name"
+          class="input"
+          placeholder="Karl's Roofing"
+          required
+        />
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Password</label>
+        <input
+          type="password"
+          name="password"
+          class="input"
+          placeholder="Create a password"
+          required
+        />
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label">Confirm Password</label>
+        <input
+          type="password"
+          name="confirm_password"
+          class="input"
+          placeholder="Confirm your password"
+          required
+        />
+      </div>
+
+      <div class="auth-row">
+        <label class="auth-checkbox">
+          <input type="checkbox" required />
+          <span>I agree to the setup and service terms</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary auth-submit">
+        Continue setup
+      </button>
+    </form>
+
+    <div class="auth-divider">
+      <span>or</span>
+    </div>
+
+    <div class="auth-alt-actions">
+      <a href="/login" class="btn btn-secondary auth-alt-btn">Log in</a>
+      <a href="/demo/dashboard" class="btn btn-secondary auth-alt-btn">View product demo</a>
+    </div>
+
+    <div class="auth-footer-text">
+      Already have an account?
+      <a href="/login" class="auth-inline-link">Log in</a>
+    </div>
+  </section>
+
+  <aside class="auth-card auth-card-side">
+    <div class="auth-side-kicker">What happens next</div>
+    <h2 class="auth-side-title">
+      You’ll go from account setup to launch in a few guided steps.
+    </h2>
+
+    <div class="auth-side-list">
+      <div class="auth-side-item">
+        <strong>Step 1: Company details</strong>
+        <span>Add your business name, phone, service area, and basic operating info.</span>
+      </div>
+
+      <div class="auth-side-item">
+        <strong>Step 2: Workflow preferences</strong>
+        <span>Choose how missed calls should be handled and how leads should be qualified.</span>
+      </div>
+
+      <div class="auth-side-item">
+        <strong>Step 3: Connect phone setup</strong>
+        <span>Link your texting and call-handling setup when you’re ready to launch.</span>
+      </div>
+    </div>
+
+    <div class="auth-side-panel">
+      <div class="auth-side-panel-label">Not ready to start setup?</div>
+      <div class="auth-side-panel-text">
+        Explore the demo first and see how the dashboard, inbox, pipeline, and workflow settings fit together.
+      </div>
+      <div class="mt-16">
+        <a href="/demo/dashboard" class="btn btn-secondary">View product demo</a>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

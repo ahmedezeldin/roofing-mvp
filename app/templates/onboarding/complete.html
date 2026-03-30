@@ -1,0 +1,84 @@
+{% extends "website.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/onboarding.css">
+{% endblock %}
+
+{% block content %}
+<div class="onboarding-shell">
+  <aside class="onboarding-sidebar">
+    <div class="onboarding-sidebar-badge">Step 4 of 4</div>
+    <h1 class="onboarding-sidebar-title">Setup complete</h1>
+    <p class="onboarding-sidebar-text">
+      Your onboarding flow is complete. From here, you can enter the product demo workspace and see how your setup would feel inside the app.
+    </p>
+
+    <div class="onboarding-steps">
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Company details</strong>
+          <small>Business identity and service area</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Workflow preferences</strong>
+          <small>Lead qualification and handoff flow</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Phone setup</strong>
+          <small>Connect your texting/call flow</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step active">
+        <span>4</span>
+        <div>
+          <strong>Complete</strong>
+          <small>Review and enter the app</small>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="onboarding-card">
+    <div class="onboarding-top-row">
+      <div>
+        <div class="onboarding-kicker">Setup Complete</div>
+        <h2 class="onboarding-title">Your Roofing Front Desk workspace is ready</h2>
+        <p class="onboarding-subtitle">
+          You’ve completed the setup flow. The next step is entering the workspace and seeing how dashboard, inbox, pipeline, and settings come together.
+        </p>
+      </div>
+    </div>
+
+    <div class="onboarding-panel-grid">
+      <div class="onboarding-info-card">
+        <div class="onboarding-info-title">What’s ready</div>
+        <div class="onboarding-info-text">
+          Company setup, workflow structure, and phone preferences have all been captured in the onboarding flow.
+        </div>
+      </div>
+
+      <div class="onboarding-info-card">
+        <div class="onboarding-info-title">What happens next</div>
+        <div class="onboarding-info-text">
+          In a live product version, this is where account provisioning, Twilio connection, and launch confirmation would be finalized.
+        </div>
+      </div>
+    </div>
+
+    <div class="onboarding-actions mt-20">
+      <a href="/onboarding/twilio" class="btn btn-secondary">Back</a>
+      <a href="/demo/dashboard" class="btn btn-primary">Enter workspace</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "website.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/onboarding.css">
+{% endblock %}
+
+{% block content %}
+<div class="onboarding-shell">
+  <aside class="onboarding-sidebar">
+    <div class="onboarding-sidebar-badge">Billing</div>
+    <h1 class="onboarding-sidebar-title">Activate your workspace</h1>
+    <p class="onboarding-sidebar-text">
+      You’ve already completed setup. The last step is adding billing so your Roofing Front Desk workspace can be activated.
+    </p>
+
+    <div class="onboarding-steps">
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Company details</strong>
+          <small>Business identity and service area</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Workflow preferences</strong>
+          <small>Lead qualification and handoff flow</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Phone setup</strong>
+          <small>Connect your texting/call flow</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step active">
+        <span>$</span>
+        <div>
+          <strong>Billing</strong>
+          <small>Activate your subscription</small>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="onboarding-card">
+    <div class="onboarding-top-row">
+      <div>
+        <div class="onboarding-kicker">Billing</div>
+        <h2 class="onboarding-title">Review plan and add payment details</h2>
+        <p class="onboarding-subtitle">
+          Your setup is complete. Confirm your subscription details below to activate your workspace.
+        </p>
+      </div>
+    </div>
+
+    <div class="billing-layout">
+      <form class="onboarding-form billing-form" method="get" action="/onboarding/complete">
+        <div class="onboarding-grid">
+          <div class="onboarding-field">
+            <label class="onboarding-label">Cardholder Name</label>
+            <input type="text" class="input" placeholder="Ahmed Ezeldin" required />
+          </div>
+
+          <div class="onboarding-field">
+            <label class="onboarding-label">Billing Email</label>
+            <input type="email" class="input" placeholder="you@roofingcompany.com" required />
+          </div>
+        </div>
+
+        <div class="onboarding-field full">
+          <label class="onboarding-label">Card Number</label>
+          <input type="text" class="input" placeholder="4242 4242 4242 4242" required />
+        </div>
+
+        <div class="onboarding-grid">
+          <div class="onboarding-field">
+            <label class="onboarding-label">Expiry Date</label>
+            <input type="text" class="input" placeholder="MM / YY" required />
+          </div>
+
+          <div class="onboarding-field">
+            <label class="onboarding-label">CVC</label>
+            <input type="text" class="input" placeholder="123" required />
+          </div>
+        </div>
+
+        <div class="onboarding-field full">
+          <label class="onboarding-label">Billing Address</label>
+          <input type="text" class="input" placeholder="123 Main Street" required />
+        </div>
+
+        <div class="onboarding-grid">
+          <div class="onboarding-field">
+            <label class="onboarding-label">City</label>
+            <input type="text" class="input" placeholder="Calgary" required />
+          </div>
+
+          <div class="onboarding-field">
+            <label class="onboarding-label">Postal Code</label>
+            <input type="text" class="input" placeholder="T2X 1A1" required />
+          </div>
+        </div>
+
+        <div class="billing-note-card">
+          <div class="onboarding-info-title">What happens after this</div>
+          <div class="onboarding-info-text">
+            Once billing is confirmed, your workspace is activated and you’ll enter your account dashboard with your setup already applied.
+          </div>
+        </div>
+
+        <div class="onboarding-actions">
+          <a href="/onboarding/twilio" class="btn btn-secondary">Back</a>
+          <button type="submit" class="btn btn-primary">Activate workspace</button>
+        </div>
+      </form>
+
+      <aside class="billing-summary-card">
+        <div class="billing-summary-kicker">Order Summary</div>
+        <h3 class="billing-summary-title">{{ selected_plan|default("Growth") }}</h3>
+        <p class="billing-summary-text">
+          A real operating rollout for roofing companies ready to run missed-call recovery live.
+        </p>
+
+        <div class="billing-summary-lines">
+          <div class="billing-summary-line">
+            <span>Monthly subscription</span>
+            <strong>{{ monthly_price|default("$999") }}/month</strong>
+          </div>
+          <div class="billing-summary-line">
+            <span>One-time setup</span>
+            <strong>{{ setup_fee|default("$1,500") }}</strong>
+          </div>
+          <div class="billing-summary-line">
+            <span>Twilio usage</span>
+            <strong>Separate</strong>
+          </div>
+        </div>
+
+        <div class="billing-summary-divider"></div>
+
+        <div class="billing-summary-total">
+          <span>Due today</span>
+          <strong>{{ due_today|default("$1,500") }}</strong>
+        </div>
+
+        <div class="billing-feature-box">
+          <div class="billing-feature-title">Included in this plan</div>
+          <ul class="pricing-side-list">
+            <li>Multiple workflows by job type</li>
+            <li>Branching logic and qualification</li>
+            <li>Inbox + pipeline + reporting</li>
+            <li>Guided launch support</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+</div>
+{% endblock %}

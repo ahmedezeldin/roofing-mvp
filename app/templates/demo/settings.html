@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/settings.css">
+{% endblock %}
+
+{% block content %}
+<div class="settings-card">
+  <div class="settings-card-head">
+    <div>
+      <div class="settings-card-title">Automated Lead Workflow</div>
+      <div class="settings-card-subtitle">
+        Start from the recommended sequence, then edit, disable, reorder, remove, or add steps
+        to match how your team wants missed-call follow-up to run.
+      </div>
+    </div>
+    <div class="settings-pill">Workflow</div>
+  </div>
+
+  <div class="workflow-toolbar">
+    <div class="workflow-toolbar-left">
+      <button class="btn btn-primary" type="button">+ Add Step</button>
+      <button class="btn btn-secondary" type="button">Reset to Recommended</button>
+    </div>
+    <div class="workflow-toolbar-right">
+      <div class="workflow-mini-note">Standard sequence loaded</div>
+    </div>
+  </div>
+
+  <div class="workflow-sequence-stack">
+
+    <!-- STEP 1 -->
+    <div class="workflow-step-card">
+      <div class="workflow-step-top">
+        <div class="workflow-step-left">
+          <div class="workflow-step-number">Step 1</div>
+          <div>
+            <div class="workflow-step-title">Missed Call Auto-Reply</div>
+            <div class="workflow-step-subtitle">
+              First text sent immediately after a missed call.
+            </div>
+          </div>
+        </div>
+
+        <div class="workflow-step-actions">
+          <span class="check-status enabled">Enabled</span>
+          <button class="btn btn-secondary btn-xs" type="button">↑</button>
+          <button class="btn btn-secondary btn-xs" type="button">↓</button>
+          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
+        </div>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="settings-field">
+          <label class="settings-label">Trigger</label>
+          <select class="select">
+            <option>Immediately after missed call</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">Delay</label>
+          <select class="select">
+            <option>0 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-label">Message Text</label>
+        <textarea class="textarea workflow-step-textarea">Hey, thanks for calling Karl's Roofing. Sorry we missed you — are you looking for a repair, replacement, or inspection?</textarea>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="workflow-step-card">
+      <div class="workflow-step-top">
+        <div class="workflow-step-left">
+          <div class="workflow-step-number">Step 2</div>
+          <div>
+            <div class="workflow-step-title">Ask for Postal Code</div>
+            <div class="workflow-step-subtitle">
+              Capture service area and route the lead properly.
+            </div>
+          </div>
+        </div>
+
+        <div class="workflow-step-actions">
+          <span class="check-status enabled">Enabled</span>
+          <button class="btn btn-secondary btn-xs" type="button">↑</button>
+          <button class="btn btn-secondary btn-xs" type="button">↓</button>
+          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
+        </div>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="settings-field">
+          <label class="settings-label">Trigger</label>
+          <select class="select">
+            <option>After customer replies</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">Delay</label>
+          <select class="select">
+            <option>0 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-label">Message Text</label>
+        <textarea class="textarea workflow-step-textarea">What's the property postal code?</textarea>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="workflow-step-card">
+      <div class="workflow-step-top">
+        <div class="workflow-step-left">
+          <div class="workflow-step-number">Step 3</div>
+          <div>
+            <div class="workflow-step-title">Ask for Urgency</div>
+            <div class="workflow-step-subtitle">
+              Clarify whether the lead needs emergency treatment or standard follow-up.
+            </div>
+          </div>
+        </div>
+
+        <div class="workflow-step-actions">
+          <span class="check-status enabled">Enabled</span>
+          <button class="btn btn-secondary btn-xs" type="button">↑</button>
+          <button class="btn btn-secondary btn-xs" type="button">↓</button>
+          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
+        </div>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="settings-field">
+          <label class="settings-label">Trigger</label>
+          <select class="select">
+            <option>After customer replies</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">Delay</label>
+          <select class="select">
+            <option>0 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-label">Message Text</label>
+        <textarea class="textarea workflow-step-textarea">How urgent is it — low, medium, or emergency?</textarea>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="workflow-step-card">
+      <div class="workflow-step-top">
+        <div class="workflow-step-left">
+          <div class="workflow-step-number">Step 4</div>
+          <div>
+            <div class="workflow-step-title">Insurance Check</div>
+            <div class="workflow-step-subtitle">
+              Useful for storm damage and hail workflows.
+            </div>
+          </div>
+        </div>
+
+        <div class="workflow-step-actions">
+          <span class="check-status enabled">Enabled</span>
+          <button class="btn btn-secondary btn-xs" type="button">↑</button>
+          <button class="btn btn-secondary btn-xs" type="button">↓</button>
+          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
+        </div>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="settings-field">
+          <label class="settings-label">Trigger</label>
+          <select class="select">
+            <option>After customer replies</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">Delay</label>
+          <select class="select">
+            <option>0 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-label">Message Text</label>
+        <textarea class="textarea workflow-step-textarea">Is this related to an insurance claim? Please reply yes or no.</textarea>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="workflow-step-card">
+      <div class="workflow-step-top">
+        <div class="workflow-step-left">
+          <div class="workflow-step-number">Step 5</div>
+          <div>
+            <div class="workflow-step-title">Photo Request</div>
+            <div class="workflow-step-subtitle">
+              Optional step for better triage before human follow-up.
+            </div>
+          </div>
+        </div>
+
+        <div class="workflow-step-actions">
+          <span class="check-status disabled">Disabled</span>
+          <button class="btn btn-secondary btn-xs" type="button">↑</button>
+          <button class="btn btn-secondary btn-xs" type="button">↓</button>
+          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
+        </div>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="settings-field">
+          <label class="settings-label">Trigger</label>
+          <select class="select">
+            <option>After qualification completed</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">Delay</label>
+          <select class="select">
+            <option>0 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-label">Message Text</label>
+        <textarea class="textarea workflow-step-textarea">If possible, please send 3–5 photos of the damage so our team can prepare before follow-up.</textarea>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="workflow-step-card">
+      <div class="workflow-step-top">
+        <div class="workflow-step-left">
+          <div class="workflow-step-number">Step 6</div>
+          <div>
+            <div class="workflow-step-title">Qualified Lead Handoff</div>
+            <div class="workflow-step-subtitle">
+              Close the automated portion and set expectation for live team follow-up.
+            </div>
+          </div>
+        </div>
+
+        <div class="workflow-step-actions">
+          <span class="check-status enabled">Enabled</span>
+          <button class="btn btn-secondary btn-xs" type="button">↑</button>
+          <button class="btn btn-secondary btn-xs" type="button">↓</button>
+          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
+        </div>
+      </div>
+
+      <div class="settings-two-col">
+        <div class="settings-field">
+          <label class="settings-label">Trigger</label>
+          <select class="select">
+            <option>After qualification completed</option>
+          </select>
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">Delay</label>
+          <select class="select">
+            <option>0 minutes</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-label">Message Text</label>
+        <textarea class="textarea workflow-step-textarea">Thanks — your request has been captured. A roofing specialist will follow up shortly to schedule an inspection or estimate.</textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="workflow-footer">
+    <div class="workflow-variable-box">
+      <div class="workflow-variable-title">Supported variables</div>
+      <div class="workflow-variable-row">
+        <span class="workflow-variable-chip">{business_name}</span>
+        <span class="workflow-variable-chip">{customer_name}</span>
+        <span class="workflow-variable-chip">{job_type}</span>
+        <span class="workflow-variable-chip">{postal_code}</span>
+        <span class="workflow-variable-chip">{urgency}</span>
+      </div>
+    </div>
+
+    <div class="settings-actions-row">
+      <button class="btn btn-primary" type="button">Save Workflow</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

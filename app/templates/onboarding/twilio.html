@@ -1,0 +1,149 @@
+{% extends "website.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/onboarding.css">
+{% endblock %}
+
+{% block content %}
+<div class="onboarding-shell">
+  <aside class="onboarding-sidebar">
+    <div class="onboarding-sidebar-badge">Step 3 of 4</div>
+    <h1 class="onboarding-sidebar-title">Phone setup</h1>
+    <p class="onboarding-sidebar-text">
+      Connect the business phone workflow that Roofing Front Desk will use for missed-call recovery, SMS qualification, and lead handoff.
+    </p>
+
+    <div class="onboarding-steps">
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Company details</strong>
+          <small>Business identity and service area</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step complete">
+        <span>✓</span>
+        <div>
+          <strong>Workflow preferences</strong>
+          <small>Lead qualification and handoff flow</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step active">
+        <span>3</span>
+        <div>
+          <strong>Phone setup</strong>
+          <small>Connect your texting/call flow</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step">
+        <span>4</span>
+        <div>
+          <strong>Complete</strong>
+          <small>Review and enter the app</small>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="onboarding-card">
+    <div class="onboarding-top-row">
+      <div>
+        <div class="onboarding-kicker">Onboarding</div>
+        <h2 class="onboarding-title">Connect your phone and texting setup</h2>
+        <p class="onboarding-subtitle">
+          For now, this page can act as a realistic onboarding experience. Later, this is where real Twilio connection and provisioning can happen.
+        </p>
+      </div>
+    </div>
+
+    <form class="onboarding-form" method="get" action="/billing">
+      <div class="onboarding-grid">
+        <div class="onboarding-field">
+          <label class="onboarding-label">Current Business Number</label>
+          <input
+            type="tel"
+            class="input"
+            name="current_phone"
+            placeholder="+1 (403) 555-0182"
+            required
+          />
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">Preferred Setup Type</label>
+          <select class="input" name="setup_type" required>
+            <option value="">Select setup type</option>
+            <option>Use existing business number</option>
+            <option>Provision new number</option>
+            <option>Need help deciding</option>
+          </select>
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">SMS Volume Expectation</label>
+          <select class="input" name="sms_volume" required>
+            <option value="">Select message volume</option>
+            <option>Low (under 100/month)</option>
+            <option>Medium (100–500/month)</option>
+            <option>High (500+/month)</option>
+          </select>
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">After-Hours Coverage</label>
+          <select class="input" name="after_hours" required>
+            <option value="">Select preference</option>
+            <option>Yes, recover missed calls after hours</option>
+            <option>No, business hours only</option>
+            <option>Only for emergency jobs</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="onboarding-field full">
+        <label class="onboarding-label">How should missed calls be handled?</label>
+        <textarea
+          class="input textarea"
+          name="call_handling_notes"
+          rows="4"
+          placeholder="Example: text back every missed caller immediately, prioritize storm damage, only escalate emergency jobs after hours..."
+        ></textarea>
+      </div>
+
+      <div class="onboarding-field full">
+        <label class="onboarding-label">Twilio / phone setup notes</label>
+        <textarea
+          class="input textarea"
+          name="twilio_notes"
+          rows="4"
+          placeholder="Example: already have a Twilio account, want a new dedicated number, need help porting a number, etc."
+        ></textarea>
+      </div>
+
+      <div class="onboarding-panel-grid">
+        <div class="onboarding-info-card">
+          <div class="onboarding-info-title">What this step is for</div>
+          <div class="onboarding-info-text">
+            This step defines how the business number should be connected so missed calls can trigger SMS recovery automatically.
+          </div>
+        </div>
+
+        <div class="onboarding-info-card">
+          <div class="onboarding-info-title">What happens later</div>
+          <div class="onboarding-info-text">
+            In a live version, this is where the real number, Twilio credentials, and routing setup would be connected and verified.
+          </div>
+        </div>
+      </div>
+
+      <div class="onboarding-actions">
+        <a href="/onboarding/workflow" class="btn btn-secondary">Back</a>
+        <button type="submit" class="btn btn-primary">Continue to review</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

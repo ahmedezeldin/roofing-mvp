@@ -1,0 +1,103 @@
+{% extends "website.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+{% endblock %}
+
+{% block content %}
+<div class="auth-page-shell">
+  <section class="auth-card auth-card-main">
+    <div class="auth-badge">Login</div>
+    <h1 class="auth-title">Welcome back to Roofing Front Desk</h1>
+    <p class="auth-subtitle">
+      Sign in to manage missed-call recovery, review your lead inbox, and keep your pipeline moving.
+    </p>
+
+    <form class="auth-form" method="get" action="/demo/dashboard">
+      <div class="auth-field">
+        <label class="auth-label">Work Email</label>
+        <input
+          type="email"
+          name="email"
+          class="input"
+          placeholder="you@roofingcompany.com"
+          required
+        />
+      </div>
+
+      <div class="auth-field">
+        <div class="auth-label-row">
+          <label class="auth-label">Password</label>
+          <a href="#" class="auth-inline-link">Forgot password?</a>
+        </div>
+        <input
+          type="password"
+          name="password"
+          class="input"
+          placeholder="Enter your password"
+          required
+        />
+      </div>
+
+      <div class="auth-row">
+        <label class="auth-checkbox">
+          <input type="checkbox" />
+          <span>Keep me signed in</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary auth-submit">
+        Sign in
+      </button>
+    </form>
+
+    <div class="auth-divider">
+      <span>or</span>
+    </div>
+
+    <div class="auth-alt-actions">
+      <a href="/signup" class="btn btn-secondary auth-alt-btn">Start setup</a>
+      <a href="/demo/dashboard" class="btn btn-secondary auth-alt-btn">View product demo</a>
+    </div>
+
+    <div class="auth-footer-text">
+      Don’t have an account yet?
+      <a href="/signup" class="auth-inline-link">Start setup</a>
+    </div>
+  </section>
+
+  <aside class="auth-card auth-card-side">
+    <div class="auth-side-kicker">Why teams sign in</div>
+    <h2 class="auth-side-title">
+      One place to recover missed calls, qualify leads, and move jobs forward.
+    </h2>
+
+    <div class="auth-side-list">
+      <div class="auth-side-item">
+        <strong>Inbox control</strong>
+        <span>Review conversations, respond fast, and keep every lead organized.</span>
+      </div>
+
+      <div class="auth-side-item">
+        <strong>Pipeline visibility</strong>
+        <span>Track leads from first missed call all the way to booked and closed jobs.</span>
+      </div>
+
+      <div class="auth-side-item">
+        <strong>Workflow control</strong>
+        <span>Adjust automation steps and follow-up rules around how your company actually operates.</span>
+      </div>
+    </div>
+
+    <div class="auth-side-panel">
+      <div class="auth-side-panel-label">Not ready to sign in?</div>
+      <div class="auth-side-panel-text">
+        Explore the demo first and see exactly how Roofing Front Desk works before starting setup.
+      </div>
+      <div class="mt-16">
+        <a href="/demo/dashboard" class="btn btn-secondary">View product demo</a>
+      </div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

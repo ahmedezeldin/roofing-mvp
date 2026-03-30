@@ -1,0 +1,345 @@
+.pricing-page-shell {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 28px 28px 72px;
+}
+
+.pricing-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 22px;
+  align-items: stretch;
+  margin-bottom: 22px;
+}
+
+.pricing-hero-copy,
+.pricing-hero-side,
+.pricing-compare-section,
+.pricing-faq-section,
+.pricing-bottom-cta {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(215, 225, 240, 0.95);
+  box-shadow: var(--shadow);
+  border-radius: 28px;
+  padding: 28px;
+  backdrop-filter: blur(14px);
+}
+
+.pricing-kicker {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(11, 28, 82, 0.08);
+  color: var(--navy);
+}
+
+.pricing-hero-title {
+  margin: 16px 0 12px;
+  font-size: clamp(36px, 5vw, 60px);
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+  font-weight: 900;
+  color: var(--text);
+  max-width: 12ch;
+}
+
+.pricing-hero-text,
+.pricing-bottom-text,
+.faq-text,
+.plan-subtitle {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.pricing-hero-actions,
+.pricing-bottom-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.pricing-side-card {
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  padding: 24px;
+}
+
+.pricing-side-label {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+.pricing-side-list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.pricing-grid-section {
+  margin-bottom: 22px;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.plan-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(215, 225, 240, 0.95);
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.plan-card-featured {
+  border: 2px solid rgba(37, 99, 235, 0.18);
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.10);
+}
+
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(148, 163, 184, 0.10);
+  color: #475569;
+  margin-bottom: 14px;
+}
+
+.plan-badge-featured {
+  background: rgba(37, 99, 235, 0.10);
+  color: var(--blue-2);
+}
+
+.plan-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.plan-subtitle {
+  margin-top: 10px;
+  min-height: 76px;
+}
+
+.plan-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 20px 0 6px;
+}
+
+.plan-price {
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.04em;
+}
+
+.plan-period {
+  font-size: 16px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.plan-setup {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.plan-feature-list {
+  margin: 20px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.plan-actions {
+  margin-top: 22px;
+}
+
+.pricing-section-title {
+  margin: 12px 0 0;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 900;
+  color: var(--text);
+  max-width: 16ch;
+}
+
+.pricing-compare-section,
+.pricing-faq-section {
+  margin-bottom: 22px;
+}
+
+.pricing-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.pricing-metric-card,
+.faq-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 20px;
+}
+
+.pricing-metric-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.pricing-metric-value {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.pricing-faq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.faq-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.pricing-bottom-cta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: center;
+}
+
+@media (max-width: 1200px) {
+  .pricing-hero,
+  .pricing-grid,
+  .pricing-metric-grid,
+  .pricing-bottom-cta {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-faq-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 800px) {
+  .pricing-page-shell {
+    padding: 18px 16px 48px;
+  }
+
+  .pricing-hero-copy,
+  .pricing-hero-side,
+  .pricing-compare-section,
+  .pricing-faq-section,
+  .pricing-bottom-cta,
+  .plan-card {
+    padding: 22px;
+    border-radius: 22px;
+  }
+
+  .pricing-faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-hero-title {
+    font-size: 34px;
+    max-width: none;
+  }
+
+  .pricing-section-title {
+    font-size: 28px;
+    max-width: none;
+  }
+}
+.pricing-decision-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.pricing-decision-item {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.pricing-decision-item strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.pricing-decision-item span {
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.plan-section {
+  margin-top: 18px;
+}
+
+.plan-section-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.plan-section-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.plan-feature-list-muted li {
+  color: #64748b;
+}
+
+.plan-feature-list-highlight li {
+  color: #1e3a8a;
+  font-weight: 700;
+}

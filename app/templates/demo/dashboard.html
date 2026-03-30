@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Dashboard</div>
+    <h1 class="page-title">Operations Home</h1>
+    <p class="page-subtitle">Track lead flow, response risk, and front-desk performance from one place.</p>
+  </div>
+</div>
+
+{% set open_leads_total = new_today + hot_leads + contacted_count + booked_week %}
+{% set estimated_pipeline_value = (new_today * 3500) + (hot_leads * 6500) + (contacted_count * 9000) + (booked_week * 12000) %}
+{% set pipeline_health = "Stable" %}
+{% if emergency_overdue > 0 %}
+  {% set pipeline_health = "Attention Needed" %}
+{% elif booked_week > 0 or won_month > 0 %}
+  {% set pipeline_health = "Healthy" %}
+{% endif %}
+
+<div class="dashboard-home-grid dashboard-home-grid-clean">
+  <!-- MAIN COLUMN -->
+  <div class="dashboard-main-stack">
+
+    <!-- TOP SNAPSHOT -->
+    <section class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Executive Snapshot</div>
+          <div class="settings-card-subtitle">The fastest way to understand what needs attention right now.</div>
+        </div>
+        <span class="settings-pill settings-pill-live">Live</span>
+      </div>
+
+      <div class="dashboard-summary-grid-clean">
+        <div class="metric-card">
+          <div class="metric-label">Open Leads</div>
+          <div class="metric-value">{{ open_leads_total }}</div>
+          <div class="metric-foot">Active opportunities in motion</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Needs Follow-Up</div>
+          <div class="metric-value">{{ emergency_overdue }}</div>
+          <div class="metric-foot">Urgent callback opportunities</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Qualified</div>
+          <div class="metric-value">{{ hot_leads }}</div>
+          <div class="metric-foot">Ready for review</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Booked This Week</div>
+          <div class="metric-value">{{ booked_week }}</div>
+          <div class="metric-foot">Scheduled estimate activity</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Won This Month</div>
+          <div class="metric-value">{{ won_month }}</div>
+          <div class="metric-foot">Closed business this month</div>
+        </div>
+
+        <div class="metric-card metric-card-accent">
+          <div class="metric-label">Response SLA</div>
+          <div class="metric-value">{{ response_sla_label }}</div>
+          <div class="metric-foot">Target for hot lead touch</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REVENUE + HEALTH -->
+    <section class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Revenue & Pipeline Health</div>
+          <div class="settings-card-subtitle">A quick owner read on revenue motion, response pressure, and what matters next.</div>
+        </div>
+        <span class="settings-pill">Insight</span>
+      </div>
+
+      <div class="dashboard-health-grid-clean">
+        <div class="workspace-metric-card">
+          <div class="workspace-metric-label">Estimated Pipeline Value</div>
+          <div class="workspace-metric-value">${{ "{:,.0f}".format(estimated_pipeline_value) }}</div>
+        </div>
+
+        <div class="workspace-metric-card">
+          <div class="workspace-metric-label">At-Risk Opportunities</div>
+          <div class="workspace-metric-value">
+            {% if emergency_overdue > 0 %}
+              {{ emergency_overdue }} lead{% if emergency_overdue != 1 %}s{% endif %} need immediate attention
+            {% else %}
+              No urgent callback risk detected
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="workspace-metric-card">
+          <div class="workspace-metric-label">Best Move Right Now</div>
+          <div class="workspace-metric-value">
+            {% if emergency_overdue > 0 %}
+              Call the highest-priority qualified lead now
+            {% elif hot_leads > 0 %}
+              Push qualified leads toward estimate booking
+            {% elif contacted_count > 0 %}
+              Follow up contacted opportunities today
+            {% else %}
+              Review the inbox and clear new conversations
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="workspace-metric-card">
+          <div class="workspace-metric-label">Pipeline Health</div>
+          <div class="workspace-metric-value">{{ pipeline_health }}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- URGENT LEADS -->
+    <section class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Urgent Leads Queue</div>
+          <div class="settings-card-subtitle">The highest-priority leads that should be reviewed first.</div>
+        </div>
+        <a class="btn btn-secondary" href="/inbox">Open Inbox</a>
+      </div>
+
+      {% if recent_hot_leads %}
+      <div class="queue-list">
+        {% for lead in recent_hot_leads %}
+        <a class="queue-item" href="/lead/{{ lead.id }}">
+          <div class="queue-item-main">
+            <div class="queue-item-name">{{ lead.customer_name or lead.phone_number }}</div>
+            <div class="queue-item-sub">
+              {{ lead.job_type or "unknown job" }}
+              {% if lead.postal_code %} · {{ lead.postal_code }}{% endif %}
+              {% if lead.urgency %} · {{ lead.urgency|title }}{% endif %}
+            </div>
+          </div>
+
+          <div class="queue-item-side">
+            <div class="queue-tags">
+              {% if lead.priority == "high" %}
+                <span class="badge red">High Priority</span>
+              {% elif lead.priority == "medium" %}
+                <span class="badge amber">Medium</span>
+              {% else %}
+                <span class="badge gray">Low</span>
+              {% endif %}
+
+              {% if lead.insurance_claim %}
+                <span class="badge purple">Insurance</span>
+              {% endif %}
+
+              {% if lead.status == "qualified" %}
+                <span class="badge blue">Qualified</span>
+              {% endif %}
+            </div>
+            <div class="queue-time">{{ format_dt(lead.updated_at) }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-inline-state">No urgent leads right now.</div>
+      {% endif %}
+    </section>
+
+    <!-- BOTTOM ROW -->
+    <div class="dashboard-lower-grid-clean">
+      <section class="settings-card">
+        <div class="settings-card-head">
+          <div>
+            <div class="settings-card-title">Pipeline Snapshot</div>
+            <div class="settings-card-subtitle">Where active leads are currently sitting.</div>
+          </div>
+          <a class="btn btn-secondary" href="/pipeline">View Pipeline</a>
+        </div>
+
+        <div class="mini-pipeline-grid">
+          <div class="mini-stage stage-new">
+            <div class="mini-stage-top">
+              <div class="mini-stage-label">New</div>
+              <strong>{{ new_today }}</strong>
+            </div>
+            <div class="mini-stage-bar">
+              <span style="width: {{ 0 if open_leads_total == 0 else (new_today * 100 / open_leads_total)|round(0) }}%"></span>
+            </div>
+          </div>
+
+          <div class="mini-stage stage-qualified">
+            <div class="mini-stage-top">
+              <div class="mini-stage-label">Qualified</div>
+              <strong>{{ hot_leads }}</strong>
+            </div>
+            <div class="mini-stage-bar">
+              <span style="width: {{ 0 if open_leads_total == 0 else (hot_leads * 100 / open_leads_total)|round(0) }}%"></span>
+            </div>
+          </div>
+
+          <div class="mini-stage stage-contacted">
+            <div class="mini-stage-top">
+              <div class="mini-stage-label">Contacted</div>
+              <strong>{{ contacted_count }}</strong>
+            </div>
+            <div class="mini-stage-bar">
+              <span style="width: {{ 0 if open_leads_total == 0 else (contacted_count * 100 / open_leads_total)|round(0) }}%"></span>
+            </div>
+          </div>
+
+          <div class="mini-stage stage-booked">
+            <div class="mini-stage-top">
+              <div class="mini-stage-label">Booked</div>
+              <strong>{{ booked_week }}</strong>
+            </div>
+            <div class="mini-stage-bar">
+              <span style="width: {{ 0 if open_leads_total == 0 else (booked_week * 100 / open_leads_total)|round(0) }}%"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <div class="settings-card-head">
+          <div>
+            <div class="settings-card-title">Conversion Performance</div>
+            <div class="settings-card-subtitle">Simple operating metrics to judge sales flow quickly.</div>
+          </div>
+        </div>
+
+        <div class="dashboard-metric-list">
+          <div class="dashboard-metric-row">
+            <span>New → Qualified</span>
+            <strong>
+              {% if open_leads_total > 0 %}
+                {{ ((hot_leads / open_leads_total) * 100)|round(0) }}%
+              {% else %}
+                0%
+              {% endif %}
+            </strong>
+          </div>
+
+          <div class="dashboard-metric-row">
+            <span>Qualified → Booked</span>
+            <strong>
+              {% if hot_leads > 0 %}
+                {{ ((booked_week / hot_leads) * 100)|round(0) }}%
+              {% else %}
+                0%
+              {% endif %}
+            </strong>
+          </div>
+
+          <div class="dashboard-metric-row">
+            <span>Booked → Won</span>
+            <strong>
+              {% if booked_week > 0 %}
+                {{ ((won_month / booked_week) * 100)|round(0) }}%
+              {% else %}
+                0%
+              {% endif %}
+            </strong>
+          </div>
+
+          <div class="dashboard-metric-row">
+            <span>Response Target</span>
+            <strong>{{ response_sla_label }}</strong>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- SIDE COLUMN -->
+  <div class="dashboard-side-stack">
+    <section class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Today’s Activity</div>
+          <div class="settings-card-subtitle">Live view of the front desk at a glance.</div>
+        </div>
+      </div>
+
+      <div class="activity-list">
+        <div class="activity-row">
+          <span>New leads today</span>
+          <strong>{{ new_today }}</strong>
+        </div>
+        <div class="activity-row">
+          <span>Contacted today</span>
+          <strong>{{ contacted_count }}</strong>
+        </div>
+        <div class="activity-row">
+          <span>Booked this week</span>
+          <strong>{{ booked_week }}</strong>
+        </div>
+        <div class="activity-row">
+          <span>Won this month</span>
+          <strong>{{ won_month }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Business Snapshot</div>
+          <div class="settings-card-subtitle">Current front-desk configuration and messaging state.</div>
+        </div>
+      </div>
+
+      <div class="activity-list">
+        <div class="activity-row">
+          <span>Business Name</span>
+          <strong>{{ settings.business_name }}</strong>
+        </div>
+        <div class="activity-row">
+          <span>Mode</span>
+          <strong>{% if twilio_live %}Live SMS{% else %}Simulation{% endif %}</strong>
+        </div>
+        <div class="activity-row block">
+          <span>First Message</span>
+          <strong>{{ settings.first_message_template.format(business_name=settings.business_name) }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Suggested Actions</div>
+          <div class="settings-card-subtitle">Fast operator shortcuts based on current lead flow.</div>
+        </div>
+      </div>
+
+      <div class="action-stack">
+        <a href="/inbox" class="action-card">
+          <div class="action-card-title">Review active conversations</div>
+          <div class="action-card-sub">Open the workspace and respond to leads quickly.</div>
+        </a>
+
+        <a href="/pipeline" class="action-card">
+          <div class="action-card-title">Move qualified leads forward</div>
+          <div class="action-card-sub">Update pipeline stages and schedule estimates.</div>
+        </a>
+
+        <a href="/settings" class="action-card">
+          <div class="action-card-title">Check front-desk settings</div>
+          <div class="action-card-sub">Review business name and outbound messaging setup.</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Owner Readout</div>
+          <div class="settings-card-subtitle">Plain-English interpretation of what the system is seeing.</div>
+        </div>
+      </div>
+
+      <div class="improvement-stack">
+        <div class="improvement-item">
+          <strong>
+            {% if emergency_overdue > 0 %}
+              Follow-up speed is the biggest risk right now
+            {% elif booked_week > 0 %}
+              Booking flow is moving in the right direction
+            {% else %}
+              Lead flow is light and stable
+            {% endif %}
+          </strong>
+          <span>
+            {% if emergency_overdue > 0 %}
+              One or more qualified leads are close to going cold. Immediate callback effort matters most.
+            {% elif booked_week > 0 %}
+              Booked opportunities are visible. The next goal is converting scheduled jobs into won revenue.
+            {% else %}
+              No serious pressure is showing. The next improvement is generating more qualified conversations.
+            {% endif %}
+          </span>
+        </div>
+
+        <div class="improvement-item">
+          <strong>Qualified demand is visible</strong>
+          <span>{{ hot_leads }} qualified lead{% if hot_leads != 1 %}s{% endif %} are ready for live sales follow-up.</span>
+        </div>
+
+        <div class="improvement-item">
+          <strong>Booking flow status</strong>
+          <span>{{ booked_week }} lead{% if booked_week != 1 %}s{% endif %} have already reached scheduled estimate activity this week.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

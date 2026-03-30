@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <div class="eyebrow">Lead Record</div>
+  <h1 class="page-title">Lead Lifecycle Workspace</h1>
+  <p class="page-subtitle">Review intake details, move pipeline stage, and track operator activity in one place.</p>
+</div>
+
+<div class="lead-detail-shell">
+  <!-- HERO HEADER -->
+  <section class="lead-hero-card">
+    <div class="lead-hero-top">
+      <div>
+        <div class="lead-hero-name">{{ lead.customer_name or lead.phone_number }}</div>
+        <div class="lead-hero-phone">{{ lead.phone_number }}</div>
+      </div>
+
+      <div class="lead-hero-badges">
+        {% if lead.status == "qualified" %}
+          <span class="badge blue">Qualified</span>
+        {% elif lead.status == "new" %}
+          <span class="badge blue">New</span>
+        {% endif %}
+
+        {% if lead.priority == "high" %}
+          <span class="badge red">High Priority</span>
+        {% elif lead.priority == "medium" %}
+          <span class="badge amber">Medium Priority</span>
+        {% elif lead.priority == "low" %}
+          <span class="badge gray">Low Priority</span>
+        {% endif %}
+
+        {% if lead.insurance_claim == "yes" %}
+          <span class="badge purple">Insurance</span>
+        {% endif %}
+
+        {% if lead.crm_status == "contacted" %}
+          <span class="badge purple">Contacted</span>
+        {% elif lead.crm_status == "booked" %}
+          <span class="badge green">Estimate Scheduled</span>
+        {% elif lead.crm_status == "closed" %}
+          <span class="badge green">Won</span>
+        {% elif lead.crm_status == "lost" %}
+          <span class="badge gray">Lost</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="lead-hero-actions mt-16">
+      <a href="tel:{{ lead.phone_number }}" class="btn btn-primary">Call Lead</a>
+      <a href="/inbox?lead_id={{ lead.id }}" class="btn btn-secondary">Open in Inbox</a>
+      <button type="button" class="btn btn-secondary">Send Follow-up</button>
+    </div>
+
+    <div class="lead-hero-metrics mt-16">
+      <div class="lead-metric-card">
+        <div class="lead-metric-label">Response SLA</div>
+        <div class="lead-metric-value">{{ recommended_response_time(lead.priority) }}</div>
+      </div>
+      <div class="lead-metric-card">
+        <div class="lead-metric-label">Lead Source</div>
+        <div class="lead-metric-value">{{ lead.source or "—" }}</div>
+      </div>
+      <div class="lead-metric-card">
+        <div class="lead-metric-label">Suggested Next Step</div>
+        <div class="lead-metric-value">
+          {% if lead.crm_status == "booked" %}
+            Confirm appointment
+          {% elif lead.crm_status == "contacted" %}
+            Lock estimate date
+          {% elif lead.priority == "high" %}
+            Call immediately
+          {% elif lead.status == "qualified" %}
+            Move to contacted
+          {% else %}
+            Continue intake
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAIN GRID -->
+  <div class="lead-detail-grid">
+    <!-- LEFT COLUMN -->
+    <div class="lead-main-column">
+      <section class="info-card lead-section-card">
+        <div class="section-card-head">
+          <div>
+            <div class="info-label">Pipeline Control</div>
+            <div class="section-card-sub">Move the lead through your sales workflow.</div>
+          </div>
+        </div>
+
+        <form action="/ui/leads/update-stage" method="post" class="stage-form-grid mt-16">
+          <input type="hidden" name="lead_id" value="{{ lead.id }}" />
+
+          <div>
+            <label class="form-label">Pipeline Stage</label>
+            <select class="select" name="crm_status">
+              {% for value, label in stage_options %}
+                {% if value == "qualified" %}
+                  <option value="{{ value }}" {% if lead.status == "qualified" and lead.crm_status == "new" %}selected{% endif %}>{{ label }}</option>
+                {% else %}
+                  <option value="{{ value }}" {% if lead.crm_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Save Stage</button>
+        </form>
+
+        <div class="pipeline-stage-strip mt-16">
+          <div class="stage-pill {% if lead.crm_status == 'new' and lead.status != 'qualified' %}active{% endif %}">New</div>
+          <div class="stage-pill {% if lead.status == 'qualified' and lead.crm_status == 'new' %}active{% endif %}">Qualified</div>
+          <div class="stage-pill {% if lead.crm_status == 'contacted' %}active{% endif %}">Contacted</div>
+          <div class="stage-pill {% if lead.crm_status == 'booked' %}active{% endif %}">Estimate Scheduled</div>
+          <div class="stage-pill {% if lead.crm_status == 'closed' %}active{% endif %}">Won</div>
+          <div class="stage-pill {% if lead.crm_status == 'lost' %}active{% endif %}">Lost</div>
+        </div>
+      </section>
+
+      <section class="info-card lead-section-card mt-16">
+        <div class="section-card-head">
+          <div>
+            <div class="info-label">System Activity</div>
+            <div class="section-card-sub">Auto-generated timeline of lead movement and operator signals.</div>
+          </div>
+        </div>
+
+        <div class="activity-timeline mt-16">
+          {% if activity_log %}
+            {% for event in activity_log %}
+              <div class="activity-item">
+                <div class="activity-rail">
+                  <div class="activity-dot {{ event.type }}"></div>
+                </div>
+                <div class="activity-content">
+                  <div class="activity-head">
+                    <div class="activity-title">{{ event.title }}</div>
+                    <div class="activity-time">{{ format_dt(event.time) }}</div>
+                  </div>
+                  <div class="activity-detail">{{ event.detail }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-inline-state">
+              No activity yet. Activity will appear as messages, notes, and pipeline actions are recorded.
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="info-card lead-section-card mt-16">
+        <div class="section-card-head">
+          <div>
+            <div class="info-label">Conversation Transcript</div>
+            <div class="section-card-sub">{{ lead.messages|length }} messages in this thread.</div>
+          </div>
+        </div>
+
+        <div class="messages messages-pro messages-pro-elite mt-16">
+          {% for msg in lead.messages %}
+            <div class="message {{ msg.direction }}">
+              <div class="message-meta">
+                <strong>{{ msg.direction|title }}</strong>
+                <span>{{ format_dt(msg.created_at) }}</span>
+              </div>
+              <div>{{ msg.body }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="lead-side-column">
+      <section class="info-card lead-section-card">
+        <div class="info-label">Lead Summary</div>
+
+        <div class="summary-list mt-12">
+          <div class="summary-row"><span>Name</span><strong>{{ lead.customer_name or "—" }}</strong></div>
+          <div class="summary-row"><span>Phone</span><strong>{{ lead.phone_number }}</strong></div>
+          <div class="summary-row"><span>Job Type</span><strong>{{ lead.job_type or "—" }}</strong></div>
+          <div class="summary-row"><span>Postal Code</span><strong>{{ lead.postal_code or "—" }}</strong></div>
+          <div class="summary-row"><span>Urgency</span><strong>{{ lead.urgency or "—" }}</strong></div>
+          <div class="summary-row"><span>Insurance</span><strong>{{ lead.insurance_claim or "—" }}</strong></div>
+          <div class="summary-row"><span>Lead Source</span><strong>{{ lead.source or "—" }}</strong></div>
+          <div class="summary-row"><span>Created</span><strong>{{ format_dt(lead.created_at) }}</strong></div>
+          <div class="summary-row"><span>Last Updated</span><strong>{{ format_dt(lead.updated_at) }}</strong></div>
+        </div>
+      </section>
+
+      <section class="info-card lead-section-card mt-16">
+        <div class="info-label">Operator Guidance</div>
+
+        <div class="guidance-stack mt-12">
+          <div class="guidance-item">
+            <strong>Best move now</strong>
+            <span>
+              {% if lead.crm_status == "booked" %}
+                Confirm appointment details and prepare job notes.
+              {% elif lead.crm_status == "contacted" %}
+                Push to estimate scheduling while interest is warm.
+              {% elif lead.priority == "high" %}
+                Call immediately and confirm scope before the lead cools off.
+              {% elif lead.status == "qualified" %}
+                Reach out now and move the lead into active sales handling.
+              {% else %}
+                Continue qualification and collect missing intake details.
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="guidance-item">
+            <strong>Missing info</strong>
+            <span>
+              {% if not lead.job_type or not lead.postal_code or not lead.urgency %}
+                Some core intake fields are still incomplete.
+              {% else %}
+                Core qualification info is complete.
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="guidance-item">
+            <strong>Risk signal</strong>
+            <span>
+              {% if lead.priority == "high" %}
+                High urgency lead should be handled within the SLA window.
+              {% elif lead.crm_status == "lost" %}
+                Lead is marked lost and should be excluded from active pipeline.
+              {% else %}
+                No major risk signals detected right now.
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section class="info-card lead-section-card mt-16">
+        <div class="info-label">Internal Notes</div>
+
+        <form action="/ui/leads/update-notes" method="post" class="form-grid mt-12">
+          <input type="hidden" name="lead_id" value="{{ lead.id }}" />
+          <textarea
+            class="textarea"
+            name="notes"
+            rows="7"
+            placeholder="Add internal notes..."
+          >{{ lead.notes or "" }}</textarea>
+
+          <button class="btn btn-secondary" type="submit">Save Notes</button>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

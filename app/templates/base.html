@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% if page_title %}{{ page_title }} · {% endif %}Roofing Front Desk</title>
+
+  <link rel="stylesheet" href="/static/styles.css">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">RF</div>
+        <div class="brand-text">
+          <div class="brand-title">Roofing Front Desk</div>
+          <div class="brand-subtitle">Missed-call recovery system</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-link {% if active_page == 'dashboard' %}active{% endif %}">
+          <span>Dashboard</span>
+        </a>
+
+        <a href="/inbox" class="nav-link {% if active_page == 'inbox' %}active{% endif %}">
+          <span>Inbox</span>
+        </a>
+
+        <a href="/pipeline" class="nav-link {% if active_page == 'pipeline' %}active{% endif %}">
+          <span>Pipeline</span>
+        </a>
+
+        <a href="/settings" class="nav-link {% if active_page == 'settings' %}active{% endif %}">
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Workspace Mode</div>
+        {% if twilio_live %}
+          <div class="mode-pill">Live SMS</div>
+        {% else %}
+          <div class="mode-pill sim">Simulation</div>
+        {% endif %}
+      </div>
+    </aside>
+
+    <main class="main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Roofing Front Desk Demo{% endblock %}</title>
+
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', path='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/layout.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/styles.css') }}">
+
+  <!-- Page-specific CSS -->
+  {% block page_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-mark">RF</div>
+        <div class="sidebar-brand-copy">
+          <div class="sidebar-brand-title">Roofing Front Desk</div>
+          <div class="sidebar-brand-subtitle">Missed-call recovery system</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a
+          href="/demo/dashboard"
+          class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}"
+        >
+          Dashboard
+        </a>
+
+        <a
+          href="/demo/inbox"
+          class="sidebar-link {% if active_page == 'inbox' %}active{% endif %}"
+        >
+          Inbox
+        </a>
+
+        <a
+          href="/demo/pipeline"
+          class="sidebar-link {% if active_page == 'pipeline' %}active{% endif %}"
+        >
+          Pipeline
+        </a>
+
+        <a
+          href="/demo/settings"
+          class="sidebar-link {% if active_page == 'settings' %}active{% endif %}"
+        >
+          Settings
+        </a>
+      </nav>
+
+      <div class="sidebar-mode">
+        <div class="sidebar-mode-label">Workspace mode</div>
+        <div class="sidebar-mode-pill">Simulation</div>
+      </div>
+
+      <div class="sidebar-footer">
+        <a href="/" class="sidebar-footer-link">Back to landing</a>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="app-main">
+      <!-- Demo Banner -->
+      <section class="demo-banner">
+        <div class="demo-banner-copy">
+          <div class="demo-banner-label">Demo Workspace</div>
+          <div class="demo-banner-text">
+            Sample roofing company data for product preview. Explore the workflow, then book a live walkthrough.
+          </div>
+        </div>
+
+        <div class="demo-banner-actions">
+          <a
+            href="mailto:ahmedasaad19730@gmail.com?subject=Roofing%20Front%20Desk%20Demo"
+            class="btn btn-primary btn-sm"
+          >
+            Book live demo
+          </a>
+          <a href="/demo" class="btn btn-secondary btn-sm">
+            Demo overview
+          </a>
+        </div>
+      </section>
+
+      <!-- Page Content -->
+      <section class="app-page-content">
+        {% block content %}{% endblock %}
+      </section>
+    </main>
+  </div>
+</body>
+</html>

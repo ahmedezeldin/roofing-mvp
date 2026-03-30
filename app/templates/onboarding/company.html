@@ -1,0 +1,152 @@
+{% extends "website.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/onboarding.css">
+{% endblock %}
+
+{% block content %}
+<div class="onboarding-shell">
+  <aside class="onboarding-sidebar">
+    <div class="onboarding-sidebar-badge">Step 1 of 4</div>
+    <h1 class="onboarding-sidebar-title">Company details</h1>
+    <p class="onboarding-sidebar-text">
+      Start by entering the core business information Roofing Front Desk will use to personalize your workflows and operator experience.
+    </p>
+
+    <div class="onboarding-steps">
+      <div class="onboarding-step active">
+        <span>1</span>
+        <div>
+          <strong>Company details</strong>
+          <small>Business identity and service area</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step">
+        <span>2</span>
+        <div>
+          <strong>Workflow preferences</strong>
+          <small>How missed calls should be handled</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step">
+        <span>3</span>
+        <div>
+          <strong>Phone setup</strong>
+          <small>Connect your texting/call flow</small>
+        </div>
+      </div>
+
+      <div class="onboarding-step">
+        <span>4</span>
+        <div>
+          <strong>Complete</strong>
+          <small>Review and enter the app</small>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="onboarding-card">
+    <div class="onboarding-top-row">
+      <div>
+        <div class="onboarding-kicker">Onboarding</div>
+        <h2 class="onboarding-title">Tell us about your roofing company</h2>
+        <p class="onboarding-subtitle">
+          These details help shape your scripts, lead summaries, and operator workspace.
+        </p>
+      </div>
+    </div>
+
+    <form class="onboarding-form" method="get" action="/onboarding/workflow">
+      <div class="onboarding-grid">
+        <div class="onboarding-field">
+          <label class="onboarding-label">Company Name</label>
+          <input type="text" class="input" name="company_name" placeholder="Karl's Roofing" required />
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">Primary Business Phone</label>
+          <input type="tel" class="input" name="business_phone" placeholder="+1 (403) 555-0182" required />
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">Owner / Manager Name</label>
+          <input type="text" class="input" name="owner_name" placeholder="Karl Jensen" required />
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">Primary Email</label>
+          <input type="email" class="input" name="email" placeholder="owner@karlroofing.com" required />
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">City / Primary Market</label>
+          <input type="text" class="input" name="city" placeholder="Calgary, AB" required />
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">Service Radius</label>
+          <select class="input" name="service_radius" required>
+            <option value="">Select radius</option>
+            <option>15 km</option>
+            <option>25 km</option>
+            <option>40 km</option>
+            <option>60 km</option>
+            <option>100+ km</option>
+          </select>
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">Primary Service Type</label>
+          <select class="input" name="service_type" required>
+            <option value="">Select service type</option>
+            <option>Residential Roofing</option>
+            <option>Commercial Roofing</option>
+            <option>Residential + Commercial</option>
+            <option>Storm / Insurance Focus</option>
+          </select>
+        </div>
+
+        <div class="onboarding-field">
+          <label class="onboarding-label">Team Size</label>
+          <select class="input" name="team_size" required>
+            <option value="">Select team size</option>
+            <option>1–3</option>
+            <option>4–10</option>
+            <option>11–25</option>
+            <option>26–50</option>
+            <option>50+</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="onboarding-field full">
+        <label class="onboarding-label">Main Services Offered</label>
+        <textarea
+          class="input textarea"
+          name="services"
+          rows="4"
+          placeholder="Roof repair, roof replacement, storm damage inspections, emergency tarping, gutter work..."
+        ></textarea>
+      </div>
+
+      <div class="onboarding-field full">
+        <label class="onboarding-label">Anything important your intake flow should know?</label>
+        <textarea
+          class="input textarea"
+          name="notes"
+          rows="4"
+          placeholder="Example: prioritize storm damage, avoid after-hours emergency jobs, focus on insurance leads, etc."
+        ></textarea>
+      </div>
+
+      <div class="onboarding-actions">
+        <a href="/signup" class="btn btn-secondary">Back</a>
+        <button type="submit" class="btn btn-primary">Continue to workflow</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

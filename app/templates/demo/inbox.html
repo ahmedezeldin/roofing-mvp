@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-header">
+  <div class="eyebrow">Inbox</div>
+  <h1 class="page-title">Lead Inbox</h1>
+  <p class="page-subtitle">Review live conversations, reply fast, and move leads to the next step.</p>
+</div>
+
+{% set selected = selected_lead %}
+{% set waiting_on_us = high_priority_count %}
+{% set waiting_on_customer = 0 %}
+{% set ready_to_book = booked_count %}
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Needs Reply</div>
+    <div class="stat-value">{{ waiting_on_us }}</div>
+    <div class="stat-sub">Priority leads needing action</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Urgent</div>
+    <div class="stat-value">{{ high_priority_count }}</div>
+    <div class="stat-sub">Immediate callback opportunities</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Qualified</div>
+    <div class="stat-value">{{ qualified_count }}</div>
+    <div class="stat-sub">Ready for follow-up</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">Ready to Book</div>
+    <div class="stat-value">{{ ready_to_book }}</div>
+    <div class="stat-sub">Estimate scheduling candidates</div>
+  </div>
+</div>
+
+<div class="inbox-layout inbox-layout-pro">
+  <section class="inbox-list inbox-list-pro">
+    <div class="inbox-list-header">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Conversations</div>
+          <div class="section-subtitle">Most recently updated first.</div>
+        </div>
+        <span class="badge blue">{{ leads|length }} shown</span>
+      </div>
+
+      <form method="get" action="/inbox" class="inbox-filter-form">
+        <div class="inbox-search-row mb-12">
+          <input
+            type="text"
+            name="search"
+            value="{{ search }}"
+            class="input"
+            placeholder="Search name, phone, or postal code"
+          />
+          <button type="submit" class="btn btn-secondary">Search</button>
+        </div>
+
+        <div class="inbox-filter-grid mb-12">
+          <div>
+            <label class="form-label">Stage</label>
+            <select name="crm_status_filter" class="select">
+              <option value="all" {% if crm_status_filter == "all" %}selected{% endif %}>All</option>
+              <option value="new" {% if crm_status_filter == "new" %}selected{% endif %}>New</option>
+              <option value="qualified" {% if crm_status_filter == "qualified" %}selected{% endif %}>Qualified</option>
+              <option value="contacted" {% if crm_status_filter == "contacted" %}selected{% endif %}>Contacted</option>
+              <option value="booked" {% if crm_status_filter == "booked" %}selected{% endif %}>Booked</option>
+              <option value="closed" {% if crm_status_filter == "closed" %}selected{% endif %}>Closed</option>
+              <option value="lost" {% if crm_status_filter == "lost" %}selected{% endif %}>Lost</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Priority</label>
+            <select name="priority_filter" class="select">
+              <option value="all" {% if priority_filter == "all" %}selected{% endif %}>All</option>
+              <option value="high" {% if priority_filter == "high" %}selected{% endif %}>High</option>
+              <option value="medium" {% if priority_filter == "medium" %}selected{% endif %}>Medium</option>
+              <option value="low" {% if priority_filter == "low" %}selected{% endif %}>Low</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Insurance</label>
+            <select name="insurance_filter" class="select">
+              <option value="all" {% if insurance_filter == "all" %}selected{% endif %}>All</option>
+              <option value="yes" {% if insurance_filter == "yes" %}selected{% endif %}>Yes</option>
+              <option value="no" {% if insurance_filter == "no" %}selected{% endif %}>No</option>
+              <option value="unknown" {% if insurance_filter == "unknown" %}selected{% endif %}>Unknown</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom: 14px;">
+          <button type="submit" class="btn btn-primary">Apply Filters</button>
+          <a href="/inbox" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <form method="post" action="/ui/leads/create">
+        <label class="form-label">Create lead manually</label>
+        <div style="display:flex; gap:10px;">
+          <input
+            type="text"
+            name="phone_number"
+            class="input"
+            placeholder="Create lead from phone number"
+            required
+          />
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="inbox-items inbox-items-pro">
+      {% if leads %}
+        {% for lead in leads %}
+        <a
+          href="/inbox?lead_id={{ lead.id }}&crm_status_filter={{ crm_status_filter }}&priority_filter={{ priority_filter }}&insurance_filter={{ insurance_filter }}&search={{ search }}"
+          class="inbox-item inbox-item-pro {% if selected and selected.id == lead.id %}active{% endif %}"
+        >
+          <div class="list-item-top">
+            <div style="min-width:0;">
+              <div class="list-item-title">{{ lead.customer_name or lead.phone_number }}</div>
+              <div class="inbox-lead-line">
+                {{ lead.job_type or "unknown job" }}
+                {% if lead.postal_code %} • {{ lead.postal_code }}{% endif %}
+                {% if lead.urgency %} • {{ lead.urgency }}{% endif %}
+              </div>
+            </div>
+
+            <div class="inbox-mini-tags">
+              {% if lead.priority == "high" %}
+                <span class="badge red">High</span>
+              {% elif lead.priority == "medium" %}
+                <span class="badge amber">Medium</span>
+              {% else %}
+                <span class="badge gray">Low</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="inbox-preview-line">
+            {% if lead.messages and lead.messages[-1] %}
+              {{ lead.messages[-1].body[:90] }}{% if lead.messages[-1].body|length > 90 %}...{% endif %}
+            {% elif lead.notes %}
+              {{ lead.notes[:90] }}{% if lead.notes|length > 90 %}...{% endif %}
+            {% else %}
+              No conversation yet.
+            {% endif %}
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px;">
+            <div class="deal-time">{{ format_dt(lead.updated_at) }}</div>
+            <div class="inbox-mini-tags">
+              {% if lead.insurance_claim == "yes" %}
+                <span class="badge purple">Insurance</span>
+              {% endif %}
+              {% if lead.status == "qualified" %}
+                <span class="badge blue">Qualified</span>
+              {% elif lead.crm_status == "contacted" %}
+                <span class="badge purple">Contacted</span>
+              {% elif lead.crm_status == "booked" %}
+                <span class="badge green">Booked</span>
+              {% elif lead.crm_status == "new" %}
+                <span class="badge gray">New</span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="inbox-empty-state">
+          <div class="inbox-empty-icon">✦</div>
+          <div class="inbox-empty-title">No conversations found</div>
+          <div class="inbox-empty-text">Try resetting filters or create a lead manually to begin testing the inbox workflow.</div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="detail-panel detail-panel-pro workspace-shell">
+    {% if selected %}
+    <div class="detail-header detail-header-pro workspace-sticky-header">
+      <div class="detail-header-top" style="display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+        <div>
+          <h2 class="page-title" style="font-size: 24px; margin-bottom:6px;">{{ selected.customer_name or selected.phone_number }}</h2>
+          <div class="muted" style="font-size: 18px;">{{ selected.phone_number }}</div>
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+            {% if selected.status == "qualified" %}
+              <span class="badge blue">Qualified</span>
+            {% endif %}
+            {% if selected.priority == "high" %}
+              <span class="badge red">High Priority</span>
+            {% elif selected.priority == "medium" %}
+              <span class="badge amber">Medium Priority</span>
+            {% else %}
+              <span class="badge gray">Low Priority</span>
+            {% endif %}
+            {% if selected.insurance_claim == "yes" %}
+              <span class="badge purple">Insurance</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="quick-actions-row" style="display:flex; gap:10px; flex-wrap:wrap;">
+          <a href="tel:{{ selected.phone_number }}" class="btn btn-primary">Call</a>
+          <button type="button" class="btn btn-secondary">Text</button>
+          <button type="button" class="btn btn-secondary">Qualify</button>
+          <button type="button" class="btn btn-secondary">Book Estimate</button>
+        </div>
+      </div>
+
+      <div class="workspace-strip-grid mt-16">
+        <div class="workspace-metric-card">
+          <div class="workspace-metric-label">Response SLA</div>
+          <div class="workspace-metric-value">
+            {% if selected.priority == "high" %}
+              Call within 5 minutes
+            {% elif selected.priority == "medium" %}
+              Follow up today
+            {% else %}
+              Review within business hours
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="workspace-metric-card">
+          <div class="workspace-metric-label">Lead Source</div>
+          <div class="workspace-metric-value">{{ selected.source or "unknown" }}</div>
+        </div>
+
+        <div class="workspace-metric-card">
+          <div class="workspace-metric-label">Conversation State</div>
+          <div class="workspace-metric-value">{{ selected.conversation_state or "active" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-body detail-body-fill">
+      <div class="detail-grid detail-grid-pro detail-grid-elite">
+        <div class="conversation-stack">
+          <div class="info-card detail-conversation-card-elite">
+            <div class="conversation-card-head">
+              <div class="info-label">Conversation</div>
+              <div class="conversation-head-note">{{ selected.messages|length if selected.messages else 0 }} messages</div>
+            </div>
+
+            <div class="messages messages-pro messages-pro-elite">
+              {% if selected.messages %}
+                {% for msg in selected.messages %}
+                <div class="message {{ msg.direction }}">
+                  <div class="message-meta">
+                    <strong>{{ msg.direction|title }}</strong>
+                    <span>{{ format_dt(msg.created_at) }}</span>
+                  </div>
+                  <div>{{ msg.body }}</div>
+                </div>
+                {% endfor %}
+              {% else %}
+                <div class="empty-inline-state">No messages yet for this lead.</div>
+              {% endif %}
+            </div>
+
+            <div class="conversation-composer">
+              <div class="form-label">Quick templates</div>
+              <div class="template-chip-row mb-12">
+                <button type="button" class="template-chip">Ask for address</button>
+                <button type="button" class="template-chip">Request photos</button>
+                <button type="button" class="template-chip">Insurance claim?</button>
+                <button type="button" class="template-chip">Schedule callback</button>
+                <button type="button" class="template-chip">Confirm appointment</button>
+              </div>
+
+              <form method="post" action="/ui/messages/send" class="composer-row">
+                <input type="hidden" name="lead_id" value="{{ selected.id }}" />
+                <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
+                <div class="form-label">Reply by SMS</div>
+                <input
+                  type="text"
+                  name="body"
+                  class="input"
+                  placeholder="Type SMS reply..."
+                  required
+                />
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                  <button type="submit" class="btn btn-primary">Send SMS</button>
+                  <button type="button" class="btn btn-secondary">Use Template</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="workspace-right-column workspace-right-column-elite">
+          <div class="info-card">
+            <div class="info-label">Lead Facts</div>
+            <div class="summary-list">
+              <div class="summary-row">
+                <span>Job Type</span>
+                <strong>{{ selected.job_type or "—" }}</strong>
+              </div>
+              <div class="summary-row">
+                <span>Postal</span>
+                <strong>{{ selected.postal_code or "—" }}</strong>
+              </div>
+              <div class="summary-row">
+                <span>Urgency</span>
+                <strong>{{ selected.urgency or "—" }}</strong>
+              </div>
+              <div class="summary-row">
+                <span>Insurance</span>
+                <strong>{{ selected.insurance_claim or "—" }}</strong>
+              </div>
+              <div class="summary-row">
+                <span>Source</span>
+                <strong>{{ selected.source or "—" }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-label">Workflow</div>
+            <form method="post" action="/ui/leads/update-status">
+              <input type="hidden" name="lead_id" value="{{ selected.id }}" />
+              <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
+
+              <label class="form-label">CRM Status</label>
+              <select name="crm_status" class="select">
+                <option value="new" {% if selected.crm_status == "new" %}selected{% endif %}>New</option>
+                <option value="contacted" {% if selected.crm_status == "contacted" %}selected{% endif %}>Contacted</option>
+                <option value="booked" {% if selected.crm_status == "booked" %}selected{% endif %}>Booked</option>
+                <option value="closed" {% if selected.crm_status == "closed" %}selected{% endif %}>Closed</option>
+                <option value="lost" {% if selected.crm_status == "lost" %}selected{% endif %}>Lost</option>
+              </select>
+
+              <button type="submit" class="btn btn-primary" style="width:100%; margin-top:12px;">Save Status</button>
+            </form>
+          </div>
+
+          <div class="info-card">
+            <div class="info-label">Internal Notes</div>
+            <form method="post" action="/ui/leads/update-notes">
+              <input type="hidden" name="lead_id" value="{{ selected.id }}" />
+              <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
+              <textarea name="notes" class="textarea" placeholder="Add internal notes...">{{ selected.notes or "" }}</textarea>
+              <button type="submit" class="btn btn-secondary" style="width:100%; margin-top:12px;">Save Notes</button>
+            </form>
+          </div>
+
+          <div class="info-card">
+            <div class="info-label">Operator Guidance</div>
+            <div class="guidance-stack">
+              <div class="guidance-item">
+                <strong>Best move now</strong>
+                <span>
+                  {% if selected.priority == "high" %}
+                    Confirm scope, verify urgency, and offer the fastest available inspection slot.
+                  {% elif selected.crm_status == "contacted" %}
+                    Follow up and push toward a scheduled estimate.
+                  {% elif selected.crm_status == "booked" %}
+                    Confirm appointment timing and prep notes.
+                  {% else %}
+                    Continue qualification and move the lead forward.
+                  {% endif %}
+                </span>
+              </div>
+
+              <div class="guidance-item">
+                <strong>Missing info</strong>
+                <span>
+                  {% if not selected.postal_code %}
+                    Postal code still missing.
+                  {% elif not selected.job_type %}
+                    Job type still missing.
+                  {% elif not selected.urgency %}
+                    Urgency still missing.
+                  {% else %}
+                    Core qualification information is complete.
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+
+            <a href="/lead/{{ selected.id }}" class="btn btn-secondary" style="width:100%; margin-top:12px;">Open Full Lead Page</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="detail-body">
+      <div class="empty-inline-state">Select a conversation from the left to begin working the lead.</div>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

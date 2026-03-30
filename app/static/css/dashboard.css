@@ -1,0 +1,261 @@
+.dashboard-home-grid-clean {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+
+.dashboard-main-stack,
+.dashboard-side-stack {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+.dashboard-summary-grid-clean {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.dashboard-health-grid-clean {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dashboard-lower-grid-clean {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.queue-list {
+  display: grid;
+  gap: 12px;
+}
+
+.queue-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.queue-item-main {
+  min-width: 0;
+}
+
+.queue-item-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.queue-item-sub {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.queue-item-side {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  min-width: 150px;
+}
+
+.queue-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.queue-time {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.metric-card {
+  background: #ffffff;
+  border: 1px solid #dbe4f0;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.metric-card-accent {
+  border-color: #c7d2fe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 24px;
+  line-height: 1.05;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.metric-foot {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.dashboard-metric-list {
+  display: grid;
+  gap: 0;
+}
+
+.dashboard-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.dashboard-metric-row:last-child {
+  border-bottom: none;
+}
+
+.activity-list {
+  display: grid;
+  gap: 0;
+}
+
+.activity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.activity-row:last-child {
+  border-bottom: none;
+}
+
+.activity-row.block {
+  align-items: flex-start;
+}
+
+.activity-row.block strong {
+  max-width: 220px;
+  line-height: 1.45;
+}
+
+.action-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.action-card {
+  display: block;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.action-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.action-card-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.improvement-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.improvement-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.improvement-item strong {
+  display: block;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.improvement-item span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+@media (max-width: 1400px) {
+  .dashboard-summary-grid-clean {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .dashboard-home-grid-clean {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-lower-grid-clean {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-summary-grid-clean {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .dashboard-health-grid-clean {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-summary-grid-clean {
+    grid-template-columns: 1fr;
+  }
+
+  .queue-item {
+    flex-direction: column;
+  }
+
+  .queue-item-side {
+    width: 100%;
+    min-width: 0;
+    justify-items: start;
+  }
+
+  .queue-tags {
+    justify-content: flex-start;
+  }
+}

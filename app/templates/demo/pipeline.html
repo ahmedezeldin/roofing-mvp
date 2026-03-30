@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-shell">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">Sales pipeline</p>
+      <h1 class="page-title">Lead Pipeline</h1>
+      <p class="page-subtitle">Track every roofing lead from first contact to closed job.</p>
+    </div>
+    <div class="page-actions">
+      <a href="/inbox" class="btn btn-secondary">Open Inbox</a>
+      <a href="/settings" class="btn btn-primary">Settings</a>
+    </div>
+  </div>
+
+  {% set ns = namespace(total_value=0) %}
+  {% for status, leads_in_col in columns.items() %}
+    {% for lead in leads_in_col %}
+      {% set value = 0 %}
+      {% if lead.job_type == "replacement" %}
+        {% set value = 18000 %}
+      {% elif lead.job_type == "repair" %}
+        {% set value = 3500 %}
+      {% elif lead.job_type == "inspection" %}
+        {% set value = 750 %}
+      {% else %}
+        {% set value = 2500 %}
+      {% endif %}
+      {% set ns.total_value = ns.total_value + value %}
+    {% endfor %}
+  {% endfor %}
+
+  <section class="pipeline-summary-grid">
+    <div class="metric-card">
+      <div class="metric-label">New</div>
+      <div class="metric-value">{{ columns["new"]|length }}</div>
+      <div class="metric-foot">Fresh inbound leads</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Qualified</div>
+      <div class="metric-value">{{ columns["qualified"]|length }}</div>
+      <div class="metric-foot">High intent opportunities</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Contacted</div>
+      <div class="metric-value">{{ columns["contacted"]|length }}</div>
+      <div class="metric-foot">Actively being worked</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Booked</div>
+      <div class="metric-value">{{ columns["booked"]|length }}</div>
+      <div class="metric-foot">Appointments scheduled</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Closed</div>
+      <div class="metric-value">{{ columns["closed"]|length }}</div>
+      <div class="metric-foot">Won jobs</div>
+    </div>
+    <div class="metric-card metric-card-accent">
+      <div class="metric-label">Pipeline Value</div>
+      <div class="metric-value">${{ "{:,}".format(ns.total_value) }}</div>
+      <div class="metric-foot">Estimated revenue in motion</div>
+    </div>
+  </section>
+
+  <section class="pipeline-board">
+    {% set stage_meta = {
+      "new": {"label": "New", "desc": "Needs qualification", "class": "stage-new"},
+      "qualified": {"label": "Qualified", "desc": "Strong fit / high intent", "class": "stage-qualified"},
+      "contacted": {"label": "Contacted", "desc": "Follow-up in progress", "class": "stage-contacted"},
+      "booked": {"label": "Booked", "desc": "Estimate or inspection set", "class": "stage-booked"},
+      "closed": {"label": "Closed", "desc": "Won revenue", "class": "stage-closed"},
+      "lost": {"label": "Lost", "desc": "Did not convert", "class": "stage-lost"}
+    } %}
+
+    {% for status_key in ["new", "qualified", "contacted", "booked", "closed", "lost"] %}
+      {% set leads_in_col = columns[status_key] %}
+      {% set meta = stage_meta[status_key] %}
+
+      <div class="pipeline-column {{ meta.class }}">
+        <div class="pipeline-column-head">
+          <div>
+            <div class="pipeline-column-title">{{ meta.label }}</div>
+            <div class="pipeline-column-subtitle">{{ meta.desc }}</div>
+          </div>
+          <div class="pipeline-count">{{ leads_in_col|length }}</div>
+        </div>
+
+        <div class="pipeline-column-body">
+          {% if leads_in_col %}
+            {% for lead in leads_in_col %}
+              {% set value = 2500 %}
+              {% if lead.job_type == "replacement" %}
+                {% set value = 18000 %}
+              {% elif lead.job_type == "repair" %}
+                {% set value = 3500 %}
+              {% elif lead.job_type == "inspection" %}
+                {% set value = 750 %}
+              {% endif %}
+
+              {% set next_action = "Review lead" %}
+              {% if status_key == "new" %}
+                {% set next_action = "Qualify now" %}
+              {% elif status_key == "qualified" %}
+                {% set next_action = "Call immediately" %}
+              {% elif status_key == "contacted" %}
+                {% set next_action = "Follow up today" %}
+              {% elif status_key == "booked" %}
+                {% set next_action = "Confirm appointment" %}
+              {% elif status_key == "closed" %}
+                {% set next_action = "Won" %}
+              {% elif status_key == "lost" %}
+                {% set next_action = "Archive / review" %}
+              {% endif %}
+
+              <a href="/lead/{{ lead.id }}" class="pipeline-lead-card">
+                <div class="lead-card-top">
+                  <div>
+                    <div class="lead-name">
+                      {{ lead.customer_name or "Unknown Prospect" }}
+                    </div>
+                    <div class="lead-phone">{{ lead.phone_number }}</div>
+                  </div>
+
+                  {% if lead.priority == "high" %}
+                    <span class="badge badge-danger">Hot</span>
+                  {% elif lead.priority == "medium" %}
+                    <span class="badge badge-warning">Warm</span>
+                  {% else %}
+                    <span class="badge badge-neutral">Low</span>
+                  {% endif %}
+                </div>
+
+                <div class="lead-chip-row">
+                  <span class="chip">
+                    {{ lead.job_type|title if lead.job_type else "Unspecified" }}
+                  </span>
+
+                  {% if lead.insurance_claim is not none %}
+                    <span class="chip">
+                      Insurance: {{ "Yes" if lead.insurance_claim else "No" }}
+                    </span>
+                  {% else %}
+                    <span class="chip">Insurance: Unknown</span>
+                  {% endif %}
+                </div>
+
+                <div class="lead-meta-grid">
+                  <div class="lead-meta-item">
+                    <span class="meta-label">Stage</span>
+                    <span class="meta-value">{{ meta.label }}</span>
+                  </div>
+                  <div class="lead-meta-item">
+                    <span class="meta-label">Est. Value</span>
+                    <span class="meta-value">${{ "{:,}".format(value) }}</span>
+                  </div>
+                  <div class="lead-meta-item">
+                    <span class="meta-label">Last Activity</span>
+                    <span class="meta-value">{{ format_dt(lead.updated_at) }}</span>
+                  </div>
+                  <div class="lead-meta-item">
+                    <span class="meta-label">Next Action</span>
+                    <span class="meta-value">{{ next_action }}</span>
+                  </div>
+                </div>
+
+                {% if lead.notes %}
+                  <div class="lead-note-preview">
+                    {{ lead.notes[:110] }}{% if lead.notes|length > 110 %}...{% endif %}
+                  </div>
+                {% endif %}
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="pipeline-empty">
+              <div class="pipeline-empty-icon">—</div>
+              <div class="pipeline-empty-title">No leads</div>
+              <div class="pipeline-empty-text">Nothing in this stage right now.</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}
