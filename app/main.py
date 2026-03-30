@@ -1,16 +1,15 @@
+import os
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
 
+import stripe
 from fastapi import FastAPI, Request, Depends, Form, HTTPException, Query
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from twilio.twiml.messaging_response import MessagingResponse
-import os
-import stripe
-from fastapi.responses import JSONResponse
 
 from .db import Base, engine, get_db
 from . import models, schemas, logic
@@ -23,6 +22,18 @@ app = FastAPI(title="Roofing Front Desk")
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
+# ----------------------------
+# STRIPE CONFIG
+# ----------------------------
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+
+APP_BASE_URL = os.getenv("APP_BASE_URL", "https://www.roofingfrontdesk.com")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_PILOT = os.getenv("STRIPE_PRICE_PILOT", "")
+STRIPE_PRICE_GROWTH = os.getenv("STRIPE_PRICE_GROWTH", "")
+STRIPE_PRICE_SETUP = os.getenv("STRIPE_PRICE_SETUP", "")
 
 
 def format_dt(dt: Optional[datetime]) -> str:
@@ -246,6 +257,27 @@ def build_activity_log(lead: models.Lead) -> list[dict]:
     return sorted(activity_log, key=lambda x: x["time"] or lead.created_at, reverse=True)
 
 
+def get_checkout_prices(plan: str) -> tuple[str, list[dict]]:
+    normalized = (plan or "").strip().lower()
+
+    if normalized == "pilot":
+        if not STRIPE_PRICE_PILOT:
+            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_PILOT")
+        return "Roofing Front Desk Pilot", [{"price": STRIPE_PRICE_PILOT, "quantity": 1}]
+
+    if normalized == "growth":
+        if not STRIPE_PRICE_GROWTH:
+            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_GROWTH")
+
+        line_items = [{"price": STRIPE_PRICE_GROWTH, "quantity": 1}]
+        if STRIPE_PRICE_SETUP:
+            line_items.append({"price": STRIPE_PRICE_SETUP, "quantity": 1})
+
+        return "Roofing Front Desk Growth", line_items
+
+    raise HTTPException(status_code=400, detail="Invalid plan")
+
+
 # ----------------------------
 # PUBLIC PAGES
 # ----------------------------
@@ -260,6 +292,221 @@ def landing_page(request: Request):
         },
     )
 
+
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "pricing.html",
+        {
+            "page_title": "Pricing",
+        },
+    )
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {
+            "page_title": "Login",
+        },
+    )
+
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "signup.html",
+        {
+            "page_title": "Start Setup",
+        },
+    )
+
+
+@app.get("/onboarding/company", response_class=HTMLResponse)
+def onboarding_company_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "onboarding/company.html",
+        {
+            "page_title": "Company Details",
+        },
+    )
+
+
+@app.get("/onboarding/workflow", response_class=HTMLResponse)
+def onboarding_workflow_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "onboarding/workflow.html",
+        {
+            "page_title": "Workflow Preferences",
+            "business_name": "your roofing company",
+        },
+    )
+
+
+@app.get("/onboarding/twilio", response_class=HTMLResponse)
+def onboarding_twilio_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "onboarding/twilio.html",
+        {
+            "page_title": "Phone Setup",
+        },
+    )
+
+
+@app.get("/onboarding/complete", response_class=HTMLResponse)
+def onboarding_complete_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "onboarding/complete.html",
+        {
+            "page_title": "Setup Complete",
+        },
+    )
+
+
+@app.get("/billing", response_class=HTMLResponse)
+def billing_page(
+    request: Request,
+    plan: str = Query("growth"),
+    canceled: int = Query(0),
+):
+    normalized_plan = plan.lower()
+
+    if normalized_plan == "pilot":
+        selected_plan = "Pilot"
+        monthly_price = "$497"
+        setup_fee = "$0"
+        due_today = "$0"
+    else:
+        selected_plan = "Growth"
+        monthly_price = "$997"
+        setup_fee = "$500"
+        due_today = "$500"
+
+    return templates.TemplateResponse(
+        request,
+        "billing.html",
+        {
+            "page_title": "Billing",
+            "selected_plan": selected_plan,
+            "selected_plan_slug": normalized_plan,
+            "monthly_price": monthly_price,
+            "setup_fee": setup_fee,
+            "due_today": due_today,
+            "canceled": bool(canceled),
+        },
+    )
+
+
+@app.get("/billing/success", response_class=HTMLResponse)
+def billing_success_page(
+    request: Request,
+    session_id: Optional[str] = Query(None),
+):
+    session_data = None
+
+    if session_id and stripe.api_key:
+        try:
+            session_data = stripe.checkout.Session.retrieve(session_id)
+        except Exception:
+            session_data = None
+
+    return templates.TemplateResponse(
+        request,
+        "billing_success.html",
+        {
+            "page_title": "Billing Success",
+            "session_id": session_id,
+            "session_data": session_data,
+        },
+    )
+
+
+# ----------------------------
+# STRIPE CHECKOUT
+# ----------------------------
+
+@app.post("/stripe/create-checkout-session")
+def create_checkout_session(plan: str = Form(...)):
+    if not stripe.api_key:
+        raise HTTPException(status_code=500, detail="Missing STRIPE_SECRET_KEY")
+
+    _, line_items = get_checkout_prices(plan)
+
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=line_items,
+            success_url=f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{APP_BASE_URL}/billing?plan={plan}&canceled=1",
+            allow_promotion_codes=True,
+        )
+        return RedirectResponse(url=checkout_session.url, status_code=303)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Stripe checkout error: {exc}")
+
+
+@app.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=500, detail="Missing STRIPE_WEBHOOK_SECRET")
+
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    if not sig_header:
+        raise HTTPException(status_code=400, detail="Missing Stripe signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=sig_header,
+            secret=STRIPE_WEBHOOK_SECRET,
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    event_type = event["type"]
+
+    if event_type == "checkout.session.completed":
+        session = event["data"]["object"]
+        print("checkout.session.completed", session.get("id"))
+
+    elif event_type == "customer.subscription.created":
+        subscription = event["data"]["object"]
+        print("customer.subscription.created", subscription.get("id"))
+
+    elif event_type == "customer.subscription.updated":
+        subscription = event["data"]["object"]
+        print("customer.subscription.updated", subscription.get("id"))
+
+    elif event_type == "customer.subscription.deleted":
+        subscription = event["data"]["object"]
+        print("customer.subscription.deleted", subscription.get("id"))
+
+    elif event_type == "invoice.paid":
+        invoice = event["data"]["object"]
+        print("invoice.paid", invoice.get("id"))
+
+    elif event_type == "invoice.payment_failed":
+        invoice = event["data"]["object"]
+        print("invoice.payment_failed", invoice.get("id"))
+
+    return JSONResponse({"received": True})
+
+
+# ----------------------------
+# DEMO INDEX
+# ----------------------------
 
 @app.get("/demo", response_class=HTMLResponse)
 def demo_index(request: Request):
@@ -578,7 +825,7 @@ def api_create_missed_call_lead(payload: schemas.LeadCreate, db: Session = Depen
     )
 
 
-@app.get("/api/leads", response_model=schemas.LeadOut)
+@app.get("/api/leads", response_model=list[schemas.LeadOut])
 def api_list_leads(db: Session = Depends(get_db)):
     return db.query(models.Lead).order_by(models.Lead.created_at.desc()).all()
 
@@ -640,88 +887,3 @@ def twilio_inbound(
     resp = MessagingResponse()
     resp.message(reply)
     return HTMLResponse(content=str(resp), media_type="application/xml")
-
-@app.get("/pricing", response_class=HTMLResponse)
-def pricing_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "pricing.html",
-        {
-            "page_title": "Pricing",
-        },
-    )
-
-@app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "login.html",
-        {
-            "page_title": "Login",
-        },
-    )
-
-@app.get("/signup", response_class=HTMLResponse)
-def signup_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "signup.html",
-        {
-            "page_title": "Start Setup",
-        },
-    )
-
-@app.get("/onboarding/company", response_class=HTMLResponse)
-def onboarding_company_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "onboarding/company.html",
-        {
-            "page_title": "Company Details",
-        },
-    )
-
-@app.get("/onboarding/workflow", response_class=HTMLResponse)
-def onboarding_workflow_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "onboarding/workflow.html",
-        {
-            "page_title": "Workflow Preferences",
-            "business_name": "your roofing company",
-        },
-    )
-
-@app.get("/onboarding/twilio", response_class=HTMLResponse)
-def onboarding_twilio_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "onboarding/twilio.html",
-        {
-            "page_title": "Phone Setup",
-        },
-    )
-
-@app.get("/onboarding/complete", response_class=HTMLResponse)
-def onboarding_complete_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "onboarding/complete.html",
-        {
-            "page_title": "Setup Complete",
-        },
-    )
-
-@app.get("/billing", response_class=HTMLResponse)
-def billing_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "billing.html",
-        {
-            "page_title": "Billing",
-            "selected_plan": "Growth",
-            "monthly_price": "$999",
-            "setup_fee": "$1,500",
-            "due_today": "$1,500",
-        },
-    )
