@@ -53,80 +53,68 @@
     <div class="onboarding-top-row">
       <div>
         <div class="onboarding-kicker">Billing</div>
-        <h2 class="onboarding-title">Review plan and add payment details</h2>
+        <h2 class="onboarding-title">Review plan and continue to secure checkout</h2>
         <p class="onboarding-subtitle">
-          Your setup is complete. Confirm your subscription details below to activate your workspace.
+          Billing is handled securely through Stripe. Review your plan below, then continue to checkout to activate your workspace.
         </p>
       </div>
     </div>
 
     <div class="billing-layout">
-      <form class="onboarding-form billing-form" method="get" action="/onboarding/complete">
-        <div class="onboarding-grid">
-          <div class="onboarding-field">
-            <label class="onboarding-label">Cardholder Name</label>
-            <input type="text" class="input" placeholder="Ahmed Ezeldin" required />
-          </div>
-
-          <div class="onboarding-field">
-            <label class="onboarding-label">Billing Email</label>
-            <input type="email" class="input" placeholder="you@roofingcompany.com" required />
+      <div class="onboarding-form billing-form">
+        <div class="billing-note-card">
+          <div class="onboarding-info-title">Secure checkout</div>
+          <div class="onboarding-info-text">
+            Your payment details are not entered directly on this page. When you continue, you’ll be redirected to Stripe’s secure hosted checkout to complete your subscription.
           </div>
         </div>
 
-        <div class="onboarding-field full">
-          <label class="onboarding-label">Card Number</label>
-          <input type="text" class="input" placeholder="4242 4242 4242 4242" required />
-        </div>
-
-        <div class="onboarding-grid">
-          <div class="onboarding-field">
-            <label class="onboarding-label">Expiry Date</label>
-            <input type="text" class="input" placeholder="MM / YY" required />
-          </div>
-
-          <div class="onboarding-field">
-            <label class="onboarding-label">CVC</label>
-            <input type="text" class="input" placeholder="123" required />
+        {% if canceled %}
+        <div class="billing-note-card" style="border-color: rgba(220, 38, 38, 0.2); background: rgba(220, 38, 38, 0.04);">
+          <div class="onboarding-info-title">Checkout canceled</div>
+          <div class="onboarding-info-text">
+            No payment was processed. You can review the plan and try again whenever you're ready.
           </div>
         </div>
+        {% endif %}
 
-        <div class="onboarding-field full">
-          <label class="onboarding-label">Billing Address</label>
-          <input type="text" class="input" placeholder="123 Main Street" required />
-        </div>
-
-        <div class="onboarding-grid">
-          <div class="onboarding-field">
-            <label class="onboarding-label">City</label>
-            <input type="text" class="input" placeholder="Calgary" required />
-          </div>
-
-          <div class="onboarding-field">
-            <label class="onboarding-label">Postal Code</label>
-            <input type="text" class="input" placeholder="T2X 1A1" required />
+        <div class="billing-note-card">
+          <div class="onboarding-info-title">What happens after payment</div>
+          <div class="onboarding-info-text">
+            Once checkout is completed, your subscription is activated and your Roofing Front Desk workspace is ready for launch.
           </div>
         </div>
 
         <div class="billing-note-card">
-          <div class="onboarding-info-title">What happens after this</div>
+          <div class="onboarding-info-title">What you’re paying for</div>
           <div class="onboarding-info-text">
-            Once billing is confirmed, your workspace is activated and you’ll enter your account dashboard with your setup already applied.
+            Your subscription covers the software workspace, workflow logic, and rollout support included in your selected plan. Twilio phone and messaging usage may be billed separately depending on configuration.
           </div>
         </div>
 
         <div class="onboarding-actions">
           <a href="/onboarding/twilio" class="btn btn-secondary">Back</a>
-          <button type="submit" class="btn btn-primary">Activate workspace</button>
+
+          <form action="/stripe/create-checkout-session" method="post" style="margin: 0;">
+            <input type="hidden" name="plan" value="{{ selected_plan_slug|default('growth') }}">
+            <button type="submit" class="btn btn-primary">Continue to secure checkout</button>
+          </form>
         </div>
-      </form>
+      </div>
 
       <aside class="billing-summary-card">
         <div class="billing-summary-kicker">Order Summary</div>
         <h3 class="billing-summary-title">{{ selected_plan|default("Growth") }}</h3>
+
+        {% if selected_plan_slug == "pilot" %}
+        <p class="billing-summary-text">
+          A proof-of-value rollout for roofing companies that want to test missed-call recovery before a full operational rollout.
+        </p>
+        {% else %}
         <p class="billing-summary-text">
           A real operating rollout for roofing companies ready to run missed-call recovery live.
         </p>
+        {% endif %}
 
         <div class="billing-summary-lines">
           <div class="billing-summary-line">
@@ -152,12 +140,22 @@
 
         <div class="billing-feature-box">
           <div class="billing-feature-title">Included in this plan</div>
+
+          {% if selected_plan_slug == "pilot" %}
+          <ul class="pricing-side-list">
+            <li>1 qualification workflow</li>
+            <li>Missed-call text-back</li>
+            <li>Inbox + dashboard access</li>
+            <li>Standard onboarding support</li>
+          </ul>
+          {% else %}
           <ul class="pricing-side-list">
             <li>Multiple workflows by job type</li>
             <li>Branching logic and qualification</li>
             <li>Inbox + pipeline + reporting</li>
             <li>Guided launch support</li>
           </ul>
+          {% endif %}
         </div>
       </aside>
     </div>
