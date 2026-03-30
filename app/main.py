@@ -381,14 +381,14 @@ def billing_page(
 
     if normalized_plan == "pilot":
         selected_plan = "Pilot"
-        monthly_price = "$497"
-        setup_fee = "$0"
-        due_today = "$0"
+        monthly_price = "$499"
+        setup_fee = "$750"
+        due_today = "$750"
     else:
         selected_plan = "Growth"
-        monthly_price = "$997"
-        setup_fee = "$500"
-        due_today = "$500"
+        monthly_price = "$999"
+        setup_fee = "$1,500"
+        due_today = "$1,500"
 
     return templates.TemplateResponse(
         request,
