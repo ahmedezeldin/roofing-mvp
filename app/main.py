@@ -442,13 +442,20 @@ def billing_success_page(
 # ----------------------------
 # STRIPE CHECKOUT
 # ----------------------------
-
 @app.post("/stripe/create-checkout-session")
 def create_checkout_session(plan: str = Form(...)):
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Missing STRIPE_SECRET_KEY")
 
-    _, line_items = get_checkout_prices(plan)
+    plan_name, line_items = get_checkout_prices(plan)
+
+    print("DEBUG plan:", plan)
+    print("DEBUG plan_name:", plan_name)
+    print("DEBUG STRIPE_PRICE_GROWTH:", STRIPE_PRICE_GROWTH)
+    print("DEBUG STRIPE_PRICE_GROWTH_SETUP:", STRIPE_PRICE_GROWTH_SETUP)
+    print("DEBUG STRIPE_PRICE_PILOT:", STRIPE_PRICE_PILOT)
+    print("DEBUG STRIPE_PRICE_PILOT_SETUP:", STRIPE_PRICE_PILOT_SETUP)
+    print("DEBUG line_items:", line_items)
 
     try:
         checkout_session = stripe.checkout.Session.create(
