@@ -435,3 +435,9 @@
     grid-template-columns: 1fr;
   }
 }
+.landing-pro-trust-line {
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #64748b;
+}
