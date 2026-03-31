@@ -17,8 +17,7 @@
       </p>
 
       <div class="pricing-hero-actions">
-        <a href="/demo/dashboard" class="btn btn-primary">View product demo</a>
-        <a href="/signup" class="btn btn-secondary">Start setup</a>
+        <a href="/demo/dashboard" class="btn btn-secondary">View product demo</a>
       </div>
     </div>
 
@@ -36,14 +35,14 @@
           </div>
           <div class="pricing-decision-item">
             <strong>Custom</strong>
-            <span>For deeper rollout scope, special workflows, or high-touch implementation.</span>
+            <span>For deeper rollout scope, special workflows, or higher-touch implementation.</span>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="pricing-grid-section">
+  <section class="pricing-grid-section" id="plans">
     <div class="pricing-grid">
 
       <!-- PILOT -->
@@ -59,7 +58,7 @@
           <div class="plan-period">/month</div>
         </div>
 
-        <div class="plan-setup">+$1500 one-time setup</div>
+        <div class="plan-setup">+$1,500 one-time setup</div>
 
         <div class="plan-section">
           <div class="plan-section-label">Best for</div>
@@ -94,7 +93,7 @@
         <div class="plan-actions">
           <form action="/stripe/create-checkout-session" method="post">
             <input type="hidden" name="plan" value="pilot">
-            <button type="submit" class="btn btn-primary">Start pilot</button>
+            <button type="submit" class="btn btn-primary">Choose Pilot</button>
           </form>
         </div>
       </div>
@@ -146,7 +145,7 @@
         <div class="plan-actions">
           <form action="/stripe/create-checkout-session" method="post">
             <input type="hidden" name="plan" value="growth">
-            <button type="submit" class="btn btn-primary">Choose growth</button>
+            <button type="submit" class="btn btn-primary">Choose Growth</button>
           </form>
         </div>
       </div>
@@ -186,7 +185,7 @@
 
         <div class="plan-actions">
           <a href="mailto:ahmedasaad19730@gmail.com?subject=Roofing%20Front%20Desk%20Custom%20Plan" class="btn btn-secondary">
-            Contact sales
+            Talk to sales
           </a>
         </div>
       </div>
@@ -218,34 +217,41 @@
 
   <section class="pricing-faq-section">
     <div class="pricing-kicker">FAQ</div>
-    <h2 class="pricing-section-title">Questions roofing owners will ask</h2>
+    <h2 class="pricing-section-title">Common buying questions</h2>
 
     <div class="pricing-faq-grid">
       <div class="faq-card">
-        <div class="faq-title">Do Twilio costs count separately?</div>
+        <div class="faq-title">What happens after I choose a plan?</div>
         <div class="faq-text">
-          Yes. Messaging and phone usage can be passed through separately depending on how the account is configured.
+          After you choose a plan, you’ll complete a short setup flow with your business details, service area, and workflow preferences. Then you’ll review your order and pay securely online. After payment, we configure your system and send your rollout steps.
         </div>
       </div>
 
       <div class="faq-card">
-        <div class="faq-title">Can the workflow be customized?</div>
+        <div class="faq-title">Do I have to set everything up myself?</div>
         <div class="faq-text">
-          Yes. Pilot gives you a basic qualification flow. Growth adds deeper branching, routing, and more operational flexibility.
+          No. You provide your business and workflow details during checkout, and we handle the actual configuration. Roofing Front Desk is not instant self-install software — we set it up for your business after purchase so it’s ready to run properly.
         </div>
       </div>
 
       <div class="faq-card">
-        <div class="faq-title">Do I need to set it up myself?</div>
+        <div class="faq-title">Are Twilio phone and messaging costs included?</div>
         <div class="faq-text">
-          No. Both plans include setup help, but Growth is designed for a more guided live rollout.
+          Twilio usage is billed separately based on your phone number, call forwarding, and text volume. Your Roofing Front Desk subscription covers the software, workflow logic, inbox, dashboard, and rollout support.
         </div>
       </div>
 
       <div class="faq-card">
-        <div class="faq-title">Can I see the product before committing?</div>
+        <div class="faq-title">Can I upgrade or customize later?</div>
         <div class="faq-text">
-          Yes. Explore the demo first, then start setup when you’re ready.
+          Yes. Many companies start with Pilot to validate the workflow, then upgrade to Growth once they want more service areas, deeper branching, or higher lead volume. If your workflow is more advanced, we can scope a Custom rollout.
+        </div>
+      </div>
+
+      <div class="faq-card">
+        <div class="faq-title">How long does rollout take after payment?</div>
+        <div class="faq-text">
+          Most Pilot and Growth rollouts are configured and ready within a few business days after purchase, depending on workflow complexity and how quickly we receive any final business details.
         </div>
       </div>
     </div>
@@ -254,15 +260,15 @@
   <section class="pricing-bottom-cta">
     <div>
       <div class="pricing-kicker">Next step</div>
-      <h2 class="pricing-section-title">Explore the product or start your setup.</h2>
+      <h2 class="pricing-section-title">Explore the product or choose the plan that fits your operation.</h2>
       <p class="pricing-bottom-text">
-        See how Roofing Front Desk works in the demo, then move into signup when you’re ready to configure it for your business.
+        Review the demo if you want to see the workflow first, or choose your plan above and move straight into setup and payment.
       </p>
     </div>
 
     <div class="pricing-bottom-actions">
       <a href="/demo/dashboard" class="btn btn-primary">View product demo</a>
-      <a href="/signup" class="btn btn-secondary">Start setup</a>
+      <a href="#plans" class="btn btn-secondary">Choose a plan</a>
     </div>
   </section>
 </div>
