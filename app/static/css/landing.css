@@ -488,3 +488,92 @@
     grid-template-columns: 1fr;
   }
 }
+.landing-pro-trust-line {
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.landing-perspective-band {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.landing-perspective-card {
+  background: #ffffff;
+  border: 1px solid #d9e1ef;
+  border-radius: 24px;
+  padding: 22px 22px 20px;
+}
+
+.landing-perspective-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.landing-perspective-text {
+  font-size: 16px;
+  line-height: 1.65;
+  color: #475569;
+}
+
+.landing-economics-band {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 28px;
+  align-items: start;
+  margin-top: 40px;
+}
+
+.landing-economics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.landing-economics-card {
+  background: #ffffff;
+  border: 1px solid #d9e1ef;
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.landing-economics-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.landing-economics-text {
+  font-size: 16px;
+  line-height: 1.65;
+  color: #475569;
+}
+
+.section-title-lg {
+  font-size: clamp(42px, 5vw, 58px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.section-title-lg.compact {
+  font-size: clamp(40px, 4.5vw, 54px);
+}
+
+@media (max-width: 960px) {
+  .landing-perspective-band,
+  .landing-economics-band,
+  .landing-economics-grid {
+    grid-template-columns: 1fr;
+  }
+}
