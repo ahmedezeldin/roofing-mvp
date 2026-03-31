@@ -10,34 +10,14 @@
     <div class="pricing-hero-copy">
       <div class="pricing-kicker">Pricing</div>
       <h1 class="pricing-hero-title">
-        Choose between a proof-of-value pilot or a real operating rollout.
+        Simple pricing for roofing companies that want to stop losing missed-call leads.
       </h1>
       <p class="pricing-hero-text">
-        Pilot is for testing one missed-call workflow in one market. Growth is for running Roofing Front Desk as part of your actual day-to-day operations.
+        Start with Pilot to prove the value in one market, or choose Growth to run Roofing Front Desk as a real operating system across your business.
       </p>
 
       <div class="pricing-hero-actions">
         <a href="/demo/dashboard" class="btn btn-secondary">View product demo</a>
-      </div>
-    </div>
-
-    <div class="pricing-hero-side">
-      <div class="pricing-side-card">
-        <div class="pricing-side-label">Quick buyer decision</div>
-        <div class="pricing-decision-stack">
-          <div class="pricing-decision-item">
-            <strong>Pilot</strong>
-            <span>Test one workflow, one number, limited volume.</span>
-          </div>
-          <div class="pricing-decision-item">
-            <strong>Growth</strong>
-            <span>Run the system live with branching, routing, and team handoff.</span>
-          </div>
-          <div class="pricing-decision-item">
-            <strong>Custom</strong>
-            <span>For deeper rollout scope, special workflows, or higher-touch implementation.</span>
-          </div>
-        </div>
       </div>
     </div>
   </section>
@@ -47,10 +27,10 @@
 
       <!-- PILOT -->
       <div class="plan-card">
-        <div class="plan-badge">Good for evaluation</div>
+        <div class="plan-badge">Starter plan</div>
         <div class="plan-title">Pilot</div>
         <div class="plan-subtitle">
-          Prove missed-call recovery works before committing to a full rollout.
+          Prove missed-call recovery works before rolling it out across your operation.
         </div>
 
         <div class="plan-price-row">
@@ -58,25 +38,223 @@
           <div class="plan-period">/month</div>
         </div>
 
-        <div class="plan-setup">+$1,500 one-time setup</div>
+        <div class="plan-setup">Guided setup included</div>
 
         <div class="plan-section">
           <div class="plan-section-label">Best for</div>
           <div class="plan-section-text">
-            One office testing one workflow in one service area.
+            One market. One number. One simple workflow.
           </div>
         </div>
 
         <div class="plan-section">
-          <div class="plan-section-label">Includes</div>
+          <div class="plan-section-label">What you get</div>
           <ul class="plan-feature-list">
-            <li>1 business number / 1 service area</li>
-            <li>1 qualification workflow</li>
-            <li>Basic missed-call text-back</li>
-            <li>2–4 qualification prompts</li>
-            <li>Inbox + dashboard access</li>
-            <li>Up to 50 recovered leads / month</li>
-            <li>Standard onboarding + email support</li>
+            <li>1 phone number / service area</li>
+            <li>Missed-call text-back</li>
+            <li>Basic lead capture</li>
+            <li>Simple inbox view</li>
+            <li>Up to 30 recovered leads / month</li>
+            <li>Phone and texting included</li>
+          </ul>
+        </div>
+
+        <div class="plan-section">
+          <div class="plan-section-label">What stays locked</div>
+          <ul class="plan-feature-list plan-feature-list-muted">
+            <li>Advanced qualification logic</li>
+            <li>Routing and team handoff</li>
+            <li>Pipeline and reporting</li>
+            <li>Multi-area rollout</li>
+          </ul>
+        </div>
+
+        <div class="plan-actions">
+          <form action="/stripe/create-checkout-session" method="post">
+            <input type="hidden" name="plan" value="pilot">
+            <button type="submit" class="btn btn-primary">Choose Pilot</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- GROWTH -->
+      <div class="plan-card plan-card-featured">
+        <div class="plan-badge plan-badge-featured">Best value</div>
+        <div class="plan-title">Growth</div>
+        <div class="plan-subtitle">
+          The full version for roofing companies ready to run this live.
+        </div>
+
+        <div class="plan-price-row">
+          <div class="plan-price">$999</div>
+          <div class="plan-period">/month</div>
+        </div>
+
+        <div class="plan-setup">Guided setup included</div>
+
+        <div class="plan-section">
+          <div class="plan-section-label">Best for</div>
+          <div class="plan-section-text">
+            Companies ready to use Roofing Front Desk as a real operating system.
+          </div>
+        </div>
+
+        <div class="plan-section">
+          <div class="plan-section-label">What you get</div>
+          <ul class="plan-feature-list">
+            <li>Up to 3 phone numbers / service areas</li>
+            <li>Full lead qualification flow</li>
+            <li>Insurance, urgency, and photo prompts</li>
+            <li>Routing and team handoff</li>
+            <li>Shared inbox + pipeline + reporting</li>
+            <li>Up to 250 recovered leads / month</li>
+            <li>Phone and texting included</li>
+          </ul>
+        </div>
+
+        <div class="plan-section">
+          <div class="plan-section-label">Why most teams choose it</div>
+          <ul class="plan-feature-list plan-feature-list-highlight">
+            <li>This is the full product</li>
+            <li>Built for real day-to-day operations</li>
+            <li>Designed to scale past the pilot stage</li>
+          </ul>
+        </div>
+
+        <div class="plan-actions">
+          <form action="/stripe/create-checkout-session" method="post">
+            <input type="hidden" name="plan" value="growth">
+            <button type="submit" class="btn btn-primary">Choose Growth</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- CUSTOM -->
+      <div class="plan-card">
+        <div class="plan-badge">Larger teams</div>
+        <div class="plan-title">Custom</div>
+        <div class="plan-subtitle">
+          For multi-location operators, higher lead volume, or deeper workflow needs.
+        </div>
+
+        <div class="plan-price-row">
+          <div class="plan-price">Custom</div>
+          <div class="plan-period">pricing</div>
+        </div>
+
+        <div class="plan-setup">Built around your operation</div>
+
+        <div class="plan-section">
+          <div class="plan-section-label">Best for</div>
+          <div class="plan-section-text">
+            Multi-location teams, larger call volume, or custom rollout requirements.
+          </div>
+        </div>
+
+        <div class="plan-section">
+          <div class="plan-section-label">Typical use cases</div>
+          <ul class="plan-feature-list">
+            <li>4+ service areas or phone numbers</li>
+            <li>Higher-volume inbound demand</li>
+            <li>Custom routing and intake rules</li>
+            <li>Advanced rollout support</li>
+          </ul>
+        </div>
+
+        <div class="plan-actions">
+          <a href="mailto:ahmedasaad19730@gmail.com?subject=Roofing%20Front%20Desk%20Custom%20Plan" class="btn btn-secondary">
+            Talk to sales
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="pricing-roi-section">
+    <div class="pricing-kicker">ROI in simple terms</div>
+    <h2 class="pricing-section-title">
+      If even one missed call turns into a booked roofing job, the math gets obvious fast.
+    </h2>
+
+    <div class="pricing-metric-grid">
+      <div class="pricing-metric-card">
+        <div class="pricing-metric-label">1 booked roofing job</div>
+        <div class="pricing-metric-value">$8,000–$15,000+</div>
+      </div>
+      <div class="pricing-metric-card">
+        <div class="pricing-metric-label">Pilot monthly fee</div>
+        <div class="pricing-metric-value">$499</div>
+      </div>
+      <div class="pricing-metric-card">
+        <div class="pricing-metric-label">Growth monthly fee</div>
+        <div class="pricing-metric-value">$999</div>
+      </div>
+    </div>
+
+    <p class="pricing-roi-note">
+      Roofing Front Desk is not built to save tiny amounts of time. It is built to help recover missed-call opportunities before they go cold. For most roofing companies, one recovered opportunity that turns into real work can justify the software quickly.
+    </p>
+  </section>
+
+  <section class="pricing-faq-section">
+    <div class="pricing-kicker">FAQ</div>
+    <h2 class="pricing-section-title">Common buying questions</h2>
+
+    <div class="pricing-faq-accordion">
+      <details class="faq-item">
+        <summary class="faq-summary">
+          <span>What happens after I choose a plan?</span>
+          <span class="faq-arrow">⌄</span>
+        </summary>
+        <div class="faq-answer">
+          You’ll complete a short guided setup, review your configuration, and pay securely online. Your initial workflow is then created automatically so you can get started right away.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-summary">
+          <span>Do I need technical experience to use this?</span>
+          <span class="faq-arrow">⌄</span>
+        </summary>
+        <div class="faq-answer">
+          No. Roofing Front Desk is designed for roofing owners and office teams. The setup is guided, simple, and built to get you live without technical work.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-summary">
+          <span>Is phone and texting included?</span>
+          <span class="faq-arrow">⌄</span>
+        </summary>
+        <div class="faq-answer">
+          Yes. Normal phone and messaging usage is included in Pilot and Growth, so you don’t need to manage a separate phone or messaging bill just to get started.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-summary">
+          <span>What’s the difference between Pilot and Growth?</span>
+          <span class="faq-arrow">⌄</span>
+        </summary>
+        <div class="faq-answer">
+          Pilot is intentionally limited for proving value in one service area with one simple workflow. Growth unlocks the full operating system — deeper qualification, routing, team handoff, pipeline, and reporting.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-summary">
+          <span>Can I upgrade later?</span>
+          <span class="faq-arrow">⌄</span>
+        </summary>
+        <div class="faq-answer">
+          Yes. Many companies start with Pilot to validate the workflow, then move to Growth once they want the full system running across more of their operation.
+        </div>
+      </details>
+    </div>
+  </section>
+</div>
+{% endblock %}            <li>Standard onboarding + email support</li>
           </ul>
         </div>
 
