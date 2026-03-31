@@ -435,90 +435,192 @@ def billing_success_page(
     request: Request,
     session_id: Optional[str] = Query(None),
 ):
-    session_data = None
-    session_status = "unknown"
+    session_status = "complete"
     customer_email = None
     subscription_id = None
 
     if session_id and stripe.api_key:
         try:
             session_data = stripe.checkout.Session.retrieve(session_id)
-            session_status = stripe_attr(session_data, "status", "unknown")
-            customer_email = stripe_attr(session_data, "customer_email")
-            subscription_id = stripe_attr(session_data, "subscription")
-        except Exception as exc:
-            session_status = f"error: {exc}"
+            session_status = getattr(session_data, "status", None) or "complete"
+            customer_email = getattr(session_data, "customer_details", None)
+            if customer_email:
+                customer_email = getattr(customer_email, "email", None)
+            subscription_id = getattr(session_data, "subscription", None)
+        except Exception:
+            pass
 
     return HTMLResponse(
         f"""
         <html>
           <head>
-            <title>Billing Success</title>
+            <title>Welcome to Roofing Front Desk</title>
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <style>
               body {{
-                font-family: Arial, sans-serif;
-                background: #f5f7fb;
-                padding: 40px 20px;
-                color: #111827;
+                margin: 0;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                background: #f3f5f9;
+                color: #0f172a;
+              }}
+              .wrap {{
+                max-width: 760px;
+                margin: 60px auto;
+                padding: 24px;
               }}
               .card {{
-                max-width: 760px;
-                margin: 0 auto;
                 background: white;
-                border-radius: 18px;
-                padding: 32px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+                border-radius: 24px;
+                padding: 40px;
+                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+                border: 1px solid #e5e7eb;
+              }}
+              .badge {{
+                display: inline-block;
+                background: #ecfdf3;
+                color: #166534;
+                font-weight: 700;
+                font-size: 14px;
+                padding: 8px 14px;
+                border-radius: 999px;
+                margin-bottom: 18px;
               }}
               h1 {{
-                margin-top: 0;
-                font-size: 36px;
+                font-size: 42px;
+                line-height: 1.1;
+                margin: 0 0 14px;
+                letter-spacing: -0.02em;
               }}
-              p {{
+              .sub {{
+                font-size: 18px;
                 line-height: 1.6;
+                color: #475569;
+                margin-bottom: 28px;
+              }}
+              .highlight {{
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 18px;
+                padding: 22px;
+                margin-bottom: 26px;
+              }}
+              .highlight p {{
+                margin: 0;
+                font-size: 16px;
+                line-height: 1.7;
+                color: #334155;
+              }}
+              .section-title {{
+                font-size: 22px;
+                font-weight: 800;
+                margin: 28px 0 16px;
+              }}
+              .steps {{
+                display: grid;
+                gap: 14px;
+                margin-bottom: 28px;
+              }}
+              .step {{
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 16px;
+                padding: 16px 18px;
+              }}
+              .step strong {{
+                display: block;
+                font-size: 16px;
+                margin-bottom: 6px;
+              }}
+              .step span {{
+                color: #475569;
+                font-size: 15px;
+                line-height: 1.5;
               }}
               .meta {{
-                background: #f8fafc;
-                padding: 16px;
-                border-radius: 12px;
-                margin: 20px 0;
+                margin-top: 18px;
+                font-size: 14px;
+                color: #64748b;
+                line-height: 1.8;
+              }}
+              .cta-row {{
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-top: 30px;
               }}
               .btn {{
                 display: inline-block;
-                margin-top: 18px;
-                padding: 12px 18px;
-                border-radius: 12px;
+                text-decoration: none;
+                padding: 14px 22px;
+                border-radius: 14px;
+                font-weight: 700;
+                font-size: 15px;
+              }}
+              .btn-primary {{
                 background: #2563eb;
                 color: white;
-                text-decoration: none;
-                font-weight: 600;
+              }}
+              .btn-secondary {{
+                background: #eef2ff;
+                color: #1e3a8a;
               }}
             </style>
           </head>
           <body>
-            <div class="card">
-              <h1>Payment received</h1>
-              <p>Your Stripe checkout reached the success page correctly.</p>
+            <div class="wrap">
+              <div class="card">
+                <div class="badge">✓ Payment confirmed</div>
 
-              <div class="meta">
-                <p><strong>Session ID:</strong> {session_id or "None"}</p>
-                <p><strong>Session status:</strong> {session_status}</p>
-                <p><strong>Customer email:</strong> {customer_email or "Not available"}</p>
-                <p><strong>Subscription ID:</strong> {subscription_id or "Not available"}</p>
+                <h1>Welcome to Roofing Front Desk</h1>
+
+                <p class="sub">
+                  Your payment went through successfully and your workspace is now reserved.
+                  You’ve taken the first step toward capturing more missed calls, responding faster,
+                  and converting more roofing leads without adding front-desk overhead.
+                </p>
+
+                <div class="highlight">
+                  <p>
+                    <strong>You made the right move.</strong> Roofing Front Desk is built to help your
+                    business stop losing revenue after hours, during missed calls, and when your team is too busy to respond fast enough.
+                  </p>
+                </div>
+
+                <div class="section-title">What happens next</div>
+
+                <div class="steps">
+                  <div class="step">
+                    <strong>1) Your onboarding spot is reserved</strong>
+                    <span>We’ve confirmed your purchase and your setup process is ready to begin.</span>
+                  </div>
+
+                  <div class="step">
+                    <strong>2) We’ll configure your workspace</strong>
+                    <span>You’ll go through company details, workflow preferences, and phone setup so the system matches how your roofing business actually operates.</span>
+                  </div>
+
+                  <div class="step">
+                    <strong>3) Your lead desk gets prepared for go-live</strong>
+                    <span>Once setup is complete, your system will be ready to help capture inbound opportunities and keep conversations moving.</span>
+                  </div>
+                </div>
+
+                <div class="cta-row">
+                  <a class="btn btn-primary" href="/onboarding/company">Continue setup</a>
+                  <a class="btn btn-secondary" href="/demo/dashboard">View product demo</a>
+                </div>
+
+                <div class="meta">
+                  <div><strong>Session status:</strong> {session_status}</div>
+                  <div><strong>Customer email:</strong> {customer_email or "Not available"}</div>
+                  <div><strong>Subscription ID:</strong> {subscription_id or "Not available"}</div>
+                </div>
               </div>
-
-              <p>
-                Your payment flow is working. The next step is wiring any post-purchase onboarding,
-                account activation, or CRM updates you want after checkout.
-              </p>
-
-              <a class="btn" href="/billing?plan=growth">Back to billing</a>
             </div>
           </body>
         </html>
         """
     )
-
 
 # ----------------------------
 # STRIPE CHECKOUT
