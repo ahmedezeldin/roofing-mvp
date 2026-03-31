@@ -1,133 +1,204 @@
 {% extends "website.html" %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="/static/css/auth.css">
+<link rel="stylesheet" href="/static/css/signup.css">
 {% endblock %}
 
 {% block content %}
-<div class="auth-page-shell">
-  <section class="auth-card auth-card-main">
-    <div class="auth-badge">Start Setup</div>
-    <h1 class="auth-title">Create your Roofing Front Desk account</h1>
-    <p class="auth-subtitle">
-      Start with your company details, then move into workflow setup and phone configuration.
-    </p>
+<div class="signup-page-shell">
+  {% set selected_plan = request.args.get('plan', 'pilot') %}
+  {% set plan_name = 'Growth' if selected_plan == 'growth' else 'Pilot' %}
+  {% set plan_price = '$999/month' if selected_plan == 'growth' else '$499/month' %}
 
-    <form class="auth-form" method="get" action="/onboarding/company">
-      <div class="auth-field">
-        <label class="auth-label">Full Name</label>
-        <input
-          type="text"
-          name="full_name"
-          class="input"
-          placeholder="Your full name"
-          required
-        />
+  <!-- TOP TIMELINE -->
+  <section class="setup-progress-shell">
+    <div class="setup-progress-bar">
+      <div class="setup-step setup-step-active">
+        <div class="setup-step-number">1</div>
+        <div class="setup-step-label">Business</div>
       </div>
 
-      <div class="auth-field">
-        <label class="auth-label">Work Email</label>
-        <input
-          type="email"
-          name="email"
-          class="input"
-          placeholder="you@roofingcompany.com"
-          required
-        />
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">2</div>
+        <div class="setup-step-label">Workflow</div>
       </div>
 
-      <div class="auth-field">
-        <label class="auth-label">Company Name</label>
-        <input
-          type="text"
-          name="company_name"
-          class="input"
-          placeholder="Karl's Roofing"
-          required
-        />
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">3</div>
+        <div class="setup-step-label">Review</div>
       </div>
 
-      <div class="auth-field">
-        <label class="auth-label">Password</label>
-        <input
-          type="password"
-          name="password"
-          class="input"
-          placeholder="Create a password"
-          required
-        />
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">4</div>
+        <div class="setup-step-label">Payment</div>
       </div>
-
-      <div class="auth-field">
-        <label class="auth-label">Confirm Password</label>
-        <input
-          type="password"
-          name="confirm_password"
-          class="input"
-          placeholder="Confirm your password"
-          required
-        />
-      </div>
-
-      <div class="auth-row">
-        <label class="auth-checkbox">
-          <input type="checkbox" required />
-          <span>I agree to the setup and service terms</span>
-        </label>
-      </div>
-
-      <button type="submit" class="btn btn-primary auth-submit">
-        Continue setup
-      </button>
-    </form>
-
-    <div class="auth-divider">
-      <span>or</span>
-    </div>
-
-    <div class="auth-alt-actions">
-      <a href="/login" class="btn btn-secondary auth-alt-btn">Log in</a>
-      <a href="/demo/dashboard" class="btn btn-secondary auth-alt-btn">View product demo</a>
-    </div>
-
-    <div class="auth-footer-text">
-      Already have an account?
-      <a href="/login" class="auth-inline-link">Log in</a>
     </div>
   </section>
 
-  <aside class="auth-card auth-card-side">
-    <div class="auth-side-kicker">What happens next</div>
-    <h2 class="auth-side-title">
-      You’ll go from account setup to launch in a few guided steps.
-    </h2>
+  <div class="signup-grid">
+    <!-- LEFT: FORM -->
+    <section class="signup-main-card">
+      <div class="signup-kicker">Step 1 of 4</div>
+      <h1 class="signup-title">Set up your Roofing Front Desk workspace</h1>
+      <p class="signup-subtitle">
+        You’ve chosen the {{ plan_name }} plan. Start by adding your account and company details, then continue through workflow setup, review, and secure payment.
+      </p>
 
-    <div class="auth-side-list">
-      <div class="auth-side-item">
-        <strong>Step 1: Company details</strong>
-        <span>Add your business name, phone, service area, and basic operating info.</span>
+      <form action="/signup" method="post" class="signup-form">
+        <input type="hidden" name="plan" value="{{ selected_plan }}">
+
+        <div class="form-group">
+          <label for="full_name">Full name</label>
+          <input
+            type="text"
+            id="full_name"
+            name="full_name"
+            placeholder="Your full name"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="email">Work email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="you@roofingcompany.com"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="company_name">Company name</label>
+          <input
+            type="text"
+            id="company_name"
+            name="company_name"
+            placeholder="Karl's Roofing"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Business phone</label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            placeholder="(403) 555-1234"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="service_area">Primary service area</label>
+          <input
+            type="text"
+            id="service_area"
+            name="service_area"
+            placeholder="Calgary, AB"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Create a password"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Confirm password</label>
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            placeholder="Confirm your password"
+            required
+          >
+        </div>
+
+        <label class="checkbox-row">
+          <input type="checkbox" name="agree_terms" required>
+          <span>I agree to the setup and service terms</span>
+        </label>
+
+        <button type="submit" class="btn btn-primary btn-full">Continue to workflow setup</button>
+
+        <div class="signup-login-note">
+          Already have an account? <a href="/login">Log in</a>
+        </div>
+      </form>
+    </section>
+
+    <!-- RIGHT: CONTEXT PANEL -->
+    <aside class="signup-side-card">
+      <div class="signup-kicker">Selected plan</div>
+      <div class="selected-plan-card">
+        <div class="selected-plan-top">
+          <div class="selected-plan-name">{{ plan_name }}</div>
+          <div class="selected-plan-price">{{ plan_price }}</div>
+        </div>
+        <p class="selected-plan-text">
+          {% if selected_plan == 'growth' %}
+            The full operating version for roofing companies ready to run Roofing Front Desk live.
+          {% else %}
+            The best way to prove missed-call recovery works before rolling it out across your operation.
+          {% endif %}
+        </p>
       </div>
 
-      <div class="auth-side-item">
-        <strong>Step 2: Workflow preferences</strong>
-        <span>Choose how missed calls should be handled and how leads should be qualified.</span>
+      <div class="signup-side-section">
+        <div class="side-section-title">What happens next</div>
+
+        <div class="side-step-card side-step-card-active">
+          <div class="side-step-title">Step 1: Business details</div>
+          <div class="side-step-text">
+            Create your account and add your company info so your setup is tied to the right business.
+          </div>
+        </div>
+
+        <div class="side-step-card">
+          <div class="side-step-title">Step 2: Workflow setup</div>
+          <div class="side-step-text">
+            Choose how missed calls should be handled, what questions to ask, and how leads should be qualified.
+          </div>
+        </div>
+
+        <div class="side-step-card">
+          <div class="side-step-title">Step 3: Review</div>
+          <div class="side-step-text">
+            Confirm your plan, workflow choices, and setup details before payment.
+          </div>
+        </div>
+
+        <div class="side-step-card">
+          <div class="side-step-title">Step 4: Secure payment</div>
+          <div class="side-step-text">
+            Complete checkout only after everything looks right.
+          </div>
+        </div>
       </div>
 
-      <div class="auth-side-item">
-        <strong>Step 3: Connect phone setup</strong>
-        <span>Link your texting and call-handling setup when you’re ready to launch.</span>
+      <div class="signup-reassurance-card">
+        <div class="reassurance-title">Why this setup flow exists</div>
+        <p class="reassurance-text">
+          Roofing Front Desk isn’t generic software. We use your answers to help configure the right workflow for your business before you pay, so checkout feels clear and your rollout is cleaner.
+        </p>
       </div>
-    </div>
-
-    <div class="auth-side-panel">
-      <div class="auth-side-panel-label">Not ready to start setup?</div>
-      <div class="auth-side-panel-text">
-        Explore the demo first and see how the dashboard, inbox, pipeline, and workflow settings fit together.
-      </div>
-      <div class="mt-16">
-        <a href="/demo/dashboard" class="btn btn-secondary">View product demo</a>
-      </div>
-    </div>
-  </aside>
+    </aside>
+  </div>
 </div>
 {% endblock %}
