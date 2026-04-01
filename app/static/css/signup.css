@@ -354,3 +354,23 @@
     align-items: flex-start;
   }
 }
+.included-plan-card {
+  background: #ffffff;
+  border: 1px solid #d9e1ef;
+  border-radius: 22px;
+  padding: 16px 18px;
+}
+
+.included-plan-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.included-plan-list li {
+  color: #64748b;
+}
