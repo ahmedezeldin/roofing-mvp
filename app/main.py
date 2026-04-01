@@ -1,10 +1,12 @@
 import os
+import secrets
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
 
 import stripe
-from fastapi import FastAPI, Request, Depends, Form, HTTPException, Query
+from passlib.context import CryptContext
+from fastapi import FastAPI, Request, Depends, Form, HTTPException, Query, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -14,12 +16,10 @@ from twilio.twiml.messaging_response import MessagingResponse
 from .db import Base, engine, get_db
 from . import models, schemas, logic
 
-import secrets
-from datetime import datetime, timedelta
 
-from passlib.context import CryptContext
-from fastapi import Response
-
+# --------------------------------------------------
+# APP SETUP
+# --------------------------------------------------
 
 Base.metadata.create_all(bind=engine)
 
@@ -30,9 +30,9 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
-# ----------------------------
-# STRIPE CONFIG
-# ----------------------------
+# --------------------------------------------------
+# ENV / CONFIG
+# --------------------------------------------------
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
 
@@ -46,6 +46,22 @@ STRIPE_PRICE_GROWTH = os.getenv("STRIPE_PRICE_GROWTH", "").strip()
 STRIPE_PRICE_GROWTH_SETUP = os.getenv("STRIPE_PRICE_GROWTH_SETUP", "").strip()
 
 
+# --------------------------------------------------
+# AUTH CONFIG
+# --------------------------------------------------
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+AUTH_COOKIE_NAME = "rfd_session"
+AUTH_COOKIE_SECURE = True
+AUTH_COOKIE_SAMESITE = "lax"
+
+SHORT_SESSION_DAYS = 1
+REMEMBER_ME_DAYS = 30
+# --------------------------------------------------
+# TEMPLATE HELPERS
+# --------------------------------------------------
+
 def format_dt(dt: Optional[datetime]) -> str:
     if not dt:
         return "—"
@@ -54,6 +70,82 @@ def format_dt(dt: Optional[datetime]) -> str:
 
 templates.env.globals["format_dt"] = format_dt
 
+
+# --------------------------------------------------
+# AUTH HELPERS
+# --------------------------------------------------
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, password_hash: str) -> bool:
+    return pwd_context.verify(plain_password, password_hash)
+
+
+def create_user_session(db: Session, user_id: int, remember_me: bool) -> tuple[str, datetime]:
+    token = secrets.token_urlsafe(48)
+    expires_at = datetime.utcnow() + timedelta(
+        days=REMEMBER_ME_DAYS if remember_me else SHORT_SESSION_DAYS
+    )
+
+    session = models.UserSession(
+        user_id=user_id,
+        token=token,
+        expires_at=expires_at,
+    )
+    db.add(session)
+    db.commit()
+
+    return token, expires_at
+
+
+def set_auth_cookie(response: Response, token: str, expires_at: datetime) -> None:
+    max_age = int((expires_at - datetime.utcnow()).total_seconds())
+
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        max_age=max_age,
+        expires=max_age,
+        httponly=True,
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        path="/",
+    )
+
+
+def clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=AUTH_COOKIE_NAME,
+        path="/",
+        samesite=AUTH_COOKIE_SAMESITE,
+    )
+
+
+def get_current_user_from_cookie(request: Request, db: Session) -> Optional[models.AppUser]:
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token:
+        return None
+
+    session = (
+        db.query(models.UserSession)
+        .filter(models.UserSession.token == token)
+        .first()
+    )
+
+    if not session:
+        return None
+
+    if session.expires_at < datetime.utcnow():
+        db.delete(session)
+        db.commit()
+        return None
+
+    return session.user
+    # --------------------------------------------------
+# GENERIC HELPERS
+# --------------------------------------------------
 
 def stripe_attr(obj, name: str, default=None):
     try:
@@ -77,6 +169,91 @@ def get_response_sla_label(priority: Optional[str]) -> str:
         return "Same day"
     return "Business hours"
 
+
+def get_checkout_prices(plan: str) -> tuple[str, list[dict]]:
+    normalized = (plan or "").strip().lower()
+
+    if normalized == "pilot":
+        if not STRIPE_PRICE_PILOT:
+            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_PILOT")
+
+        line_items = [{"price": STRIPE_PRICE_PILOT, "quantity": 1}]
+        if STRIPE_PRICE_PILOT_SETUP:
+            line_items.append({"price": STRIPE_PRICE_PILOT_SETUP, "quantity": 1})
+
+        return "Roofing Front Desk Pilot", line_items
+
+    if normalized == "growth":
+        if not STRIPE_PRICE_GROWTH:
+            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_GROWTH")
+
+        line_items = [{"price": STRIPE_PRICE_GROWTH, "quantity": 1}]
+        if STRIPE_PRICE_GROWTH_SETUP:
+            line_items.append({"price": STRIPE_PRICE_GROWTH_SETUP, "quantity": 1})
+
+        return "Roofing Front Desk Growth", line_items
+
+    raise HTTPException(status_code=400, detail="Invalid plan")
+
+
+# --------------------------------------------------
+# WORKSPACE HELPERS
+# --------------------------------------------------
+
+def create_workspace_for_user(
+    db: Session,
+    user: models.AppUser,
+    plan: str,
+    company_name: str,
+    business_phone: str,
+    primary_service_area: str,
+) -> models.Workspace:
+    workspace = models.Workspace(
+        company_name=company_name.strip(),
+        plan=(plan or "pilot").strip().lower(),
+        business_phone=(business_phone or "").strip(),
+        primary_service_area=(primary_service_area or "").strip(),
+        owner_user_id=user.id,
+        status="pending",
+    )
+    db.add(workspace)
+    db.flush()
+
+    settings = models.BusinessSettings(
+        workspace_id=workspace.id,
+        business_name=company_name.strip(),
+        first_message="Hey, thanks for calling. We missed you — are you looking for a repair, replacement, or inspection?",
+    )
+    db.add(settings)
+    db.commit()
+    db.refresh(workspace)
+
+    return workspace
+
+
+def get_current_workspace(request: Request, db: Session) -> Optional[models.Workspace]:
+    user = get_current_user_from_cookie(request, db)
+    if not user:
+        return None
+
+    return (
+        db.query(models.Workspace)
+        .filter(models.Workspace.owner_user_id == user.id)
+        .first()
+    )
+
+
+def get_workspace_settings(db: Session, workspace_id: int) -> Optional[models.BusinessSettings]:
+    return (
+        db.query(models.BusinessSettings)
+        .filter(models.BusinessSettings.workspace_id == workspace_id)
+        .first()
+    )
+
+
+# --------------------------------------------------
+# DEMO DATA HELPERS
+# --------------------------------------------------
 
 def get_dashboard_stats(db: Session) -> dict:
     now = datetime.utcnow()
@@ -173,6 +350,122 @@ def get_inbox_leads(
 
     return query.order_by(models.Lead.updated_at.desc()).all()
 
+
+# --------------------------------------------------
+# REAL APP HELPERS
+# --------------------------------------------------
+
+def get_dashboard_stats_for_workspace(db: Session, workspace_id: int) -> dict:
+    now = datetime.utcnow()
+    today_start = datetime(now.year, now.month, now.day)
+    week_start = now - timedelta(days=7)
+    month_start = now - timedelta(days=30)
+
+    new_today = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .filter(models.Lead.created_at >= today_start)
+        .count()
+    )
+
+    hot_leads = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .filter(models.Lead.status == "qualified")
+        .filter(models.Lead.priority == "high")
+        .count()
+    )
+
+    contacted_count = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .filter(models.Lead.crm_status == "contacted")
+        .filter(models.Lead.updated_at >= today_start)
+        .count()
+    )
+
+    booked_week = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .filter(models.Lead.crm_status == "booked")
+        .filter(models.Lead.updated_at >= week_start)
+        .count()
+    )
+
+    won_month = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .filter(models.Lead.crm_status == "closed")
+        .filter(models.Lead.updated_at >= month_start)
+        .count()
+    )
+
+    emergency_overdue = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .filter(models.Lead.status == "qualified")
+        .filter(models.Lead.priority == "high")
+        .filter(models.Lead.crm_status.in_(["new", "contacted"]))
+        .count()
+    )
+
+    recent_hot_leads = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .filter(models.Lead.status == "qualified")
+        .order_by(models.Lead.updated_at.desc())
+        .limit(8)
+        .all()
+    )
+
+    return {
+        "new_today": new_today,
+        "hot_leads": hot_leads,
+        "contacted_count": contacted_count,
+        "booked_week": booked_week,
+        "won_month": won_month,
+        "emergency_overdue": emergency_overdue,
+        "recent_hot_leads": recent_hot_leads,
+        "response_sla_label": get_response_sla_label("high"),
+    }
+
+
+def get_inbox_leads_for_workspace(
+    db: Session,
+    workspace_id: int,
+    crm_status_filter: str,
+    search: str,
+    priority_filter: str,
+    insurance_filter: str,
+):
+    query = db.query(models.Lead).filter(models.Lead.workspace_id == workspace_id)
+
+    if crm_status_filter != "all":
+        if crm_status_filter == "qualified":
+            query = query.filter(models.Lead.status == "qualified")
+        else:
+            query = query.filter(models.Lead.crm_status == crm_status_filter)
+
+    if priority_filter != "all":
+        query = query.filter(models.Lead.priority == priority_filter)
+
+    if insurance_filter != "all":
+        query = query.filter(models.Lead.insurance_claim == insurance_filter)
+
+    if search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            (models.Lead.customer_name.ilike(term))
+            | (models.Lead.phone_number.ilike(term))
+            | (models.Lead.postal_code.ilike(term))
+        )
+
+    return query.order_by(models.Lead.updated_at.desc()).all()
+
+
+# --------------------------------------------------
+# SHARED VIEW HELPERS
+# --------------------------------------------------
 
 def build_pipeline_columns(leads):
     columns = {
@@ -279,48 +572,16 @@ def build_activity_log(lead: models.Lead) -> list[dict]:
         )
 
     return sorted(activity_log, key=lambda x: x["time"] or lead.created_at, reverse=True)
-
-
-def get_checkout_prices(plan: str) -> tuple[str, list[dict]]:
-    normalized = (plan or "").strip().lower()
-
-    if normalized == "pilot":
-        if not STRIPE_PRICE_PILOT:
-            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_PILOT")
-
-        line_items = [{"price": STRIPE_PRICE_PILOT, "quantity": 1}]
-
-        if STRIPE_PRICE_PILOT_SETUP:
-            line_items.append({"price": STRIPE_PRICE_PILOT_SETUP, "quantity": 1})
-
-        return "Roofing Front Desk Pilot", line_items
-
-    if normalized == "growth":
-        if not STRIPE_PRICE_GROWTH:
-            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_GROWTH")
-
-        line_items = [{"price": STRIPE_PRICE_GROWTH, "quantity": 1}]
-
-        if STRIPE_PRICE_GROWTH_SETUP:
-            line_items.append({"price": STRIPE_PRICE_GROWTH_SETUP, "quantity": 1})
-
-        return "Roofing Front Desk Growth", line_items
-
-    raise HTTPException(status_code=400, detail="Invalid plan")
-
-
-# ----------------------------
+    # --------------------------------------------------
 # PUBLIC PAGES
-# ----------------------------
+# --------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
 def landing_page(request: Request):
     return templates.TemplateResponse(
         request,
         "landing.html",
-        {
-            "page_title": "Roofing Front Desk",
-        },
+        {"page_title": "Roofing Front Desk"},
     )
 
 
@@ -329,9 +590,7 @@ def pricing_page(request: Request):
     return templates.TemplateResponse(
         request,
         "pricing.html",
-        {
-            "page_title": "Pricing",
-        },
+        {"page_title": "Pricing"},
     )
 
 
@@ -340,9 +599,7 @@ def login_page(request: Request):
     return templates.TemplateResponse(
         request,
         "login.html",
-        {
-            "page_title": "Login",
-        },
+        {"page_title": "Login"},
     )
 
 
@@ -353,9 +610,11 @@ def login_submit(
     remember_me: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
-    user = db.query(models.AppUser).filter(
-        models.AppUser.email == email.strip().lower()
-    ).first()
+    user = (
+        db.query(models.AppUser)
+        .filter(models.AppUser.email == email.strip().lower())
+        .first()
+    )
 
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
@@ -363,20 +622,98 @@ def login_submit(
     remember = remember_me == "1"
     token, expires_at = create_user_session(db, user.id, remember)
 
-    response = RedirectResponse(url="/demo/dashboard", status_code=303)
+    workspace = (
+        db.query(models.Workspace)
+        .filter(models.Workspace.owner_user_id == user.id)
+        .first()
+    )
+
+    destination = "/app/dashboard" if workspace else "/signup"
+
+    response = RedirectResponse(url=destination, status_code=303)
     set_auth_cookie(response, token, expires_at)
     return response
 
 
+@app.post("/logout")
+def logout(request: Request, db: Session = Depends(get_db)):
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+
+    if token:
+        session = (
+            db.query(models.UserSession)
+            .filter(models.UserSession.token == token)
+            .first()
+        )
+        if session:
+            db.delete(session)
+            db.commit()
+
+    response = RedirectResponse(url="/login", status_code=303)
+    clear_auth_cookie(response)
+    return response
+
+
 @app.get("/signup", response_class=HTMLResponse)
-def signup_page(request: Request):
+def signup_page(
+    request: Request,
+    plan: str = Query("pilot"),
+):
     return templates.TemplateResponse(
         request,
         "signup.html",
         {
             "page_title": "Start Setup",
+            "plan": plan.lower(),
         },
     )
+
+
+@app.post("/signup")
+def signup_submit(
+    full_name: str = Form(...),
+    email: str = Form(...),
+    company_name: str = Form(...),
+    phone: str = Form(...),
+    service_area: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    plan: str = Form("pilot"),
+    agree_terms: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    existing_user = (
+        db.query(models.AppUser)
+        .filter(models.AppUser.email == email.strip().lower())
+        .first()
+    )
+    if existing_user:
+        raise HTTPException(status_code=400, detail="An account with this email already exists.")
+
+    if password != confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match.")
+
+    user = models.AppUser(
+        full_name=full_name.strip(),
+        email=email.strip().lower(),
+        company_name=company_name.strip(),
+        password_hash=hash_password(password),
+    )
+    db.add(user)
+    db.flush()
+
+    create_workspace_for_user(
+        db=db,
+        user=user,
+        plan=plan,
+        company_name=company_name,
+        business_phone=phone,
+        primary_service_area=service_area,
+    )
+
+    db.commit()
+
+    return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
 
 
 @app.get("/onboarding/company", response_class=HTMLResponse)
@@ -384,20 +721,22 @@ def onboarding_company_page(request: Request):
     return templates.TemplateResponse(
         request,
         "onboarding/company.html",
-        {
-            "page_title": "Company Details",
-        },
+        {"page_title": "Company Details"},
     )
 
 
 @app.get("/onboarding/workflow", response_class=HTMLResponse)
-def onboarding_workflow_page(request: Request):
+def onboarding_workflow_page(
+    request: Request,
+    plan: str = Query("pilot"),
+):
     return templates.TemplateResponse(
         request,
         "onboarding/workflow.html",
         {
             "page_title": "Workflow Preferences",
             "business_name": "your roofing company",
+            "plan": plan.lower(),
         },
     )
 
@@ -407,9 +746,7 @@ def onboarding_twilio_page(request: Request):
     return templates.TemplateResponse(
         request,
         "onboarding/twilio.html",
-        {
-            "page_title": "Phone Setup",
-        },
+        {"page_title": "Phone Setup"},
     )
 
 
@@ -418,9 +755,7 @@ def onboarding_complete_page(request: Request):
     return templates.TemplateResponse(
         request,
         "onboarding/complete.html",
-        {
-            "page_title": "Setup Complete",
-        },
+        {"page_title": "Setup Complete"},
     )
 
 
@@ -598,13 +933,9 @@ def billing_success_page(
             <div class="wrap">
               <div class="card">
                 <div class="badge">✓ Payment confirmed</div>
-
                 <h1>Welcome to Roofing Front Desk</h1>
-
                 <p class="sub">
                   Your payment went through successfully and your workspace is now reserved.
-                  You’ve taken the first step toward capturing more missed calls, responding faster,
-                  and converting more roofing leads without adding front-desk overhead.
                 </p>
 
                 <div class="highlight">
@@ -649,17 +980,30 @@ def billing_success_page(
         </html>
         """
     )
-
-# ----------------------------
+    # --------------------------------------------------
 # STRIPE CHECKOUT
-# ----------------------------
+# --------------------------------------------------
 
 @app.post("/stripe/create-checkout-session")
-def create_checkout_session(plan: str = Form(...)):
+def create_checkout_session(
+    request: Request,
+    plan: str = Form(...),
+    db: Session = Depends(get_db),
+):
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Missing STRIPE_SECRET_KEY")
 
+    workspace = get_current_workspace(request, db)
     plan_name, line_items = get_checkout_prices(plan)
+
+    metadata = {
+        "plan": plan.lower(),
+        "plan_name": plan_name,
+        "source": "roofing_front_desk_billing",
+    }
+
+    if workspace:
+        metadata["workspace_id"] = str(workspace.id)
 
     try:
         checkout_session = stripe.checkout.Session.create(
@@ -668,19 +1012,16 @@ def create_checkout_session(plan: str = Form(...)):
             success_url=f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{APP_BASE_URL}/billing?plan={plan}&canceled=1",
             allow_promotion_codes=True,
-            metadata={
-                "plan": plan.lower(),
-                "plan_name": plan_name,
-                "source": "roofing_front_desk_billing",
-            },
+            metadata=metadata,
         )
         return RedirectResponse(url=checkout_session.url, status_code=303)
+
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Stripe checkout error: {exc}")
 
 
 @app.post("/stripe/webhook")
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     if not STRIPE_WEBHOOK_SECRET:
         raise HTTPException(status_code=500, detail="Missing STRIPE_WEBHOOK_SECRET")
 
@@ -710,10 +1051,20 @@ async def stripe_webhook(request: Request):
         subscription_id = stripe_attr(obj, "subscription")
         metadata = stripe_attr(obj, "metadata", {}) or {}
 
+        workspace_id = metadata.get("workspace_id")
+        if workspace_id:
+            workspace = (
+                db.query(models.Workspace)
+                .filter(models.Workspace.id == int(workspace_id))
+                .first()
+            )
+            if workspace:
+                workspace.status = "active"
+                workspace.stripe_customer_id = customer_id
+                workspace.stripe_subscription_id = subscription_id
+                db.commit()
+
         print("checkout.session.completed", session_id)
-        print("customer_id", customer_id)
-        print("subscription_id", subscription_id)
-        print("metadata", metadata)
 
     elif event_type == "customer.subscription.created":
         subscription_id = stripe_attr(obj, "id")
@@ -761,26 +1112,22 @@ async def stripe_webhook(request: Request):
         print("subscription_id", subscription_id)
 
     return JSONResponse({"received": True})
-
-
-# ----------------------------
+    # --------------------------------------------------
 # DEMO INDEX
-# ----------------------------
+# --------------------------------------------------
 
 @app.get("/demo", response_class=HTMLResponse)
 def demo_index(request: Request):
     return templates.TemplateResponse(
         request,
         "demo/index.html",
-        {
-            "page_title": "Product Demo",
-        },
+        {"page_title": "Product Demo"},
     )
 
 
-# ----------------------------
+# --------------------------------------------------
 # DEMO APP PAGES
-# ----------------------------
+# --------------------------------------------------
 
 @app.get("/demo/dashboard", response_class=HTMLResponse)
 def demo_dashboard(request: Request, db: Session = Depends(get_db)):
@@ -926,9 +1273,189 @@ def demo_lead_detail(request: Request, lead_id: int, db: Session = Depends(get_d
     )
 
 
-# ----------------------------
+# --------------------------------------------------
+# REAL APP PAGES
+# --------------------------------------------------
+
+@app.get("/app/dashboard", response_class=HTMLResponse)
+def app_dashboard(request: Request, db: Session = Depends(get_db)):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    settings = get_workspace_settings(db, workspace.id)
+    stats = get_dashboard_stats_for_workspace(db, workspace.id)
+
+    # Reusing demo template for now
+    return templates.TemplateResponse(
+        request,
+        "demo/dashboard.html",
+        {
+            "settings": settings,
+            "workspace": workspace,
+            "current_user": current_user,
+            "twilio_live": logic.twilio_enabled(),
+            "active_page": "dashboard",
+            "page_title": "Dashboard",
+            "page_subtitle": "Your lead desk overview for today.",
+            **stats,
+        },
+    )
+
+
+@app.get("/app/inbox", response_class=HTMLResponse)
+def app_inbox(
+    request: Request,
+    lead_id: Optional[int] = Query(None),
+    crm_status_filter: str = Query("all"),
+    search: str = Query(""),
+    priority_filter: str = Query("all"),
+    insurance_filter: str = Query("all"),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    settings = get_workspace_settings(db, workspace.id)
+
+    leads = get_inbox_leads_for_workspace(
+        db=db,
+        workspace_id=workspace.id,
+        crm_status_filter=crm_status_filter,
+        search=search,
+        priority_filter=priority_filter,
+        insurance_filter=insurance_filter,
+    )
+
+    selected_lead = None
+    if lead_id:
+        selected_lead = (db.query(models.Lead)
+            .filter(models.Lead.workspace_id == workspace.id)
+            .filter(models.Lead.id == lead_id)
+            .first()
+        )
+    elif leads:
+        selected_lead = leads[0]
+
+    high_priority_count = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace.id)
+        .filter(models.Lead.priority == "high")
+        .count()
+    )
+    qualified_count = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace.id)
+        .filter(models.Lead.status == "qualified")
+        .count()
+    )
+    booked_count = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace.id)
+        .filter(models.Lead.crm_status == "booked")
+        .count()
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "demo/inbox.html",
+        {
+            "settings": settings,
+            "workspace": workspace,
+            "current_user": current_user,
+            "leads": leads,
+            "selected_lead": selected_lead,
+            "twilio_live": logic.twilio_enabled(),
+            "recommended_response_time": logic.recommended_response_time,
+            "crm_status_filter": crm_status_filter,
+            "priority_filter": priority_filter,
+            "insurance_filter": insurance_filter,
+            "search": search,
+            "high_priority_count": high_priority_count,
+            "qualified_count": qualified_count,
+            "booked_count": booked_count,
+            "active_page": "inbox",
+            "page_title": "Inbox",
+            "page_subtitle": "All lead conversations in your workspace.",
+        },
+    )
+
+
+@app.get("/app/pipeline", response_class=HTMLResponse)
+def app_pipeline(request: Request, db: Session = Depends(get_db)):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    settings = get_workspace_settings(db, workspace.id)
+
+    leads = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace.id)
+        .order_by(models.Lead.updated_at.desc())
+        .all()
+    )
+    columns = build_pipeline_columns(leads)
+
+    return templates.TemplateResponse(
+        request,
+        "demo/pipeline.html",
+        {
+            "settings": settings,
+            "workspace": workspace,
+            "current_user": current_user,
+            "columns": columns,
+            "twilio_live": logic.twilio_enabled(),
+            "active_page": "pipeline",
+            "page_title": "Pipeline",
+            "page_subtitle": "Track leads from qualification to outcome.",
+        },
+    )
+
+
+@app.get("/app/settings", response_class=HTMLResponse)
+def app_settings(request: Request, db: Session = Depends(get_db)):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    settings = get_workspace_settings(db, workspace.id)
+
+    return templates.TemplateResponse(
+        request,
+        "demo/settings.html",
+        {
+            "settings": settings,
+            "workspace": workspace,
+            "current_user": current_user,
+            "twilio_live": logic.twilio_enabled(),
+            "active_page": "settings",
+            "page_title": "Settings",
+            "page_subtitle": "Manage business identity and workspace basics.",
+        },
+    )
+
+
+# --------------------------------------------------
 # DEMO UI FORM ACTIONS
-# ----------------------------
+# --------------------------------------------------
 
 @app.post("/ui/settings/update")
 def ui_update_settings(
@@ -1058,9 +1585,9 @@ def ui_update_lead_stage(
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 
 
-# ----------------------------
+# --------------------------------------------------
 # API
-# ----------------------------
+# --------------------------------------------------
 
 @app.get("/api/settings", response_model=schemas.BusinessSettingsOut)
 def api_get_settings(db: Session = Depends(get_db)):
@@ -1114,16 +1641,16 @@ def api_inbound_message(payload: schemas.InboundMessageCreate, db: Session = Dep
     }
 
 
-# ----------------------------
+# --------------------------------------------------
 # TWILIO WEBHOOK
-# ----------------------------
+# --------------------------------------------------
 
 @app.post("/webhooks/twilio/inbound", response_class=HTMLResponse)
 def twilio_inbound(
     From: str = Form(...),
     Body: str = Form(...),
-    db: Session = Depends(get_db),
-):
+    db: Session = Depends(get_db),):
+    # Demo-only for now
     text = logic.normalize_text(Body)
     latest_lead = logic.find_latest_lead_for_phone(db, From)
 
@@ -1146,128 +1673,3 @@ def twilio_inbound(
     resp = MessagingResponse()
     resp.message(reply)
     return HTMLResponse(content=str(resp), media_type="application/xml")
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-AUTH_COOKIE_NAME = "rfd_session"
-AUTH_COOKIE_SECURE = True
-AUTH_COOKIE_SAMESITE = "lax"
-
-SHORT_SESSION_DAYS = 1
-REMEMBER_ME_DAYS = 30
-
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, password_hash: str) -> bool:
-    return pwd_context.verify(plain_password, password_hash)
-
-
-def create_user_session(db: Session, user_id: int, remember_me: bool) -> tuple[str, datetime]:
-    token = secrets.token_urlsafe(48)
-    expires_at = datetime.utcnow() + timedelta(
-        days=REMEMBER_ME_DAYS if remember_me else SHORT_SESSION_DAYS
-    )
-
-    session = models.UserSession(
-        user_id=user_id,
-        token=token,
-        expires_at=expires_at,
-    )
-    db.add(session)
-    db.commit()
-
-    return token, expires_at
-
-
-def set_auth_cookie(response: Response, token: str, expires_at: datetime) -> None:
-    max_age = int((expires_at - datetime.utcnow()).total_seconds())
-    response.set_cookie(
-        key=AUTH_COOKIE_NAME,
-        value=token,
-        max_age=max_age,
-        expires=max_age,
-        httponly=True,
-        secure=AUTH_COOKIE_SECURE,
-        samesite=AUTH_COOKIE_SAMESITE,
-        path="/",
-    )
-
-
-def clear_auth_cookie(response: Response) -> None:
-    response.delete_cookie(
-        key=AUTH_COOKIE_NAME,
-        path="/",
-        samesite=AUTH_COOKIE_SAMESITE,
-    )
-
-
-def get_current_user_from_cookie(request: Request, db: Session) -> Optional[models.AppUser]:
-    token = request.cookies.get(AUTH_COOKIE_NAME)
-    if not token:
-        return None
-
-    session = (
-        db.query(models.UserSession)
-        .filter(models.UserSession.token == token)
-        .first()
-    )
-
-    if not session:
-        return None
-
-    if session.expires_at < datetime.utcnow():
-        db.delete(session)
-        db.commit()
-        return None
-
-    return session.user
-
-@app.post("/signup")
-def signup_submit(
-    request: Request,
-    full_name: str = Form(...),
-    email: str = Form(...),
-    company_name: str = Form(...),
-    phone: str = Form(...),
-    service_area: str = Form(...),
-    password: str = Form(...),
-    confirm_password: str = Form(...),
-    plan: str = Form("pilot"),
-    agree_terms: str = Form(...),
-    db: Session = Depends(get_db),
-):
-    existing_user = db.query(models.AppUser).filter(models.AppUser.email == email.strip().lower()).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="An account with this email already exists.")
-
-    if password != confirm_password:
-        raise HTTPException(status_code=400, detail="Passwords do not match.")
-
-    user = models.AppUser(
-        full_name=full_name.strip(),
-        email=email.strip().lower(),
-        company_name=company_name.strip(),
-        password_hash=hash_password(password),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-
-    return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
-
-@app.post("/logout")
-def logout(request: Request, db: Session = Depends(get_db)):
-    token = request.cookies.get(AUTH_COOKIE_NAME)
-
-    if token:
-        session = db.query(models.UserSession).filter(models.UserSession.token == token).first()
-        if session:
-            db.delete(session)
-            db.commit()
-
-    response = RedirectResponse(url="/login", status_code=303)
-    clear_auth_cookie(response)
-    return response
