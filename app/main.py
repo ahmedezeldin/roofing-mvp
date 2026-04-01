@@ -50,7 +50,7 @@ STRIPE_PRICE_GROWTH_SETUP = os.getenv("STRIPE_PRICE_GROWTH_SETUP", "").strip()
 # AUTH CONFIG
 # --------------------------------------------------
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
 AUTH_COOKIE_NAME = "rfd_session"
 AUTH_COOKIE_SECURE = True
