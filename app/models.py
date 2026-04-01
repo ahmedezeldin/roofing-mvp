@@ -46,16 +46,17 @@ class Message(Base):
     lead = relationship("Lead", back_populates="messages")
 
 
-class BusinessSetting(Base):
+class BusinessSettings(Base):
     __tablename__ = "business_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    business_name = Column(String, default="ABC Roofing", nullable=False)
-    first_message_template = Column(
-        Text,
-        default="Hey, thanks for calling {business_name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?",
-        nullable=False
-    )
+    workspace_id = Column(Integer, ForeignKey("workspaces.id"), unique=True, nullable=False)
+
+    business_name = Column(String, nullable=False, default="My Roofing Company")
+    first_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    workspace = relationship("Workspace", back_populates="settings")
 
 class AppUser(Base):
     __tablename__ = "app_users"
@@ -67,8 +68,8 @@ class AppUser(Base):
     password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
+    owned_workspaces = relationship("Workspace", back_populates="owner")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
@@ -80,3 +81,54 @@ class UserSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("AppUser", back_populates="sessions")
+
+class Workspace(Base):
+    __tablename__ = "workspaces"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_name = Column(String, nullable=False)
+    plan = Column(String, nullable=False, default="pilot")
+    business_phone = Column(String, nullable=True)
+    primary_service_area = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    owner_user_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
+
+    owner = relationship("AppUser", back_populates="owned_workspaces")
+    settings = relationship("BusinessSettings", back_populates="workspace", uselist=False)
+    leads = relationship("Lead", back_populates="workspace", cascade="all, delete-orphan")
+    messages = relationship("Message", back_populates="workspace", cascade="all, delete-orphan")
+
+workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
+workspace = relationship("Workspace", back_populates="leads")
+
+workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
+workspace = relationship("Workspace", back_populates="messages")
+
+def create_workspace_for_user(
+    db: Session,
+    user: models.AppUser,
+    plan: str,
+    company_name: str,
+    business_phone: str,
+    primary_service_area: str,
+) -> models.Workspace:
+    workspace = models.Workspace(
+        company_name=company_name.strip(),
+        plan=plan.strip().lower(),
+        business_phone=business_phone.strip(),
+        primary_service_area=primary_service_area.strip(),
+        owner_user_id=user.id,
+    )
+    db.add(workspace)
+    db.flush()
+
+    settings = models.BusinessSettings(
+        workspace_id=workspace.id,
+        business_name=company_name.strip(),
+        first_message="Hey, thanks for calling. We missed you — are you looking for a repair, replacement, or inspection?",
+    )
+    db.add(settings)
+    db.commit()
+    db.refresh(workspace)
+    return workspace
