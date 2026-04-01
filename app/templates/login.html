@@ -14,37 +14,42 @@
     </p>
 
     <form action="/login" method="post" class="login-form">
-      <div class="form-group">
-        <label for="email">Work email</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          placeholder="you@roofingcompany.com"
-          required
-        >
-      </div>
+  <div class="form-group">
+    <label for="email">Work email</label>
+    <input
+      type="email"
+      id="email"
+      name="email"
+      placeholder="you@roofingcompany.com"
+      required
+    >
+  </div>
 
-      <div class="form-group">
-        <div class="password-label-row">
-          <label for="password">Password</label>
-          <a href="/forgot-password" class="forgot-password-link">Forgot password?</a>
-        </div>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          placeholder="Enter your password"
-          required
-        >
-      </div>
+  <div class="form-group">
+    <div class="password-label-row">
+      <label for="password">Password</label>
+      <a href="/forgot-password" class="forgot-password-link">Forgot password?</a>
+    </div>
+    <input
+      type="password"
+      id="password"
+      name="password"
+      placeholder="Enter your password"
+      required
+    >
+  </div>
 
-      <button type="submit" class="btn btn-primary btn-full">Sign in</button>
+  <label class="checkbox-row">
+    <input type="checkbox" name="remember_me" value="1">
+    <span>Keep me signed in</span>
+  </label>
 
-      <div class="login-bottom-note">
-        Don’t have an account yet? <a href="/pricing">Start setup</a>
-      </div>
-    </form>
+  <button type="submit" class="btn btn-primary btn-full">Sign in</button>
+
+  <div class="login-bottom-note">
+    Don’t have an account yet? <a href="/pricing">Start setup</a>
+  </div>
+</form>
   </section>
 </div>
 {% endblock %}
