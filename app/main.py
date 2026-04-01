@@ -14,6 +14,12 @@ from twilio.twiml.messaging_response import MessagingResponse
 from .db import Base, engine, get_db
 from . import models, schemas, logic
 
+import secrets
+from datetime import datetime, timedelta
+
+from passlib.context import CryptContext
+from fastapi import Response
+
 
 Base.metadata.create_all(bind=engine)
 
@@ -338,6 +344,28 @@ def login_page(request: Request):
             "page_title": "Login",
         },
     )
+
+
+@app.post("/login")
+def login_submit(
+    email: str = Form(...),
+    password: str = Form(...),
+    remember_me: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.AppUser).filter(
+        models.AppUser.email == email.strip().lower()
+    ).first()
+
+    if not user or not verify_password(password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    remember = remember_me == "1"
+    token, expires_at = create_user_session(db, user.id, remember)
+
+    response = RedirectResponse(url="/demo/dashboard", status_code=303)
+    set_auth_cookie(response, token, expires_at)
+    return response
 
 
 @app.get("/signup", response_class=HTMLResponse)
@@ -1118,3 +1146,128 @@ def twilio_inbound(
     resp = MessagingResponse()
     resp.message(reply)
     return HTMLResponse(content=str(resp), media_type="application/xml")
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+AUTH_COOKIE_NAME = "rfd_session"
+AUTH_COOKIE_SECURE = True
+AUTH_COOKIE_SAMESITE = "lax"
+
+SHORT_SESSION_DAYS = 1
+REMEMBER_ME_DAYS = 30
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, password_hash: str) -> bool:
+    return pwd_context.verify(plain_password, password_hash)
+
+
+def create_user_session(db: Session, user_id: int, remember_me: bool) -> tuple[str, datetime]:
+    token = secrets.token_urlsafe(48)
+    expires_at = datetime.utcnow() + timedelta(
+        days=REMEMBER_ME_DAYS if remember_me else SHORT_SESSION_DAYS
+    )
+
+    session = models.UserSession(
+        user_id=user_id,
+        token=token,
+        expires_at=expires_at,
+    )
+    db.add(session)
+    db.commit()
+
+    return token, expires_at
+
+
+def set_auth_cookie(response: Response, token: str, expires_at: datetime) -> None:
+    max_age = int((expires_at - datetime.utcnow()).total_seconds())
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        max_age=max_age,
+        expires=max_age,
+        httponly=True,
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        path="/",
+    )
+
+
+def clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=AUTH_COOKIE_NAME,
+        path="/",
+        samesite=AUTH_COOKIE_SAMESITE,
+    )
+
+
+def get_current_user_from_cookie(request: Request, db: Session) -> Optional[models.AppUser]:
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token:
+        return None
+
+    session = (
+        db.query(models.UserSession)
+        .filter(models.UserSession.token == token)
+        .first()
+    )
+
+    if not session:
+        return None
+
+    if session.expires_at < datetime.utcnow():
+        db.delete(session)
+        db.commit()
+        return None
+
+    return session.user
+
+@app.post("/signup")
+def signup_submit(
+    request: Request,
+    full_name: str = Form(...),
+    email: str = Form(...),
+    company_name: str = Form(...),
+    phone: str = Form(...),
+    service_area: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    plan: str = Form("pilot"),
+    agree_terms: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    existing_user = db.query(models.AppUser).filter(models.AppUser.email == email.strip().lower()).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="An account with this email already exists.")
+
+    if password != confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match.")
+
+    user = models.AppUser(
+        full_name=full_name.strip(),
+        email=email.strip().lower(),
+        company_name=company_name.strip(),
+        password_hash=hash_password(password),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
+
+@app.post("/logout")
+def logout(request: Request, db: Session = Depends(get_db)):
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+
+    if token:
+        session = db.query(models.UserSession).filter(models.UserSession.token == token).first()
+        if session:
+            db.delete(session)
+            db.commit()
+
+    response = RedirectResponse(url="/login", status_code=303)
+    clear_auth_cookie(response)
+    return response
