@@ -6,10 +6,9 @@
 
 {% block content %}
 <div class="signup-page-shell">
-  {% set selected_plan = request.args.get('plan', 'pilot') %}
-  {% set plan_name = 'Growth' if selected_plan == 'growth' else 'Pilot' %}
-  {% set plan_price = '$999/month' if selected_plan == 'growth' else '$499/month' %}
-
+  {% set selected_plan = plan if plan else 'pilot' %}
+{% set plan_name = 'Growth' if selected_plan == 'growth' else 'Pilot' %}
+{% set plan_price = '$999/month' if selected_plan == 'growth' else '$499/month' %}
   <!-- TOP TIMELINE -->
   <section class="setup-progress-shell">
     <div class="setup-progress-bar">
