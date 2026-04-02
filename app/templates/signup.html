@@ -132,17 +132,22 @@
   </div>
 
   <div class="form-group">
-    <label for="password">Password</label>
-    <input id="password" type="password" name="password" required>
-    <div class="password-help">
-      Must be at least 8 characters and include one uppercase letter, one lowercase letter, one number, and one special character.
-    </div>
+  <label for="password">Password</label>
+  <input id="password" type="password" name="password" required>
+  <div class="password-rules" id="password-rules">
+    <div class="password-rule" id="rule-length">At least 8 characters</div>
+    <div class="password-rule" id="rule-uppercase">One uppercase letter</div>
+    <div class="password-rule" id="rule-lowercase">One lowercase letter</div>
+    <div class="password-rule" id="rule-number">One number</div>
+    <div class="password-rule" id="rule-special">One special character</div>
   </div>
+</div>
 
-  <div class="form-group">
-    <label for="confirm_password">Confirm Password</label>
-    <input id="confirm_password" type="password" name="confirm_password" required>
-  </div>
+<div class="form-group">
+  <label for="confirm_password">Confirm Password</label>
+  <input id="confirm_password" type="password" name="confirm_password" required>
+  <div class="confirm-password-status" id="confirm-password-status"></div>
+</div>
 
   <label class="checkbox-row">
     <input type="checkbox" name="agree_terms" value="1" required>
