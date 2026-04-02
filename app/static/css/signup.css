@@ -416,3 +416,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.form-group select {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 16px;
+  border: 1px solid #d9e1ef;
+  background: #ffffff;
+  padding: 0 16px;
+  font-size: 16px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.form-group select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
