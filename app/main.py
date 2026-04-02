@@ -706,7 +706,7 @@ def signup_submit(
     }
     
     if not province.strip():
-    error_message = "Please select a province."
+        error_message = "Please select a province."
     
     if not agree_terms:
         return templates.TemplateResponse(
