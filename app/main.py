@@ -657,23 +657,9 @@ def logout(request: Request, db: Session = Depends(get_db)):
     return response
 
 
-@app.get("/signup", response_class=HTMLResponse)
-def signup_page(
-    request: Request,
-    plan: str = Query("pilot"),
-):
-    return templates.TemplateResponse(
-        request,
-        "signup.html",
-        {
-            "page_title": "Start Setup",
-            "plan": plan.lower(),
-        },
-    )
-
-
-@app.post("/signup")
+@app.post("/signup", response_class=HTMLResponse)
 def signup_submit(
+    request: Request,
     full_name: str = Form(...),
     email: str = Form(...),
     company_name: str = Form(...),
@@ -682,23 +668,78 @@ def signup_submit(
     password: str = Form(...),
     confirm_password: str = Form(...),
     plan: str = Form("pilot"),
-    agree_terms: str = Form(...),
+    agree_terms: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
+    normalized_email = email.strip().lower()
+    normalized_plan = (plan or "pilot").strip().lower()
+
+    if not agree_terms:
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "Please agree to the terms before continuing.",
+                "form_data": {
+                    "full_name": full_name,
+                    "email": normalized_email,
+                    "company_name": company_name,
+                    "phone": phone,
+                    "service_area": service_area,
+                },
+            },
+            status_code=400,
+        )
+
     existing_user = (
         db.query(models.AppUser)
-        .filter(models.AppUser.email == email.strip().lower())
+        .filter(models.AppUser.email == normalized_email)
         .first()
     )
+
     if existing_user:
-        raise HTTPException(status_code=400, detail="An account with this email already exists.")
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "An account with this email already exists. Try logging in instead.",
+                "form_data": {
+                    "full_name": full_name,
+                    "email": normalized_email,
+                    "company_name": company_name,
+                    "phone": phone,
+                    "service_area": service_area,
+                },
+            },
+            status_code=400,
+        )
 
     if password != confirm_password:
-        raise HTTPException(status_code=400, detail="Passwords do not match.")
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "Passwords do not match.",
+                "form_data": {
+                    "full_name": full_name,
+                    "email": normalized_email,
+                    "company_name": company_name,
+                    "phone": phone,
+                    "service_area": service_area,
+                },
+            },
+            status_code=400,
+        )
 
     user = models.AppUser(
         full_name=full_name.strip(),
-        email=email.strip().lower(),
+        email=normalized_email,
         company_name=company_name.strip(),
         password_hash=hash_password(password),
     )
@@ -708,15 +749,20 @@ def signup_submit(
     create_workspace_for_user(
         db=db,
         user=user,
-        plan=plan,
+        plan=normalized_plan,
         company_name=company_name,
         business_phone=phone,
         primary_service_area=service_area,
     )
 
-    db.commit()
+    token, expires_at = create_user_session(db, user.id, remember_me=True)
 
-    return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
+    response = RedirectResponse(
+        url=f"/onboarding/workflow?plan={normalized_plan}",
+        status_code=303,
+    )
+    set_auth_cookie(response, token, expires_at)
+    return response
 
 
 @app.get("/onboarding/company", response_class=HTMLResponse)
