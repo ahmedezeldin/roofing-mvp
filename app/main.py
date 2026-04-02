@@ -704,7 +704,10 @@ def signup_submit(
         "city": city,
         "province": province,
     }
-
+    
+    if not province.strip():
+    error_message = "Please select a province."
+    
     if not agree_terms:
         return templates.TemplateResponse(
             request,
