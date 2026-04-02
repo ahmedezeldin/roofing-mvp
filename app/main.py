@@ -1821,3 +1821,11 @@ def validate_password_rules(password: str) -> Optional[str]:
     if not re.search(r"[^A-Za-z0-9]", password):
         return "Password must include at least one special character."
     return None
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "terms.html",
+        {"page_title": "Terms of Service"},
+    )
