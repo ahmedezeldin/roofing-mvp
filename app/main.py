@@ -61,6 +61,7 @@ AUTH_COOKIE_SAMESITE = "lax"
 
 SHORT_SESSION_DAYS = 1
 REMEMBER_ME_DAYS = 30
+
 # --------------------------------------------------
 # TEMPLATE HELPERS
 # --------------------------------------------------
@@ -144,8 +145,8 @@ def get_current_user_from_cookie(request: Request, db: Session) -> Optional[mode
         db.commit()
         return None
 
-    return session.user
-    # --------------------------------------------------
+return session.user
+# --------------------------------------------------
 # GENERIC HELPERS
 # --------------------------------------------------
 
@@ -573,8 +574,8 @@ def build_activity_log(lead: models.Lead) -> list[dict]:
             }
         )
 
-    return sorted(activity_log, key=lambda x: x["time"] or lead.created_at, reverse=True)
-    # --------------------------------------------------
+return sorted(activity_log, key=lambda x: x["time"] or lead.created_at, reverse=True)
+# --------------------------------------------------
 # PUBLIC PAGES
 # --------------------------------------------------
 
@@ -981,8 +982,8 @@ def billing_success_page(
           </body>
         </html>
         """
-    )
-    # --------------------------------------------------
+)
+# --------------------------------------------------
 # STRIPE CHECKOUT
 # --------------------------------------------------
 
