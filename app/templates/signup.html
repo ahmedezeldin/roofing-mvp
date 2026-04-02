@@ -274,4 +274,114 @@
   passwordInput.addEventListener("input", updatePasswordRules);
   confirmPasswordInput.addEventListener("input", updateConfirmPasswordStatus);
 </script>
+<script>
+  const signupForm = document.querySelector(".signup-form");
+
+  const passwordInput = document.getElementById("password");
+  const confirmPasswordInput = document.getElementById("confirm_password");
+  const confirmPasswordStatus = document.getElementById("confirm-password-status");
+
+  const ruleLength = document.getElementById("rule-length");
+  const ruleUppercase = document.getElementById("rule-uppercase");
+  const ruleLowercase = document.getElementById("rule-lowercase");
+  const ruleNumber = document.getElementById("rule-number");
+  const ruleSpecial = document.getElementById("rule-special");
+
+  function evaluatePassword(value) {
+    return {
+      hasLength: value.length >= 8,
+      hasUppercase: /[A-Z]/.test(value),
+      hasLowercase: /[a-z]/.test(value),
+      hasNumber: /[0-9]/.test(value),
+      hasSpecial: /[^A-Za-z0-9]/.test(value),
+    };
+  }
+
+  function isPasswordFullyValid(result) {
+    return (
+      result.hasLength &&
+      result.hasUppercase &&
+      result.hasLowercase &&
+      result.hasNumber &&
+      result.hasSpecial
+    );
+  }
+
+  function updatePasswordRules() {
+    const value = passwordInput.value;
+    const result = evaluatePassword(value);
+
+    ruleLength.classList.toggle("valid", result.hasLength);
+    ruleUppercase.classList.toggle("valid", result.hasUppercase);
+    ruleLowercase.classList.toggle("valid", result.hasLowercase);
+    ruleNumber.classList.toggle("valid", result.hasNumber);
+    ruleSpecial.classList.toggle("valid", result.hasSpecial);
+
+    passwordInput.classList.remove("input-valid", "input-invalid");
+
+    if (value.length > 0) {
+      if (isPasswordFullyValid(result)) {
+        passwordInput.classList.add("input-valid");
+      } else {
+        passwordInput.classList.add("input-invalid");
+      }
+    }
+
+    updateConfirmPasswordStatus();
+  }
+
+  function updateConfirmPasswordStatus() {
+    const password = passwordInput.value;
+    const confirm = confirmPasswordInput.value;
+
+    confirmPasswordInput.classList.remove("input-valid", "input-invalid");
+
+    if (!confirm) {
+      confirmPasswordStatus.textContent = "";
+      confirmPasswordStatus.classList.remove("valid", "invalid");
+      return;
+    }
+
+    if (password === confirm) {
+      confirmPasswordStatus.textContent = "Passwords match";
+      confirmPasswordStatus.classList.add("valid");
+      confirmPasswordStatus.classList.remove("invalid");
+      confirmPasswordInput.classList.add("input-valid");
+    } else {
+      confirmPasswordStatus.textContent = "Passwords do not match";
+      confirmPasswordStatus.classList.add("invalid");
+      confirmPasswordStatus.classList.remove("valid");
+      confirmPasswordInput.classList.add("input-invalid");
+    }
+  }
+
+  passwordInput.addEventListener("input", updatePasswordRules);
+  confirmPasswordInput.addEventListener("input", updateConfirmPasswordStatus);
+
+  signupForm.addEventListener("submit", function (event) {
+    const password = passwordInput.value;
+    const confirm = confirmPasswordInput.value;
+    const result = evaluatePassword(password);
+
+    if (!isPasswordFullyValid(result)) {
+      event.preventDefault();
+      passwordInput.classList.remove("input-valid");
+      passwordInput.classList.add("input-invalid");
+      confirmPasswordStatus.textContent = "Please meet all password requirements.";
+      confirmPasswordStatus.classList.add("invalid");
+      confirmPasswordStatus.classList.remove("valid");
+      return;
+    }
+
+    if (password !== confirm) {
+      event.preventDefault();
+      confirmPasswordInput.classList.remove("input-valid");
+      confirmPasswordInput.classList.add("input-invalid");
+      confirmPasswordStatus.textContent = "Passwords do not match";
+      confirmPasswordStatus.classList.add("invalid");
+      confirmPasswordStatus.classList.remove("valid");
+      return;
+    }
+  });
+</script>
 {% endblock %}
