@@ -1847,3 +1847,19 @@ def check_email_exists(
     )
 
     return {"exists": existing_user is not None}
+@app.get("/terms", response_class=HTMLResponse)
+def terms_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "terms.html",
+        {"page_title": "Terms of Service"},
+    )
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "privacy.html",
+        {"page_title": "Privacy Policy"},
+    )
