@@ -115,7 +115,7 @@
     <div class="form-group">
   <label for="province">Province</label>
   <select id="province" name="province" required autocomplete="off">
-    <option value="" disabled {% if not form_data.province %}selected{% endif %}>Select province</option>
+    <option value="" {% if not form_data.province %}selected{% endif %}>Select province</option>
     <option value="AB" {% if form_data.province == "AB" %}selected{% endif %}>Alberta</option>
     <option value="BC" {% if form_data.province == "BC" %}selected{% endif %}>British Columbia</option>
     <option value="MB" {% if form_data.province == "MB" %}selected{% endif %}>Manitoba</option>
@@ -468,18 +468,14 @@
       event.preventDefault();
     }
   });
-  <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const provinceSelect = document.getElementById("province");
 
-  // Only force blank if this is a fresh load and not a server-side re-render after validation
-  const hasProvinceFromServer = "{{ form_data.province | default('') }}".trim() !== "";
+  document.addEventListener("DOMContentLoaded", function () {
+    const hasProvinceFromServer = "{{ form_data.province | default('') }}".trim() !== "";
 
-  if (provinceSelect && !hasProvinceFromServer) {
-    provinceSelect.selectedIndex = 0;
-    provinceSelect.value = "";
-  }
-});
-</script>
+    if (provinceInput && !hasProvinceFromServer) {
+      provinceInput.selectedIndex = 0;
+      provinceInput.value = "";
+    }
+  });
 </script>
 {% endblock %}
