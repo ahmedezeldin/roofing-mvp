@@ -1829,7 +1829,8 @@ def terms_page(request: Request):
         "terms.html",
         {"page_title": "Terms of Service"},
     )
-    @app.get("/api/auth/check-email")
+
+@app.get("/api/auth/check-email")
 def check_email_exists(
     email: str = Query(...),
     db: Session = Depends(get_db),
