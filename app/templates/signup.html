@@ -55,7 +55,7 @@
   You’ve chosen the {{ plan_name }} plan. Start by creating your account details, then continue through workflow setup, review, and secure payment.
 </p>
 
-     <form action="/signup" method="post" class="signup-form">
+     <form action="/signup" method="post" class="signup-form" novalidate>
   <input type="hidden" name="plan" value="{{ plan }}">
 
   {% if error_message %}
