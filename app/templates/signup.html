@@ -115,20 +115,21 @@
     <div class="form-group">
       <label for="province">Province</label>
       <select id="province" name="province" required>
-        <option value="AB" {% if form_data.province == "AB" %}selected{% endif %}>Alberta</option>
-        <option value="BC" {% if form_data.province == "BC" %}selected{% endif %}>British Columbia</option>
-        <option value="MB" {% if form_data.province == "MB" %}selected{% endif %}>Manitoba</option>
-        <option value="NB" {% if form_data.province == "NB" %}selected{% endif %}>New Brunswick</option>
-        <option value="NL" {% if form_data.province == "NL" %}selected{% endif %}>Newfoundland and Labrador</option>
-        <option value="NS" {% if form_data.province == "NS" %}selected{% endif %}>Nova Scotia</option>
-        <option value="NT" {% if form_data.province == "NT" %}selected{% endif %}>Northwest Territories</option>
-        <option value="NU" {% if form_data.province == "NU" %}selected{% endif %}>Nunavut</option>
-        <option value="ON" {% if form_data.province == "ON" %}selected{% endif %}>Ontario</option>
-        <option value="PE" {% if form_data.province == "PE" %}selected{% endif %}>Prince Edward Island</option>
-        <option value="QC" {% if form_data.province == "QC" %}selected{% endif %}>Quebec</option>
-        <option value="SK" {% if form_data.province == "SK" %}selected{% endif %}>Saskatchewan</option>
-        <option value="YT" {% if form_data.province == "YT" %}selected{% endif %}>Yukon</option>
-      </select>
+  <option value="" {% if not form_data.province %}selected{% endif %} disabled>Select province</option>
+  <option value="AB" {% if form_data.province == "AB" %}selected{% endif %}>Alberta</option>
+  <option value="BC" {% if form_data.province == "BC" %}selected{% endif %}>British Columbia</option>
+  <option value="MB" {% if form_data.province == "MB" %}selected{% endif %}>Manitoba</option>
+  <option value="NB" {% if form_data.province == "NB" %}selected{% endif %}>New Brunswick</option>
+  <option value="NL" {% if form_data.province == "NL" %}selected{% endif %}>Newfoundland and Labrador</option>
+  <option value="NS" {% if form_data.province == "NS" %}selected{% endif %}>Nova Scotia</option>
+  <option value="NT" {% if form_data.province == "NT" %}selected{% endif %}>Northwest Territories</option>
+  <option value="NU" {% if form_data.province == "NU" %}selected{% endif %}>Nunavut</option>
+  <option value="ON" {% if form_data.province == "ON" %}selected{% endif %}>Ontario</option>
+  <option value="PE" {% if form_data.province == "PE" %}selected{% endif %}>Prince Edward Island</option>
+  <option value="QC" {% if form_data.province == "QC" %}selected{% endif %}>Quebec</option>
+  <option value="SK" {% if form_data.province == "SK" %}selected{% endif %}>Saskatchewan</option>
+  <option value="YT" {% if form_data.province == "YT" %}selected{% endif %}>Yukon</option>
+</select>
     </div>
   </div>
 
@@ -152,7 +153,12 @@
 
   <label class="checkbox-row">
     <input type="checkbox" name="agree_terms" value="1" required>
-    <span>I agree to the <a href="/terms" target="_blank">Terms of Service</a>.</span>
+    <span>
+  I agree to the
+  <a href="/terms" target="_blank">Terms of Service</a>
+  and
+  <a href="/privacy" target="_blank">Privacy Policy</a>.
+</span>
   </label>
 
   <button type="submit" class="btn btn-primary btn-full">Continue to workflow setup</button>
