@@ -136,26 +136,11 @@
   <label for="password">Password</label>
   <input id="password" type="password" name="password" required>
   <div class="password-rules" id="password-rules">
-    <div class="password-rule" id="rule-length">
-      <span class="rule-icon"></span>
-      <span>At least 8 characters</span>
-    </div>
-    <div class="password-rule" id="rule-uppercase">
-      <span class="rule-icon"></span>
-      <span>One uppercase letter</span>
-    </div>
-    <div class="password-rule" id="rule-lowercase">
-      <span class="rule-icon"></span>
-      <span>One lowercase letter</span>
-    </div>
-    <div class="password-rule" id="rule-number">
-      <span class="rule-icon"></span>
-      <span>One number</span>
-    </div>
-    <div class="password-rule" id="rule-special">
-      <span class="rule-icon"></span>
-      <span>One special character</span>
-    </div>
+    <div class="password-rule" id="rule-length">At least 8 characters</div>
+<div class="password-rule" id="rule-uppercase">One uppercase letter</div>
+<div class="password-rule" id="rule-lowercase">One lowercase letter</div>
+<div class="password-rule" id="rule-number">One number</div>
+<div class="password-rule" id="rule-special">One special character</div>
   </div>
 </div>
 
@@ -244,7 +229,6 @@
   const ruleSpecial = document.getElementById("rule-special");
 
   let emailCheckTimeout = null;
-  let lastCheckedEmail = "";
   let emailExists = false;
 
   function setFieldNeutral(field) {
@@ -290,14 +274,12 @@
     ruleNumber.classList.toggle("valid", result.hasNumber);
     ruleSpecial.classList.toggle("valid", result.hasSpecial);
 
-    setFieldNeutral(passwordInput);
-
-    if (value.length > 0) {
-      if (isPasswordFullyValid(result)) {
-        setFieldValid(passwordInput);
-      } else {
-        setFieldInvalid(passwordInput);
-      }
+    if (!value) {
+      setFieldNeutral(passwordInput);
+    } else if (!isPasswordFullyValid(result)) {
+      setFieldInvalid(passwordInput);
+    } else {
+      setFieldNeutral(passwordInput);
     }
 
     updateConfirmPasswordStatus();
@@ -307,11 +289,10 @@
     const password = passwordInput.value;
     const confirm = confirmPasswordInput.value;
 
-    setFieldNeutral(confirmPasswordInput);
-
     if (!confirm) {
       confirmPasswordStatus.textContent = "";
       confirmPasswordStatus.classList.remove("valid", "invalid");
+      setFieldNeutral(confirmPasswordInput);
       return;
     }
 
@@ -319,7 +300,7 @@
       confirmPasswordStatus.textContent = "Passwords match";
       confirmPasswordStatus.classList.add("valid");
       confirmPasswordStatus.classList.remove("invalid");
-      setFieldValid(confirmPasswordInput);
+      setFieldNeutral(confirmPasswordInput);
     } else {
       confirmPasswordStatus.textContent = "Passwords do not match";
       confirmPasswordStatus.classList.add("invalid");
@@ -348,7 +329,7 @@
         emailStatus.textContent = "Email looks good.";
         emailStatus.classList.add("valid");
         emailStatus.classList.remove("invalid");
-        setFieldValid(emailInput);
+        setFieldNeutral(emailInput);
       }
     } catch (error) {
       emailStatus.textContent = "";
@@ -359,7 +340,6 @@
   function handleEmailInput() {
     const email = emailInput.value.trim();
     emailExists = false;
-    lastCheckedEmail = email;
 
     setFieldNeutral(emailInput);
     emailStatus.classList.remove("valid", "invalid");
@@ -390,68 +370,55 @@
   }
 
   function validateRequiredField(field) {
-    const value = field.value.trim();
-
-    if (!value) {
+    if (!field.value.trim()) {
       setFieldInvalid(field);
       return false;
     }
-
-    setFieldValid(field);
+    setFieldNeutral(field);
     return true;
   }
 
   function validateRequiredSelect(field) {
-    const value = field.value.trim();
-
-    if (!value) {
+    if (!field.value.trim()) {
       setFieldInvalid(field);
       return false;
     }
-
-    setFieldValid(field);
+    setFieldNeutral(field);
     return true;
   }
 
   firstNameInput.addEventListener("input", () => {
-    if (firstNameInput.value.trim()) setFieldValid(firstNameInput);
-    else setFieldNeutral(firstNameInput);
+    if (firstNameInput.value.trim()) setFieldNeutral(firstNameInput);
   });
 
   lastNameInput.addEventListener("input", () => {
-    if (lastNameInput.value.trim()) setFieldValid(lastNameInput);
-    else setFieldNeutral(lastNameInput);
+    if (lastNameInput.value.trim()) setFieldNeutral(lastNameInput);
   });
 
   cityInput.addEventListener("input", () => {
-    if (cityInput.value.trim()) setFieldValid(cityInput);
-    else setFieldNeutral(cityInput);
+    if (cityInput.value.trim()) setFieldNeutral(cityInput);
   });
 
   provinceInput.addEventListener("change", () => {
-    if (provinceInput.value.trim()) setFieldValid(provinceInput);
-    else setFieldNeutral(provinceInput);
+    if (provinceInput.value.trim()) setFieldNeutral(provinceInput);
   });
 
   emailInput.addEventListener("input", handleEmailInput);
   passwordInput.addEventListener("input", updatePasswordRules);
   confirmPasswordInput.addEventListener("input", updateConfirmPasswordStatus);
 
-  signupForm.addEventListener("submit", async function (event) {
+  signupForm.addEventListener("submit", function (event) {
     let hasError = false;
 
-    const firstNameValid = validateRequiredField(firstNameInput);
-    const lastNameValid = validateRequiredField(lastNameInput);
-    const emailFilled = validateRequiredField(emailInput);
-    const cityValid = validateRequiredField(cityInput);
-    const provinceValid = validateRequiredSelect(provinceInput);
-
-    if (!firstNameValid || !lastNameValid || !emailFilled || !cityValid || !provinceValid) {
-      hasError = true;
-    }
+    if (!validateRequiredField(firstNameInput)) hasError = true;
+    if (!validateRequiredField(lastNameInput)) hasError = true;
+    if (!validateRequiredField(emailInput)) hasError = true;
+    if (!validateRequiredField(cityInput)) hasError = true;
+    if (!validateRequiredSelect(provinceInput)) hasError = true;
+    if (!validateRequiredField(passwordInput)) hasError = true;
+    if (!validateRequiredField(confirmPasswordInput)) hasError = true;
 
     const email = emailInput.value.trim();
-
     if (email && !isValidEmailFormat(email)) {
       emailStatus.textContent = "Enter a valid email address.";
       emailStatus.classList.add("invalid");
@@ -483,19 +450,12 @@
       hasError = true;
     }
 
-    if (email && isValidEmailFormat(email) && email !== lastCheckedEmail) {
-      event.preventDefault();
-      handleEmailInput();
-      return;
-    }
-
-    if (email && isValidEmailFormat(email) && lastCheckedEmail === email && emailExists) {
-      event.preventDefault();
+    if (email && isValidEmailFormat(email) && emailExists) {
       emailStatus.textContent = "An account with this email already exists.";
       emailStatus.classList.add("invalid");
       emailStatus.classList.remove("valid");
       setFieldInvalid(emailInput);
-      return;
+      hasError = true;
     }
 
     if (hasError) {
