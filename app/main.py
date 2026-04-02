@@ -1648,7 +1648,8 @@ def api_inbound_message(payload: schemas.InboundMessageCreate, db: Session = Dep
 def twilio_inbound(
     From: str = Form(...),
     Body: str = Form(...),
-    db: Session = Depends(get_db),):
+    db: Session = Depends(get_db),
+):
     # Demo-only for now
     text = logic.normalize_text(Body)
     latest_lead = logic.find_latest_lead_for_phone(db, From)
@@ -1672,18 +1673,6 @@ def twilio_inbound(
     resp = MessagingResponse()
     resp.message(reply)
     return HTMLResponse(content=str(resp), media_type="application/xml")
-        from passlib.context import CryptContext
-
-pwd_context = CryptContext(
-    schemes=["bcrypt_sha256", "bcrypt"],
-    deprecated="auto"
-)
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(
-    schemes=["argon2"],
-    deprecated="auto",
-)
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
