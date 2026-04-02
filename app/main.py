@@ -674,7 +674,7 @@ def signup_page(
                 "last_name": "",
                 "email": "",
                 "city": "",
-                "province": "AB",
+                "province": "",
             },
         },
     )
