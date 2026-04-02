@@ -639,3 +639,20 @@
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08) !important;
 }
+.field-status {
+  margin-top: 8px;
+  min-height: 18px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.field-status.valid {
+  color: #166534;
+  font-weight: 700;
+}
+
+.field-status.invalid {
+  color: #b91c1c;
+  font-weight: 700;
+}
