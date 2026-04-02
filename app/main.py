@@ -1829,3 +1829,20 @@ def terms_page(request: Request):
         "terms.html",
         {"page_title": "Terms of Service"},
     )
+    @app.get("/api/auth/check-email")
+def check_email_exists(
+    email: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    normalized_email = email.strip().lower()
+
+    if not normalized_email:
+        return {"exists": False}
+
+    existing_user = (
+        db.query(models.AppUser)
+        .filter(models.AppUser.email == normalized_email)
+        .first()
+    )
+
+    return {"exists": existing_user is not None}
