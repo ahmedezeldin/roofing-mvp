@@ -15,6 +15,7 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 from .db import Base, engine, get_db
 from . import models, schemas, logic
+import re
 
 
 # --------------------------------------------------
@@ -656,15 +657,37 @@ def logout(request: Request, db: Session = Depends(get_db)):
     clear_auth_cookie(response)
     return response
 
+@app.get("/signup", response_class=HTMLResponse)
+def signup_page(
+    request: Request,
+    plan: str = Query("pilot"),
+):
+    return templates.TemplateResponse(
+        request,
+        "signup.html",
+        {
+            "page_title": "Start Setup",
+            "plan": plan.lower(),
+            "error_message": None,
+            "form_data": {
+                "first_name": "",
+                "last_name": "",
+                "email": "",
+                "city": "",
+                "province": "AB",
+            },
+        },
+    )
+
 
 @app.post("/signup", response_class=HTMLResponse)
 def signup_submit(
     request: Request,
-    full_name: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
     email: str = Form(...),
-    company_name: str = Form(...),
-    phone: str = Form(...),
-    service_area: str = Form(...),
+    city: str = Form(...),
+    province: str = Form(...),
     password: str = Form(...),
     confirm_password: str = Form(...),
     plan: str = Form("pilot"),
@@ -674,6 +697,14 @@ def signup_submit(
     normalized_email = email.strip().lower()
     normalized_plan = (plan or "pilot").strip().lower()
 
+    form_data = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": normalized_email,
+        "city": city,
+        "province": province,
+    }
+
     if not agree_terms:
         return templates.TemplateResponse(
             request,
@@ -681,14 +712,65 @@ def signup_submit(
             {
                 "page_title": "Start Setup",
                 "plan": normalized_plan,
-                "error_message": "Please agree to the terms before continuing.",
-                "form_data": {
-                    "full_name": full_name,
-                    "email": normalized_email,
-                    "company_name": company_name,
-                    "phone": phone,
-                    "service_area": service_area,
-                },
+                "error_message": "Please agree to the Terms of Service before continuing.",
+                "form_data": form_data,
+            },
+            status_code=400,
+        )
+
+    if not first_name.strip():
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "First name is required.",
+                "form_data": form_data,
+            },
+            status_code=400,
+        )
+
+    if not last_name.strip():
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "Last name is required.",
+                "form_data": form_data,
+            },
+            status_code=400,
+        )
+
+    if not city.strip():
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "City is required.",
+                "form_data": form_data,
+            },
+            status_code=400,
+        )
+
+    valid_provinces = {
+        "AB", "BC", "MB", "NB", "NL", "NS", "NT",
+        "NU", "ON", "PE", "QC", "SK", "YT"
+    }
+
+    if province not in valid_provinces:
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "Please choose a valid province.",
+                "form_data": form_data,
             },
             status_code=400,
         )
@@ -698,7 +780,6 @@ def signup_submit(
         .filter(models.AppUser.email == normalized_email)
         .first()
     )
-
     if existing_user:
         return templates.TemplateResponse(
             request,
@@ -707,13 +788,7 @@ def signup_submit(
                 "page_title": "Start Setup",
                 "plan": normalized_plan,
                 "error_message": "An account with this email already exists. Try logging in instead.",
-                "form_data": {
-                    "full_name": full_name,
-                    "email": normalized_email,
-                    "company_name": company_name,
-                    "phone": phone,
-                    "service_area": service_area,
-                },
+                "form_data": form_data,
             },
             status_code=400,
         )
@@ -726,21 +801,31 @@ def signup_submit(
                 "page_title": "Start Setup",
                 "plan": normalized_plan,
                 "error_message": "Passwords do not match.",
-                "form_data": {
-                    "full_name": full_name,
-                    "email": normalized_email,
-                    "company_name": company_name,
-                    "phone": phone,
-                    "service_area": service_area,
-                },
+                "form_data": form_data,
             },
             status_code=400,
         )
 
+    password_error = validate_password_rules(password)
+    if password_error:
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": password_error,
+                "form_data": form_data,
+            },
+            status_code=400,
+        )
+
+    full_name = f"{first_name.strip()} {last_name.strip()}".strip()
+
     user = models.AppUser(
-        full_name=full_name.strip(),
+        full_name=full_name,
         email=normalized_email,
-        company_name=company_name.strip(),
+        company_name="",
         password_hash=hash_password(password),
     )
     db.add(user)
@@ -750,9 +835,9 @@ def signup_submit(
         db=db,
         user=user,
         plan=normalized_plan,
-        company_name=company_name,
-        business_phone=phone,
-        primary_service_area=service_area,
+        company_name="",
+        business_phone="",
+        primary_service_area=f"{city.strip()}, {province}",
     )
 
     token, expires_at = create_user_session(db, user.id, remember_me=True)
@@ -1723,3 +1808,16 @@ def twilio_inbound(
     resp = MessagingResponse()
     resp.message(reply)
     return HTMLResponse(content=str(resp), media_type="application/xml")
+
+def validate_password_rules(password: str) -> Optional[str]:
+    if len(password) < 8:
+        return "Password must be at least 8 characters long."
+    if not re.search(r"[A-Z]", password):
+        return "Password must include at least one uppercase letter."
+    if not re.search(r"[a-z]", password):
+        return "Password must include at least one lowercase letter."
+    if not re.search(r"[0-9]", password):
+        return "Password must include at least one number."
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return "Password must include at least one special character."
+    return None
