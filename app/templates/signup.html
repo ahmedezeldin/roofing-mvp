@@ -52,36 +52,68 @@
       <div class="signup-kicker">Step 1 of 4</div>
       <h1 class="signup-title">Set up your Roofing Front Desk workspace</h1>
       <p class="signup-subtitle">
-        You’ve chosen the {{ plan_name }} plan. Start by adding your account and company details, then continue through workflow setup, review, and secure payment.
-      </p>
+  You’ve chosen the {{ plan_name }} plan. Start by creating your account details, then continue through workflow setup, review, and secure payment.
+</p>
 
-     <form action="/signup" method="post">
+     <form action="/signup" method="post" class="signup-form">
   <input type="hidden" name="plan" value="{{ plan }}">
 
-  <div class="form-row two-col">
-    <div>
-      <label>First Name</label>
-      <input type="text" name="first_name" value="{{ form_data.first_name }}" required>
+  {% if error_message %}
+  <div class="form-error">
+    {{ error_message }}
+  </div>
+  {% endif %}
+
+  <div class="two-col">
+    <div class="form-group">
+      <label for="first_name">First Name</label>
+      <input
+        id="first_name"
+        type="text"
+        name="first_name"
+        value="{{ form_data.first_name }}"
+        required
+      >
     </div>
-    <div>
-      <label>Last Name</label>
-      <input type="text" name="last_name" value="{{ form_data.last_name }}" required>
+
+    <div class="form-group">
+      <label for="last_name">Last Name</label>
+      <input
+        id="last_name"
+        type="text"
+        name="last_name"
+        value="{{ form_data.last_name }}"
+        required
+      >
     </div>
   </div>
 
-  <div class="form-row">
-    <label>Email</label>
-    <input type="email" name="email" value="{{ form_data.email }}" required>
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input
+      id="email"
+      type="email"
+      name="email"
+      value="{{ form_data.email }}"
+      required
+    >
   </div>
 
-  <div class="form-row two-col">
-    <div>
-      <label>City</label>
-      <input type="text" name="city" value="{{ form_data.city }}" required>
+  <div class="two-col">
+    <div class="form-group">
+      <label for="city">City</label>
+      <input
+        id="city"
+        type="text"
+        name="city"
+        value="{{ form_data.city }}"
+        required
+      >
     </div>
-    <div>
-      <label>Province</label>
-      <select name="province" required>
+
+    <div class="form-group">
+      <label for="province">Province</label>
+      <select id="province" name="province" required>
         <option value="AB" {% if form_data.province == "AB" %}selected{% endif %}>Alberta</option>
         <option value="BC" {% if form_data.province == "BC" %}selected{% endif %}>British Columbia</option>
         <option value="MB" {% if form_data.province == "MB" %}selected{% endif %}>Manitoba</option>
@@ -99,17 +131,17 @@
     </div>
   </div>
 
-  <div class="form-row">
-    <label>Password</label>
-    <input type="password" name="password" required>
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input id="password" type="password" name="password" required>
     <div class="password-help">
-      Must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character.
+      Must be at least 8 characters and include one uppercase letter, one lowercase letter, one number, and one special character.
     </div>
   </div>
 
-  <div class="form-row">
-    <label>Confirm Password</label>
-    <input type="password" name="confirm_password" required>
+  <div class="form-group">
+    <label for="confirm_password">Confirm Password</label>
+    <input id="confirm_password" type="password" name="confirm_password" required>
   </div>
 
   <label class="checkbox-row">
@@ -117,7 +149,7 @@
     <span>I agree to the <a href="/terms" target="_blank">Terms of Service</a>.</span>
   </label>
 
-  <button type="submit" class="btn btn-primary">Continue to workflow setup</button>
+  <button type="submit" class="btn btn-primary btn-full">Continue to workflow setup</button>
 </form>
     </section>
 
