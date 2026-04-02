@@ -223,63 +223,18 @@
   </div>
 </div>
 <script>
-  const passwordInput = document.getElementById("password");
-  const confirmPasswordInput = document.getElementById("confirm_password");
-  const confirmPasswordStatus = document.getElementById("confirm-password-status");
-
-  const ruleLength = document.getElementById("rule-length");
-  const ruleUppercase = document.getElementById("rule-uppercase");
-  const ruleLowercase = document.getElementById("rule-lowercase");
-  const ruleNumber = document.getElementById("rule-number");
-  const ruleSpecial = document.getElementById("rule-special");
-
-  function updatePasswordRules() {
-    const value = passwordInput.value;
-
-    const hasLength = value.length >= 8;
-    const hasUppercase = /[A-Z]/.test(value);
-    const hasLowercase = /[a-z]/.test(value);
-    const hasNumber = /[0-9]/.test(value);
-    const hasSpecial = /[^A-Za-z0-9]/.test(value);
-
-    ruleLength.classList.toggle("valid", hasLength);
-    ruleUppercase.classList.toggle("valid", hasUppercase);
-    ruleLowercase.classList.toggle("valid", hasLowercase);
-    ruleNumber.classList.toggle("valid", hasNumber);
-    ruleSpecial.classList.toggle("valid", hasSpecial);
-
-    updateConfirmPasswordStatus();
-  }
-
-  function updateConfirmPasswordStatus() {
-    const password = passwordInput.value;
-    const confirm = confirmPasswordInput.value;
-
-    if (!confirm) {
-      confirmPasswordStatus.textContent = "";
-      confirmPasswordStatus.classList.remove("valid", "invalid");
-      return;
-    }
-
-    if (password === confirm) {
-      confirmPasswordStatus.textContent = "Passwords match";
-      confirmPasswordStatus.classList.add("valid");
-      confirmPasswordStatus.classList.remove("invalid");
-    } else {
-      confirmPasswordStatus.textContent = "Passwords do not match";
-      confirmPasswordStatus.classList.add("invalid");
-      confirmPasswordStatus.classList.remove("valid");
-    }
-  }
-
-  passwordInput.addEventListener("input", updatePasswordRules);
-  confirmPasswordInput.addEventListener("input", updateConfirmPasswordStatus);
-</script>
-<script>
   const signupForm = document.querySelector(".signup-form");
 
+  const firstNameInput = document.getElementById("first_name");
+  const lastNameInput = document.getElementById("last_name");
+  const emailInput = document.getElementById("email");
+  const cityInput = document.getElementById("city");
+  const provinceInput = document.getElementById("province");
+
   const passwordInput = document.getElementById("password");
   const confirmPasswordInput = document.getElementById("confirm_password");
+
+  const emailStatus = document.getElementById("email-status");
   const confirmPasswordStatus = document.getElementById("confirm-password-status");
 
   const ruleLength = document.getElementById("rule-length");
@@ -287,6 +242,28 @@
   const ruleLowercase = document.getElementById("rule-lowercase");
   const ruleNumber = document.getElementById("rule-number");
   const ruleSpecial = document.getElementById("rule-special");
+
+  let emailCheckTimeout = null;
+  let lastCheckedEmail = "";
+  let emailExists = false;
+
+  function setFieldNeutral(field) {
+    field.classList.remove("input-valid", "input-invalid");
+  }
+
+  function setFieldValid(field) {
+    field.classList.remove("input-invalid");
+    field.classList.add("input-valid");
+  }
+
+  function setFieldInvalid(field) {
+    field.classList.remove("input-valid");
+    field.classList.add("input-invalid");
+  }
+
+  function isValidEmailFormat(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
 
   function evaluatePassword(value) {
     return {
@@ -318,13 +295,13 @@
     ruleNumber.classList.toggle("valid", result.hasNumber);
     ruleSpecial.classList.toggle("valid", result.hasSpecial);
 
-    passwordInput.classList.remove("input-valid", "input-invalid");
+    setFieldNeutral(passwordInput);
 
     if (value.length > 0) {
       if (isPasswordFullyValid(result)) {
-        passwordInput.classList.add("input-valid");
+        setFieldValid(passwordInput);
       } else {
-        passwordInput.classList.add("input-invalid");
+        setFieldInvalid(passwordInput);
       }
     }
 
@@ -335,7 +312,7 @@
     const password = passwordInput.value;
     const confirm = confirmPasswordInput.value;
 
-    confirmPasswordInput.classList.remove("input-valid", "input-invalid");
+    setFieldNeutral(confirmPasswordInput);
 
     if (!confirm) {
       confirmPasswordStatus.textContent = "";
@@ -347,41 +324,187 @@
       confirmPasswordStatus.textContent = "Passwords match";
       confirmPasswordStatus.classList.add("valid");
       confirmPasswordStatus.classList.remove("invalid");
-      confirmPasswordInput.classList.add("input-valid");
+      setFieldValid(confirmPasswordInput);
     } else {
       confirmPasswordStatus.textContent = "Passwords do not match";
       confirmPasswordStatus.classList.add("invalid");
       confirmPasswordStatus.classList.remove("valid");
-      confirmPasswordInput.classList.add("input-invalid");
+      setFieldInvalid(confirmPasswordInput);
     }
   }
 
-  passwordInput.addEventListener("input", updatePasswordRules);
-  confirmPasswordInput.addEventListener("input", updateConfirmPasswordStatus);
+  async function checkEmailAvailability(email) {
+    try {
+      const response = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+      const data = await response.json();
 
-  signupForm.addEventListener("submit", function (event) {
-    const password = passwordInput.value;
-    const confirm = confirmPasswordInput.value;
-    const result = evaluatePassword(password);
+      if (emailInput.value.trim().toLowerCase() !== email.toLowerCase()) {
+        return;
+      }
 
-    if (!isPasswordFullyValid(result)) {
-      event.preventDefault();
-      passwordInput.classList.remove("input-valid");
-      passwordInput.classList.add("input-invalid");
-      confirmPasswordStatus.textContent = "Please meet all password requirements.";
-      confirmPasswordStatus.classList.add("invalid");
-      confirmPasswordStatus.classList.remove("valid");
+      emailExists = !!data.exists;
+
+      if (emailExists) {
+        emailStatus.textContent = "An account with this email already exists.";
+        emailStatus.classList.add("invalid");
+        emailStatus.classList.remove("valid");
+        setFieldInvalid(emailInput);
+      } else {
+        emailStatus.textContent = "Email looks good.";
+        emailStatus.classList.add("valid");
+        emailStatus.classList.remove("invalid");
+        setFieldValid(emailInput);
+      }
+    } catch (error) {
+      emailStatus.textContent = "";
+      emailStatus.classList.remove("valid", "invalid");
+    }
+  }
+
+  function handleEmailInput() {
+    const email = emailInput.value.trim();
+    emailExists = false;
+    lastCheckedEmail = email;
+
+    setFieldNeutral(emailInput);
+    emailStatus.classList.remove("valid", "invalid");
+
+    if (!email) {
+      emailStatus.textContent = "";
       return;
     }
 
-    if (password !== confirm) {
-      event.preventDefault();
-      confirmPasswordInput.classList.remove("input-valid");
-      confirmPasswordInput.classList.add("input-invalid");
+    if (!isValidEmailFormat(email)) {
+      emailStatus.textContent = "Enter a valid email address.";
+      emailStatus.classList.add("invalid");
+      emailStatus.classList.remove("valid");
+      setFieldInvalid(emailInput);
+      return;
+    }
+
+    emailStatus.textContent = "Checking email...";
+    emailStatus.classList.remove("valid", "invalid");
+
+    if (emailCheckTimeout) {
+      clearTimeout(emailCheckTimeout);
+    }
+
+    emailCheckTimeout = setTimeout(() => {
+      checkEmailAvailability(email);
+    }, 400);
+  }
+
+  function validateRequiredField(field) {
+    const value = field.value.trim();
+
+    if (!value) {
+      setFieldInvalid(field);
+      return false;
+    }
+
+    setFieldValid(field);
+    return true;
+  }
+
+  function validateRequiredSelect(field) {
+    const value = field.value.trim();
+
+    if (!value) {
+      setFieldInvalid(field);
+      return false;
+    }
+
+    setFieldValid(field);
+    return true;
+  }
+
+  firstNameInput.addEventListener("input", () => {
+    if (firstNameInput.value.trim()) setFieldValid(firstNameInput);
+    else setFieldNeutral(firstNameInput);
+  });
+
+  lastNameInput.addEventListener("input", () => {
+    if (lastNameInput.value.trim()) setFieldValid(lastNameInput);
+    else setFieldNeutral(lastNameInput);
+  });
+
+  cityInput.addEventListener("input", () => {
+    if (cityInput.value.trim()) setFieldValid(cityInput);
+    else setFieldNeutral(cityInput);
+  });
+
+  provinceInput.addEventListener("change", () => {
+    if (provinceInput.value.trim()) setFieldValid(provinceInput);
+    else setFieldNeutral(provinceInput);
+  });
+
+  emailInput.addEventListener("input", handleEmailInput);
+  passwordInput.addEventListener("input", updatePasswordRules);
+  confirmPasswordInput.addEventListener("input", updateConfirmPasswordStatus);
+
+  signupForm.addEventListener("submit", async function (event) {
+    let hasError = false;
+
+    const firstNameValid = validateRequiredField(firstNameInput);
+    const lastNameValid = validateRequiredField(lastNameInput);
+    const emailFilled = validateRequiredField(emailInput);
+    const cityValid = validateRequiredField(cityInput);
+    const provinceValid = validateRequiredSelect(provinceInput);
+
+    if (!firstNameValid || !lastNameValid || !emailFilled || !cityValid || !provinceValid) {
+      hasError = true;
+    }
+
+    const email = emailInput.value.trim();
+
+    if (email && !isValidEmailFormat(email)) {
+      emailStatus.textContent = "Enter a valid email address.";
+      emailStatus.classList.add("invalid");
+      emailStatus.classList.remove("valid");
+      setFieldInvalid(emailInput);
+      hasError = true;
+    }
+
+    const password = passwordInput.value;
+    const confirm = confirmPasswordInput.value;
+    const passwordResult = evaluatePassword(password);
+
+    if (!isPasswordFullyValid(passwordResult)) {
+      setFieldInvalid(passwordInput);
+      hasError = true;
+    }
+
+    if (!confirm) {
+      setFieldInvalid(confirmPasswordInput);
+      confirmPasswordStatus.textContent = "Please confirm your password.";
+      confirmPasswordStatus.classList.add("invalid");
+      confirmPasswordStatus.classList.remove("valid");
+      hasError = true;
+    } else if (password !== confirm) {
+      setFieldInvalid(confirmPasswordInput);
       confirmPasswordStatus.textContent = "Passwords do not match";
       confirmPasswordStatus.classList.add("invalid");
       confirmPasswordStatus.classList.remove("valid");
+      hasError = true;
+    }
+
+    if (email && isValidEmailFormat(email) && email !== lastCheckedEmail) {
+      event.preventDefault();
+      handleEmailInput();
       return;
+    }
+
+    if (email && isValidEmailFormat(email) && lastCheckedEmail === email && emailExists) {
+      event.preventDefault();
+      emailStatus.textContent = "An account with this email already exists.";
+      emailStatus.classList.add("invalid");
+      emailStatus.classList.remove("valid");
+      setFieldInvalid(emailInput);
+      return;
+    }
+
+    if (hasError) {
+      event.preventDefault();
     }
   });
 </script>
