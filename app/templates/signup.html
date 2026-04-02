@@ -206,4 +206,57 @@
     </aside>
   </div>
 </div>
+<script>
+  const passwordInput = document.getElementById("password");
+  const confirmPasswordInput = document.getElementById("confirm_password");
+  const confirmPasswordStatus = document.getElementById("confirm-password-status");
+
+  const ruleLength = document.getElementById("rule-length");
+  const ruleUppercase = document.getElementById("rule-uppercase");
+  const ruleLowercase = document.getElementById("rule-lowercase");
+  const ruleNumber = document.getElementById("rule-number");
+  const ruleSpecial = document.getElementById("rule-special");
+
+  function updatePasswordRules() {
+    const value = passwordInput.value;
+
+    const hasLength = value.length >= 8;
+    const hasUppercase = /[A-Z]/.test(value);
+    const hasLowercase = /[a-z]/.test(value);
+    const hasNumber = /[0-9]/.test(value);
+    const hasSpecial = /[^A-Za-z0-9]/.test(value);
+
+    ruleLength.classList.toggle("valid", hasLength);
+    ruleUppercase.classList.toggle("valid", hasUppercase);
+    ruleLowercase.classList.toggle("valid", hasLowercase);
+    ruleNumber.classList.toggle("valid", hasNumber);
+    ruleSpecial.classList.toggle("valid", hasSpecial);
+
+    updateConfirmPasswordStatus();
+  }
+
+  function updateConfirmPasswordStatus() {
+    const password = passwordInput.value;
+    const confirm = confirmPasswordInput.value;
+
+    if (!confirm) {
+      confirmPasswordStatus.textContent = "";
+      confirmPasswordStatus.classList.remove("valid", "invalid");
+      return;
+    }
+
+    if (password === confirm) {
+      confirmPasswordStatus.textContent = "Passwords match";
+      confirmPasswordStatus.classList.add("valid");
+      confirmPasswordStatus.classList.remove("invalid");
+    } else {
+      confirmPasswordStatus.textContent = "Passwords do not match";
+      confirmPasswordStatus.classList.add("invalid");
+      confirmPasswordStatus.classList.remove("valid");
+    }
+  }
+
+  passwordInput.addEventListener("input", updatePasswordRules);
+  confirmPasswordInput.addEventListener("input", updateConfirmPasswordStatus);
+</script>
 {% endblock %}
