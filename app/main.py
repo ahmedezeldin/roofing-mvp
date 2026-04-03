@@ -1866,37 +1866,108 @@ def privacy_page(request: Request):
         "privacy.html",
         {"page_title": "Privacy Policy"},
     )
-@app.post("/onboarding/phone-setup")
-def onboarding_phone_setup_submit(
-    request: Request,
-    steps_json: str = Form(...),
-    plan: str = Form("pilot"),
-):
-    return RedirectResponse(
-        url=f"/onboarding/phone-setup?plan={plan}",
-        status_code=303,
-    )
-
 
 @app.get("/onboarding/phone-setup", response_class=HTMLResponse)
 def onboarding_phone_setup_page(
     request: Request,
     plan: str = Query("pilot"),
+    db: Session = Depends(get_db),
 ):
+    workspace = get_current_workspace(request, db)
+
+    phone_setup_data = {
+        "phone_mode": "existing",
+        "business_phone": "",
+        "selected_twilio_number": "",
+        "coverage_mode": "always",
+        "workday_start": "",
+        "workday_end": "",
+        "business_days": "mon_fri",
+        "notification_email": "",
+        "team_mobile": "",
+        "new_number_area_code": "",
+    }
+
+    if workspace:
+        phone_setup_data = {
+            "phone_mode": workspace.phone_mode or "existing",
+            "business_phone": workspace.business_phone or "",
+            "selected_twilio_number": workspace.pending_twilio_number or "",
+            "coverage_mode": workspace.coverage_mode or "always",
+            "workday_start": workspace.workday_start or "",
+            "workday_end": workspace.workday_end or "",
+            "business_days": workspace.business_days or "mon_fri",
+            "notification_email": workspace.notification_email or "",
+            "team_mobile": workspace.team_mobile or "",
+            "new_number_area_code": "",
+        }
+
     return templates.TemplateResponse(
         request,
         "onboarding/phone_setup.html",
         {
             "page_title": "Phone Setup",
             "plan": plan.lower(),
+            "phone_setup_data": phone_setup_data,
         },
     )
+
+
+@app.post("/onboarding/phone-setup")
+def onboarding_phone_setup_submit(
+    request: Request,
+    plan: str = Form("pilot"),
+    phone_mode: str = Form("existing"),
+    business_phone: str = Form(""),
+    new_number_area_code: str = Form(""),
+    selected_twilio_number: str = Form(""),
+    coverage_mode: str = Form("always"),
+    workday_start: str = Form(""),
+    workday_end: str = Form(""),
+    business_days: str = Form("mon_fri"),
+    notification_email: str = Form(""),
+    team_mobile: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    workspace.phone_mode = (phone_mode or "existing").strip()
+    workspace.coverage_mode = (coverage_mode or "always").strip()
+
+    if workspace.phone_mode == "existing":
+        workspace.business_phone = (business_phone or "").strip()
+        workspace.pending_twilio_number = None
+    else:
+        workspace.business_phone = None
+        workspace.pending_twilio_number = (selected_twilio_number or "").strip() or None
+
+    if workspace.coverage_mode == "after_hours":
+        workspace.workday_start = (workday_start or "").strip()
+        workspace.workday_end = (workday_end or "").strip()
+        workspace.business_days = (business_days or "mon_fri").strip()
+    else:
+        workspace.workday_start = None
+        workspace.workday_end = None
+        workspace.business_days = None
+
+    workspace.notification_email = (notification_email or "").strip() or None
+    workspace.team_mobile = (team_mobile or "").strip() or None
+
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/onboarding/review?plan={plan}",
+        status_code=303,
+    )
+
 @app.post("/onboarding/review")
 def onboarding_review_submit(
     plan: str = Form("pilot"),
 ):
     return RedirectResponse(
-        url=f"/onboarding/review?plan={plan}",
+        url=f"/billing?plan={plan}",
         status_code=303,
     )
 
@@ -1905,15 +1976,30 @@ def onboarding_review_submit(
 def onboarding_review_page(
     request: Request,
     plan: str = Query("pilot"),
+    db: Session = Depends(get_db),
 ):
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    settings = get_workspace_settings(db, workspace.id)
+
+    workflow_steps = []
+    # If later you store steps in DB, replace this.
+    # For now this page can still render without them.
+
     return templates.TemplateResponse(
         request,
         "onboarding/review.html",
         {
             "page_title": "Review Setup",
             "plan": plan.lower(),
+            "workspace": workspace,
+            "settings": settings,
+            "workflow_steps": workflow_steps,
         },
     )
+    
 @app.get("/api/twilio/available-numbers")
 def api_twilio_available_numbers(
     area_code: str = Query(""),
@@ -1932,3 +2018,20 @@ def api_twilio_available_numbers(
     ])
 
     return {"numbers": numbers[:3]}
+@app.get("/api/twilio/available-numbers")
+def api_twilio_available_numbers(
+    area_code: str = Query(""),
+):
+    mock_numbers = {
+        "403": ["+14035551201", "+14035551202", "+14035551203"],
+        "587": ["+15875552201", "+15875552202", "+15875552203"],
+        "825": ["+18255553201", "+18255553202", "+18255553203"],
+    }
+
+    clean_area_code = (area_code or "").strip()
+    numbers = mock_numbers.get(clean_area_code)
+
+    if not numbers:
+        numbers = ["+14035551201", "+15875552201", "+18255553201"]
+
+    return {"numbers": numbers}
