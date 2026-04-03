@@ -45,7 +45,8 @@
 
     <form id="workflow-form" action="/onboarding/phone-setup" method="post">
       <input type="hidden" name="steps_json" id="steps_json">
-
+      <input type="hidden" name="plan" value="{{ plan }}">
+      
       <div class="workflow-toolbar">
         <button type="button" class="btn btn-primary" id="add-step-btn">+ Add Step</button>
         <button type="button" class="btn btn-secondary" id="reset-steps-btn">Use Recommended Flow</button>
