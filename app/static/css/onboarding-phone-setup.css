@@ -277,3 +277,103 @@
     padding: 14px;
   }
 }
+.hidden-block {
+  display: none;
+}
+
+.coverage-choice-group {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.coverage-choice-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid #d9e1ef;
+  border-radius: 18px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.coverage-choice-card input {
+  margin-top: 4px;
+}
+
+.coverage-choice-card-active {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+  background: #f8fbff;
+}
+
+.coverage-choice-title {
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.coverage-choice-text {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.hours-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.new-number-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.new-number-status {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.available-numbers {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.available-number-card {
+  text-align: left;
+  border: 1px solid #d9e1ef;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.available-number-card:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+.available-number-card.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+@media (max-width: 900px) {
+  .hours-grid {
+    grid-template-columns: 1fr;
+  }
+}
