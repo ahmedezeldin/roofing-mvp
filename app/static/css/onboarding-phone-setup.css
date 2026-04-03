@@ -491,3 +491,9 @@ textarea.input-invalid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+.coverage-choice-group.input-invalid {
+  padding: 10px;
+  border: 1px solid #ef4444;
+  border-radius: 16px;
+  background: #fef2f2;
+}
