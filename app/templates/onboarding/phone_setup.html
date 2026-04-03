@@ -43,7 +43,7 @@
       We’ll connect a number and make sure missed callers get a text back the way you want.
     </p>
 
-    <form action="/onboarding/review" method="post" class="phone-setup-form">
+    <form action="/onboarding/phone-setup" method="post" class="phone-setup-form">
       <input type="hidden" name="plan" value="{{ plan }}">
 
       <div class="phone-setup-grid">
@@ -56,8 +56,12 @@
           <div class="form-group">
             <label for="phone_mode">How do you want to start?</label>
             <select id="phone_mode" name="phone_mode">
-              <option value="existing">Use my existing business number</option>
-              <option value="new">Get me a new number</option>
+              <option value="existing" {% if phone_setup_data.phone_mode == "existing" %}selected{% endif %}>
+                Use my existing business number
+              </option>
+              <option value="new" {% if phone_setup_data.phone_mode == "new" %}selected{% endif %}>
+                Get me a new number
+              </option>
             </select>
           </div>
 
@@ -69,6 +73,7 @@
                 type="tel"
                 name="business_phone"
                 placeholder="(403) 555-1234"
+                value="{{ phone_setup_data.business_phone }}"
               >
             </div>
           </div>
@@ -82,6 +87,7 @@
                 name="new_number_area_code"
                 placeholder="403"
                 maxlength="3"
+                value="{{ phone_setup_data.new_number_area_code }}"
               >
             </div>
 
@@ -94,7 +100,12 @@
 
             <div id="available-numbers" class="available-numbers"></div>
 
-            <input type="hidden" name="selected_twilio_number" id="selected_twilio_number">
+            <input
+              type="hidden"
+              name="selected_twilio_number"
+              id="selected_twilio_number"
+              value="{{ phone_setup_data.selected_twilio_number }}"
+            >
           </div>
         </div>
 
@@ -105,8 +116,13 @@
           </p>
 
           <div class="coverage-choice-group">
-            <label class="coverage-choice-card coverage-choice-card-active">
-              <input type="radio" name="coverage_mode" value="always" checked>
+            <label class="coverage-choice-card">
+              <input
+                type="radio"
+                name="coverage_mode"
+                value="always"
+                {% if phone_setup_data.coverage_mode == "always" %}checked{% endif %}
+              >
               <div class="coverage-choice-content">
                 <div class="coverage-choice-title">Protect missed calls 24/7</div>
                 <div class="coverage-choice-text">Recommended. If no one answers, the lead still gets captured.</div>
@@ -114,7 +130,12 @@
             </label>
 
             <label class="coverage-choice-card">
-              <input type="radio" name="coverage_mode" value="after_hours">
+              <input
+                type="radio"
+                name="coverage_mode"
+                value="after_hours"
+                {% if phone_setup_data.coverage_mode == "after_hours" %}checked{% endif %}
+              >
               <div class="coverage-choice-content">
                 <div class="coverage-choice-title">Only protect calls outside business hours</div>
                 <div class="coverage-choice-text">Use your working hours so the service only steps in after-hours.</div>
@@ -126,23 +147,55 @@
             <div class="hours-grid">
               <div class="form-group">
                 <label for="workday_start">Business day starts</label>
-                <input id="workday_start" type="time" name="workday_start">
+                <input
+                  id="workday_start"
+                  type="time"
+                  name="workday_start"
+                  value="{{ phone_setup_data.workday_start }}"
+                >
               </div>
 
               <div class="form-group">
                 <label for="workday_end">Business day ends</label>
-                <input id="workday_end" type="time" name="workday_end">
+                <input
+                  id="workday_end"
+                  type="time"
+                  name="workday_end"
+                  value="{{ phone_setup_data.workday_end }}"
+                >
               </div>
             </div>
 
             <div class="form-group">
               <label for="business_days">Working days</label>
               <select id="business_days" name="business_days">
-                <option value="mon_fri">Monday to Friday</option>
-                <option value="mon_sat">Monday to Saturday</option>
-                <option value="all_week">7 days a week</option>
+                <option value="mon_fri" {% if phone_setup_data.business_days == "mon_fri" %}selected{% endif %}>Monday to Friday</option>
+                <option value="mon_sat" {% if phone_setup_data.business_days == "mon_sat" %}selected{% endif %}>Monday to Saturday</option>
+                <option value="all_week" {% if phone_setup_data.business_days == "all_week" %}selected{% endif %}>7 days a week</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group top-gap">
+            <label for="notification_email">Notification email</label>
+            <input
+              id="notification_email"
+              type="email"
+              name="notification_email"
+              placeholder="support@yourcompany.com"
+              value="{{ phone_setup_data.notification_email }}"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="team_mobile">Team mobile for urgent lead alerts</label>
+            <input
+              id="team_mobile"
+              type="tel"
+              name="team_mobile"
+              placeholder="(403) 555-9876"
+              value="{{ phone_setup_data.team_mobile }}"
+            >
           </div>
         </div>
       </div>
@@ -192,7 +245,6 @@
 
     newNumberStatus.textContent = "Finding available numbers...";
     availableNumbersContainer.innerHTML = "";
-    selectedTwilioNumberInput.value = "";
 
     try {
       const response = await fetch(`/api/twilio/available-numbers?area_code=${encodeURIComponent(areaCode)}`);
@@ -210,6 +262,10 @@
         btn.type = "button";
         btn.className = "available-number-card";
         btn.textContent = number;
+
+        if (selectedTwilioNumberInput.value === number) {
+          btn.classList.add("selected");
+        }
 
         btn.addEventListener("click", () => {
           document.querySelectorAll(".available-number-card").forEach(card => {
