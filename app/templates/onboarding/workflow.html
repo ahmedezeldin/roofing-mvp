@@ -244,23 +244,25 @@
         </div>
 
         <div class="advanced-timing-wrap">
-          <button type="button" class="advanced-toggle">
-            Advanced timing
-            <span class="advanced-summary">${getDelayLabel(step.delayMinutes)}</span>
-          </button>
+  <button type="button" class="advanced-toggle subtle-toggle">
+    <span>Advanced timing</span>
+    <span class="advanced-summary">${getDelayLabel(step.delayMinutes)}</span>
+  </button>
 
-          <div class="advanced-panel ${step.delayMinutes > 0 ? "open" : ""}">
-            <div class="workflow-field-group">
-              <label>When should this text send?</label>
-              <select class="delay-select">
-                <option value="0" ${step.delayMinutes === 0 ? "selected" : ""}>Immediately (recommended)</option>
-                <option value="1" ${step.delayMinutes === 1 ? "selected" : ""}>1 minute later</option>
-                <option value="5" ${step.delayMinutes === 5 ? "selected" : ""}>5 minutes later</option>
-                <option value="10" ${step.delayMinutes === 10 ? "selected" : ""}>10 minutes later</option>
-              </select>
-            </div>
-          </div>
-        </div>
+  <div class="advanced-panel ${step.delayMinutes > 0 ? "open" : ""}">
+    <div class="advanced-panel-inner">
+      <div class="workflow-field-group compact-field-group">
+        <label>When should this text send?</label>
+        <select class="delay-select">
+          <option value="0" ${step.delayMinutes === 0 ? "selected" : ""}>Immediately (recommended)</option>
+          <option value="1" ${step.delayMinutes === 1 ? "selected" : ""}>1 minute later</option>
+          <option value="5" ${step.delayMinutes === 5 ? "selected" : ""}>5 minutes later</option>
+          <option value="10" ${step.delayMinutes === 10 ? "selected" : ""}>10 minutes later</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
 
         <div class="workflow-field-group">
   <label>Text message</label>
