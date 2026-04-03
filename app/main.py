@@ -1866,3 +1866,28 @@ def privacy_page(request: Request):
         "privacy.html",
         {"page_title": "Privacy Policy"},
     )
+@app.post("/onboarding/phone-setup")
+def onboarding_phone_setup_submit(
+    request: Request,
+    steps_json: str = Form(...),
+    plan: str = Form("pilot"),
+):
+    return RedirectResponse(
+        url=f"/onboarding/phone-setup?plan={plan}",
+        status_code=303,
+    )
+
+
+@app.get("/onboarding/phone-setup", response_class=HTMLResponse)
+def onboarding_phone_setup_page(
+    request: Request,
+    plan: str = Query("pilot"),
+):
+    return templates.TemplateResponse(
+        request,
+        "onboarding/phone_setup.html",
+        {
+            "page_title": "Phone Setup",
+            "plan": plan.lower(),
+        },
+    )
