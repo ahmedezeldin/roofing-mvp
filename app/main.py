@@ -2035,3 +2035,21 @@ def api_twilio_available_numbers(
         numbers = ["+14035551201", "+15875552201", "+18255553201"]
 
     return {"numbers": numbers}
+@app.post("/onboarding/workflow")
+def onboarding_workflow_submit(
+    request: Request,
+    plan: str = Form("pilot"),
+    steps_json: str = Form("[]"),
+    db: Session = Depends(get_db),
+):
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    # save later if you want
+    # for now just keep moving through flow
+
+    return RedirectResponse(
+        url=f"/onboarding/phone-setup?plan={plan}",
+        status_code=303,
+    )
