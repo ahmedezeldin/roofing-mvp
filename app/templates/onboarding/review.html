@@ -1,8 +1,121 @@
 {% extends "website.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/onboarding-review.css">
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 900px; margin: 60px auto; padding: 24px;">
-  <h1>Review Setup</h1>
-  <p>This is the next onboarding step.</p>
+<div class="review-page-shell">
+  <section class="setup-progress-shell">
+    <div class="setup-progress-bar">
+      <div class="setup-step">
+        <div class="setup-step-number">1</div>
+        <div class="setup-step-label">Business</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">2</div>
+        <div class="setup-step-label">Workflow</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">3</div>
+        <div class="setup-step-label">Phone Setup</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step setup-step-active">
+        <div class="setup-step-number">4</div>
+        <div class="setup-step-label">Review</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="review-main-card">
+    <div class="review-kicker">Step 4 of 4</div>
+    <h1 class="review-title">Review your setup</h1>
+    <p class="review-subtitle">
+      Here’s what Roofing Front Desk is about to set up for your workspace.
+    </p>
+
+    <div class="review-grid">
+      <div class="review-card">
+        <div class="section-title">Workspace</div>
+        <div class="review-row">
+          <span>Business name</span>
+          <strong>{{ settings.business_name if settings else workspace.company_name }}</strong>
+        </div>
+        <div class="review-row">
+          <span>Plan</span>
+          <strong>{{ workspace.plan|title }}</strong>
+        </div>
+      </div>
+
+      <div class="review-card">
+        <div class="section-title">Phone setup</div>
+        <div class="review-row">
+          <span>Phone mode</span>
+          <strong>{{ "New number" if workspace.phone_mode == "new" else "Existing business number" }}</strong>
+        </div>
+
+        {% if workspace.phone_mode == "new" %}
+        <div class="review-row">
+          <span>Selected number</span>
+          <strong>{{ workspace.pending_twilio_number or "Not selected yet" }}</strong>
+        </div>
+        {% else %}
+        <div class="review-row">
+          <span>Business phone</span>
+          <strong>{{ workspace.business_phone or "Not provided yet" }}</strong>
+        </div>
+        {% endif %}
+
+        <div class="review-row">
+          <span>Coverage</span>
+          <strong>
+            {% if workspace.coverage_mode == "after_hours" %}
+              After hours only
+            {% else %}
+              24/7
+            {% endif %}
+          </strong>
+        </div>
+
+        {% if workspace.coverage_mode == "after_hours" %}
+        <div class="review-row">
+          <span>Business hours</span>
+          <strong>{{ workspace.workday_start }} – {{ workspace.workday_end }}</strong>
+        </div>
+        <div class="review-row">
+          <span>Working days</span>
+          <strong>{{ workspace.business_days }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="review-card full-width-card">
+      <div class="section-title">Notifications</div>
+      <div class="review-row">
+        <span>Notification email</span>
+        <strong>{{ workspace.notification_email or "Not set" }}</strong>
+      </div>
+      <div class="review-row">
+        <span>Urgent lead mobile</span>
+        <strong>{{ workspace.team_mobile or "Not set" }}</strong>
+      </div>
+    </div>
+
+    <form action="/onboarding/review" method="post" class="review-footer">
+      <input type="hidden" name="plan" value="{{ plan }}">
+      <a href="/onboarding/phone-setup?plan={{ plan }}" class="btn btn-secondary">Back</a>
+      <button type="submit" class="btn btn-primary">Continue to billing</button>
+    </form>
+  </section>
 </div>
 {% endblock %}
