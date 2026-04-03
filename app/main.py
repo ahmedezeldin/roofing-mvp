@@ -1914,3 +1914,21 @@ def onboarding_review_page(
             "plan": plan.lower(),
         },
     )
+@app.get("/api/twilio/available-numbers")
+def api_twilio_available_numbers(
+    area_code: str = Query(""),
+):
+    # Temporary mock data for now
+    mock_numbers = {
+        "403": ["+1 403-555-1201", "+1 403-555-1202", "+1 403-555-1203"],
+        "587": ["+1 587-555-2201", "+1 587-555-2202", "+1 587-555-2203"],
+        "825": ["+1 825-555-3201", "+1 825-555-3202", "+1 825-555-3203"],
+    }
+
+    numbers = mock_numbers.get(area_code.strip(), [
+        "+1 403-555-1201",
+        "+1 587-555-2201",
+        "+1 825-555-3201",
+    ])
+
+    return {"numbers": numbers[:3]}
