@@ -1891,3 +1891,26 @@ def onboarding_phone_setup_page(
             "plan": plan.lower(),
         },
     )
+@app.post("/onboarding/review")
+def onboarding_review_submit(
+    plan: str = Form("pilot"),
+):
+    return RedirectResponse(
+        url=f"/onboarding/review?plan={plan}",
+        status_code=303,
+    )
+
+
+@app.get("/onboarding/review", response_class=HTMLResponse)
+def onboarding_review_page(
+    request: Request,
+    plan: str = Query("pilot"),
+):
+    return templates.TemplateResponse(
+        request,
+        "onboarding/review.html",
+        {
+            "page_title": "Review Setup",
+            "plan": plan.lower(),
+        },
+    )
