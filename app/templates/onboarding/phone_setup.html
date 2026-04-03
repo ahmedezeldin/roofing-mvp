@@ -38,9 +38,9 @@
 
   <section class="phone-setup-main-card">
     <div class="phone-setup-kicker">Step 3 of 4</div>
-    <h1 class="phone-setup-title">Connect your phone setup</h1>
+    <h1 class="phone-setup-title">Choose how missed calls should be covered</h1>
     <p class="phone-setup-subtitle">
-      This is where Roofing Front Desk gets ready to text back missed callers and route responses into your workspace.
+      We’ll connect a number and make sure missed callers get a text back the way you want.
     </p>
 
     <form action="/onboarding/review" method="post" class="phone-setup-form">
@@ -50,88 +50,101 @@
         <div class="phone-setup-card">
           <div class="section-title">Phone number</div>
           <p class="section-text">
-            Use your existing business number or connect a new number for missed-call text-back.
+            Start with your current business line or choose a new number for Roofing Front Desk.
           </p>
 
           <div class="form-group">
             <label for="phone_mode">How do you want to start?</label>
             <select id="phone_mode" name="phone_mode">
               <option value="existing">Use my existing business number</option>
-              <option value="new">Get a new number</option>
+              <option value="new">Get me a new number</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label for="business_phone">Business phone number</label>
-            <input
-              id="business_phone"
-              type="tel"
-              name="business_phone"
-              placeholder="(403) 555-1234"
-            >
+          <div id="existing-number-fields">
+            <div class="form-group">
+              <label for="business_phone">Business phone number</label>
+              <input
+                id="business_phone"
+                type="tel"
+                name="business_phone"
+                placeholder="(403) 555-1234"
+              >
+            </div>
           </div>
 
-          <div class="form-group">
-            <label for="forwarding_notes">Anything we should know?</label>
-            <textarea
-              id="forwarding_notes"
-              name="forwarding_notes"
-              rows="4"
-              placeholder="Example: this number already rings my office line and I only want missed-call text-back."
-            ></textarea>
+          <div id="new-number-fields" class="hidden-block">
+            <div class="form-group">
+              <label for="new_number_area_code">Preferred area code</label>
+              <input
+                id="new_number_area_code"
+                type="text"
+                name="new_number_area_code"
+                placeholder="403"
+                maxlength="3"
+              >
+            </div>
+
+            <div class="new-number-toolbar">
+              <button type="button" class="btn btn-secondary" id="find-numbers-btn">
+                Find available numbers
+              </button>
+              <div class="new-number-status" id="new-number-status"></div>
+            </div>
+
+            <div id="available-numbers" class="available-numbers"></div>
+
+            <input type="hidden" name="selected_twilio_number" id="selected_twilio_number">
           </div>
         </div>
 
         <div class="phone-setup-card">
-          <div class="section-title">Texting behavior</div>
+          <div class="section-title">Coverage schedule</div>
           <p class="section-text">
-            Choose how you want the system to behave when a missed call comes in.
+            Choose when Roofing Front Desk should protect missed calls.
           </p>
 
-          <label class="checkbox-row">
-            <input type="checkbox" name="enable_missed_call_text" value="1" checked>
-            <span>Enable missed-call text-back</span>
-          </label>
+          <div class="coverage-choice-group">
+            <label class="coverage-choice-card coverage-choice-card-active">
+              <input type="radio" name="coverage_mode" value="always" checked>
+              <div class="coverage-choice-content">
+                <div class="coverage-choice-title">Protect missed calls 24/7</div>
+                <div class="coverage-choice-text">Recommended. If no one answers, the lead still gets captured.</div>
+              </div>
+            </label>
 
-          <label class="checkbox-row">
-            <input type="checkbox" name="notify_team_email" value="1" checked>
-            <span>Email my team when a lead replies</span>
-          </label>
-
-          <label class="checkbox-row">
-            <input type="checkbox" name="notify_team_sms" value="1">
-            <span>Text me when a high-priority lead replies</span>
-          </label>
-
-          <div class="form-group">
-            <label for="notification_email">Notification email</label>
-            <input
-              id="notification_email"
-              type="email"
-              name="notification_email"
-              placeholder="support@yourcompany.com"
-            >
+            <label class="coverage-choice-card">
+              <input type="radio" name="coverage_mode" value="after_hours">
+              <div class="coverage-choice-content">
+                <div class="coverage-choice-title">Only protect calls outside business hours</div>
+                <div class="coverage-choice-text">Use your working hours so the service only steps in after-hours.</div>
+              </div>
+            </label>
           </div>
 
-          <div class="form-group">
-            <label for="team_mobile">Team mobile for urgent lead alerts</label>
-            <input
-              id="team_mobile"
-              type="tel"
-              name="team_mobile"
-              placeholder="(403) 555-9876"
-            >
+          <div id="business-hours-block" class="hidden-block">
+            <div class="hours-grid">
+              <div class="form-group">
+                <label for="workday_start">Business day starts</label>
+                <input id="workday_start" type="time" name="workday_start">
+              </div>
+
+              <div class="form-group">
+                <label for="workday_end">Business day ends</label>
+                <input id="workday_end" type="time" name="workday_end">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="business_days">Working days</label>
+              <select id="business_days" name="business_days">
+                <option value="mon_fri">Monday to Friday</option>
+                <option value="mon_sat">Monday to Saturday</option>
+                <option value="all_week">7 days a week</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="readiness-card">
-        <div class="section-title">Before you go live</div>
-        <ul class="readiness-list">
-          <li>Make sure the number you want to use is listed correctly.</li>
-          <li>Double-check where reply notifications should go.</li>
-          <li>You can fine-tune Twilio and call flow details later.</li>
-        </ul>
       </div>
 
       <div class="phone-setup-footer">
@@ -141,4 +154,84 @@
     </form>
   </section>
 </div>
+
+<script>
+  const phoneModeSelect = document.getElementById("phone_mode");
+  const existingNumberFields = document.getElementById("existing-number-fields");
+  const newNumberFields = document.getElementById("new-number-fields");
+
+  const coverageRadios = document.querySelectorAll('input[name="coverage_mode"]');
+  const coverageCards = document.querySelectorAll(".coverage-choice-card");
+  const businessHoursBlock = document.getElementById("business-hours-block");
+
+  const findNumbersBtn = document.getElementById("find-numbers-btn");
+  const newNumberStatus = document.getElementById("new-number-status");
+  const availableNumbersContainer = document.getElementById("available-numbers");
+  const selectedTwilioNumberInput = document.getElementById("selected_twilio_number");
+  const areaCodeInput = document.getElementById("new_number_area_code");
+
+  function updatePhoneModeUI() {
+    const isNew = phoneModeSelect.value === "new";
+    existingNumberFields.classList.toggle("hidden-block", isNew);
+    newNumberFields.classList.toggle("hidden-block", !isNew);
+  }
+
+  function updateCoverageUI() {
+    const selected = document.querySelector('input[name="coverage_mode"]:checked')?.value;
+
+    coverageCards.forEach(card => {
+      const radio = card.querySelector('input[type="radio"]');
+      card.classList.toggle("coverage-choice-card-active", radio.checked);
+    });
+
+    businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
+  }
+
+  async function findNumbers() {
+    const areaCode = areaCodeInput.value.trim();
+
+    newNumberStatus.textContent = "Finding available numbers...";
+    availableNumbersContainer.innerHTML = "";
+    selectedTwilioNumberInput.value = "";
+
+    try {
+      const response = await fetch(`/api/twilio/available-numbers?area_code=${encodeURIComponent(areaCode)}`);
+      const data = await response.json();
+
+      if (!data.numbers || data.numbers.length === 0) {
+        newNumberStatus.textContent = "No available numbers found right now.";
+        return;
+      }
+
+      newNumberStatus.textContent = "Choose a number. It will only be purchased after checkout.";
+
+      data.numbers.forEach(number => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "available-number-card";
+        btn.textContent = number;
+
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".available-number-card").forEach(card => {
+            card.classList.remove("selected");
+          });
+
+          btn.classList.add("selected");
+          selectedTwilioNumberInput.value = number;
+        });
+
+        availableNumbersContainer.appendChild(btn);
+      });
+    } catch (error) {
+      newNumberStatus.textContent = "Could not load numbers right now.";
+    }
+  }
+
+  phoneModeSelect.addEventListener("change", updatePhoneModeUI);
+  coverageRadios.forEach(radio => radio.addEventListener("change", updateCoverageUI));
+  findNumbersBtn.addEventListener("click", findNumbers);
+
+  updatePhoneModeUI();
+  updateCoverageUI();
+</script>
 {% endblock %}
