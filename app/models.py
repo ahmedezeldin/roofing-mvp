@@ -48,31 +48,30 @@ class Workspace(Base):
     plan = Column(String, nullable=False, default="pilot")
     business_phone = Column(String, nullable=True)
     primary_service_area = Column(String, nullable=True)
-    status = Column(String, nullable=False, default="pending")
-    stripe_customer_id = Column(String, nullable=True)
-    stripe_subscription_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     owner_user_id = Column(Integer, ForeignKey("app_users.id"), nullable=False)
 
-    owner = relationship("AppUser", back_populates="owned_workspaces")
-    settings = relationship(
-        "BusinessSettings",
-        back_populates="workspace",
-        uselist=False,
-        cascade="all, delete-orphan",
-    )
-    leads = relationship(
-        "Lead",
-        back_populates="workspace",
-        cascade="all, delete-orphan",
-    )
-    messages = relationship(
-        "Message",
-        back_populates="workspace",
-        cascade="all, delete-orphan",
-    )
+    # ---- billing / status ----
+    status = Column(String, nullable=False, default="pending")
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
 
+    # ---- phone setup ----
+    phone_mode = Column(String, nullable=True)                 # existing / new
+    pending_twilio_number = Column(String, nullable=True)      # selected but not purchased yet
+    active_twilio_number = Column(String, nullable=True)       # purchased after checkout
+    coverage_mode = Column(String, nullable=True)              # always / after_hours
+    workday_start = Column(String, nullable=True)              # "09:00"
+    workday_end = Column(String, nullable=True)                # "17:00"
+    business_days = Column(String, nullable=True)              # mon_fri / mon_sat / all_week
+    notification_email = Column(String, nullable=True)
+    team_mobile = Column(String, nullable=True)
+
+    owner = relationship("AppUser", back_populates="owned_workspaces")
+    settings = relationship("BusinessSettings", back_populates="workspace", uselist=False)
+    leads = relationship("Lead", back_populates="workspace", cascade="all, delete-orphan")
+    messages = relationship("Message", back_populates="workspace", cascade="all, delete-orphan")
 
 class BusinessSettings(Base):
     __tablename__ = "business_settings"
