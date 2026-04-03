@@ -1,8 +1,144 @@
 {% extends "website.html" %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/onboarding-phone-setup.css">
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 900px; margin: 60px auto; padding: 24px;">
-  <h1>Phone Setup</h1>
-  <p>This is the next onboarding step.</p>
+<div class="phone-setup-page-shell">
+  <section class="setup-progress-shell">
+    <div class="setup-progress-bar">
+      <div class="setup-step">
+        <div class="setup-step-number">1</div>
+        <div class="setup-step-label">Business</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">2</div>
+        <div class="setup-step-label">Workflow</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step setup-step-active">
+        <div class="setup-step-number">3</div>
+        <div class="setup-step-label">Phone Setup</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">4</div>
+        <div class="setup-step-label">Review</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phone-setup-main-card">
+    <div class="phone-setup-kicker">Step 3 of 4</div>
+    <h1 class="phone-setup-title">Connect your phone setup</h1>
+    <p class="phone-setup-subtitle">
+      This is where Roofing Front Desk gets ready to text back missed callers and route responses into your workspace.
+    </p>
+
+    <form action="/onboarding/review" method="post" class="phone-setup-form">
+      <input type="hidden" name="plan" value="{{ plan }}">
+
+      <div class="phone-setup-grid">
+        <div class="phone-setup-card">
+          <div class="section-title">Phone number</div>
+          <p class="section-text">
+            Use your existing business number or connect a new number for missed-call text-back.
+          </p>
+
+          <div class="form-group">
+            <label for="phone_mode">How do you want to start?</label>
+            <select id="phone_mode" name="phone_mode">
+              <option value="existing">Use my existing business number</option>
+              <option value="new">Get a new number</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="business_phone">Business phone number</label>
+            <input
+              id="business_phone"
+              type="tel"
+              name="business_phone"
+              placeholder="(403) 555-1234"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="forwarding_notes">Anything we should know?</label>
+            <textarea
+              id="forwarding_notes"
+              name="forwarding_notes"
+              rows="4"
+              placeholder="Example: this number already rings my office line and I only want missed-call text-back."
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="phone-setup-card">
+          <div class="section-title">Texting behavior</div>
+          <p class="section-text">
+            Choose how you want the system to behave when a missed call comes in.
+          </p>
+
+          <label class="checkbox-row">
+            <input type="checkbox" name="enable_missed_call_text" value="1" checked>
+            <span>Enable missed-call text-back</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" name="notify_team_email" value="1" checked>
+            <span>Email my team when a lead replies</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" name="notify_team_sms" value="1">
+            <span>Text me when a high-priority lead replies</span>
+          </label>
+
+          <div class="form-group">
+            <label for="notification_email">Notification email</label>
+            <input
+              id="notification_email"
+              type="email"
+              name="notification_email"
+              placeholder="support@yourcompany.com"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="team_mobile">Team mobile for urgent lead alerts</label>
+            <input
+              id="team_mobile"
+              type="tel"
+              name="team_mobile"
+              placeholder="(403) 555-9876"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="readiness-card">
+        <div class="section-title">Before you go live</div>
+        <ul class="readiness-list">
+          <li>Make sure the number you want to use is listed correctly.</li>
+          <li>Double-check where reply notifications should go.</li>
+          <li>You can fine-tune Twilio and call flow details later.</li>
+        </ul>
+      </div>
+
+      <div class="phone-setup-footer">
+        <a href="/onboarding/workflow?plan={{ plan }}" class="btn btn-secondary">Back</a>
+        <button type="submit" class="btn btn-primary">Continue to review</button>
+      </div>
+    </form>
+  </section>
 </div>
 {% endblock %}
