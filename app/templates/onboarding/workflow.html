@@ -57,21 +57,6 @@
 
       <div id="workflow-steps" class="workflow-steps"></div>
 
-      <div class="workflow-details-card">
-        <div class="workflow-details-title">Auto-filled details</div>
-        <p class="workflow-details-subtitle">
-          Click one to insert it into the selected text message.
-        </p>
-
-        <div class="variable-chip-row">
-          <button type="button" class="variable-chip" data-token="{business_name}">Business Name</button>
-          <button type="button" class="variable-chip" data-token="{customer_name}">Customer Name</button>
-          <button type="button" class="variable-chip" data-token="{job_type}">Job Type</button>
-          <button type="button" class="variable-chip" data-token="{postal_code}">Postal Code</button>
-          <button type="button" class="variable-chip" data-token="{urgency}">Urgency</button>
-        </div>
-      </div>
-
       <div class="workflow-footer">
         <a href="/signup" class="btn btn-secondary">Back</a>
         <button type="submit" class="btn btn-primary">Continue to phone setup</button>
@@ -278,12 +263,23 @@
         </div>
 
         <div class="workflow-field-group">
-          <label>Text message</label>
-          <div class="field-helper">
-            Auto-filled details like <span class="token-chip-inline">{business_name}</span> will be replaced automatically.
-          </div>
-          <textarea class="message-textarea" rows="4" placeholder="Type your follow-up message here.">${escapeHtml(step.message)}</textarea>
-        </div>
+  <label>Text message</label>
+  <div class="field-helper">
+    Auto-filled details like <span class="token-chip-inline">{business_name}</span> will be replaced automatically.
+  </div>
+  <textarea class="message-textarea" rows="4" placeholder="Type your follow-up message here.">${escapeHtml(step.message)}</textarea>
+</div>
+
+<div class="step-variable-box">
+  <div class="step-variable-title">Auto-filled details</div>
+  <div class="step-variable-row">
+    <button type="button" class="variable-chip" data-token="{business_name}">Business Name</button>
+    <button type="button" class="variable-chip" data-token="{customer_name}">Customer Name</button>
+    <button type="button" class="variable-chip" data-token="{job_type}">Job Type</button>
+    <button type="button" class="variable-chip" data-token="{postal_code}">Postal Code</button>
+    <button type="button" class="variable-chip" data-token="{urgency}">Urgency</button>
+  </div>
+</div>
       `;
 
       const moveUpBtn = card.querySelector(".move-up-btn");
@@ -366,11 +362,6 @@
     updateHiddenInput();
   }
 
-  document.querySelectorAll(".variable-chip").forEach(chip => {
-    chip.addEventListener("click", () => {
-      insertTokenIntoActiveTextarea(chip.dataset.token);
-    });
-  });
 
   addStepBtn.addEventListener("click", addCustomStep);
   resetStepsBtn.addEventListener("click", resetRecommended);
