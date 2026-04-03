@@ -43,9 +43,9 @@
       We’ll automatically text missed callers, qualify the lead, and help your team know when to step in.
     </p>
 
-    <form id="workflow-form" action="/onboarding/phone-setup" method="post">
-      <input type="hidden" name="steps_json" id="steps_json">
-      <input type="hidden" name="plan" value="{{ plan }}">
+<form id="workflow-form" action="/onboarding/workflow" method="post">
+  <input type="hidden" name="plan" value="{{ plan }}">
+  <input type="hidden" name="steps_json" id="steps_json">
       
       <div class="workflow-toolbar">
         <button type="button" class="btn btn-primary" id="add-step-btn">+ Add Step</button>
