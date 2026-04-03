@@ -144,37 +144,79 @@
           </div>
 
           <div id="business-hours-block" class="hidden-block">
-            <div class="hours-grid">
-              <div class="form-group">
-                <label for="workday_start">Business day starts</label>
-                <input
-                  id="workday_start"
-                  type="time"
-                  name="workday_start"
-                  value="{{ phone_setup_data.workday_start }}"
-                >
-              </div>
+  <div class="hours-grid">
+    <div class="form-group">
+      <label>Business day starts</label>
 
-              <div class="form-group">
-                <label for="workday_end">Business day ends</label>
-                <input
-                  id="workday_end"
-                  type="time"
-                  name="workday_end"
-                  value="{{ phone_setup_data.workday_end }}"
-                >
-              </div>
-            </div>
+      <div class="custom-time-row">
+        <select id="start_hour" class="custom-time-select">
+          <option value="">HH</option>
+          {% for h in range(1, 13) %}
+          <option value="{{ h }}">{{ "%02d"|format(h) }}</option>
+          {% endfor %}
+        </select>
 
-            <div class="form-group">
-              <label for="business_days">Working days</label>
-              <select id="business_days" name="business_days">
-                <option value="mon_fri" {% if phone_setup_data.business_days == "mon_fri" %}selected{% endif %}>Monday to Friday</option>
-                <option value="mon_sat" {% if phone_setup_data.business_days == "mon_sat" %}selected{% endif %}>Monday to Saturday</option>
-                <option value="all_week" {% if phone_setup_data.business_days == "all_week" %}selected{% endif %}>7 days a week</option>
-              </select>
-            </div>
-          </div>
+        <span class="time-separator">:</span>
+
+        <select id="start_minute" class="custom-time-select">
+          <option value="">MM</option>
+          <option value="00">00</option>
+          <option value="15">15</option>
+          <option value="30">30</option>
+          <option value="45">45</option>
+        </select>
+
+        <select id="start_period" class="custom-time-select period-select">
+          <option value="">AM/PM</option>
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+
+      <input type="hidden" name="workday_start" id="workday_start" value="{{ phone_setup_data.workday_start }}">
+    </div>
+
+    <div class="form-group">
+      <label>Business day ends</label>
+
+      <div class="custom-time-row">
+        <select id="end_hour" class="custom-time-select">
+          <option value="">HH</option>
+          {% for h in range(1, 13) %}
+          <option value="{{ h }}">{{ "%02d"|format(h) }}</option>
+          {% endfor %}
+        </select>
+
+        <span class="time-separator">:</span>
+
+        <select id="end_minute" class="custom-time-select">
+          <option value="">MM</option>
+          <option value="00">00</option>
+          <option value="15">15</option>
+          <option value="30">30</option>
+          <option value="45">45</option>
+        </select>
+
+        <select id="end_period" class="custom-time-select period-select">
+          <option value="">AM/PM</option>
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+
+      <input type="hidden" name="workday_end" id="workday_end" value="{{ phone_setup_data.workday_end }}">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="business_days">Working days</label>
+    <select id="business_days" name="business_days">
+      <option value="mon_fri" {% if phone_setup_data.business_days == "mon_fri" %}selected{% endif %}>Monday to Friday</option>
+      <option value="mon_sat" {% if phone_setup_data.business_days == "mon_sat" %}selected{% endif %}>Monday to Saturday</option>
+      <option value="all_week" {% if phone_setup_data.business_days == "all_week" %}selected{% endif %}>7 days a week</option>
+    </select>
+  </div>
+</div>
 
           <div class="form-group top-gap">
             <label for="notification_email">Notification email</label>
