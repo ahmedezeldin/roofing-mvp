@@ -265,88 +265,6 @@
   const selectedTwilioNumberInput = document.getElementById("selected_twilio_number");
   const areaCodeInput = document.getElementById("new_number_area_code");
 
-  function updatePhoneModeUI() {
-    const isNew = phoneModeSelect.value === "new";
-    existingNumberFields.classList.toggle("hidden-block", isNew);
-    newNumberFields.classList.toggle("hidden-block", !isNew);
-  }
-
-  function updateCoverageUI() {
-    const selected = document.querySelector('input[name="coverage_mode"]:checked')?.value;
-
-    coverageCards.forEach(card => {
-      const radio = card.querySelector('input[type="radio"]');
-      card.classList.toggle("coverage-choice-card-active", radio.checked);
-    });
-
-    businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
-  }
-
-  async function findNumbers() {
-    const areaCode = areaCodeInput.value.trim();
-
-    newNumberStatus.textContent = "Finding available numbers...";
-    availableNumbersContainer.innerHTML = "";
-
-    try {
-      const response = await fetch(`/api/twilio/available-numbers?area_code=${encodeURIComponent(areaCode)}`);
-      const data = await response.json();
-
-      if (!data.numbers || data.numbers.length === 0) {
-        newNumberStatus.textContent = "No available numbers found right now.";
-        return;
-      }
-
-      newNumberStatus.textContent = "Choose a number. It will only be purchased after checkout.";
-
-      data.numbers.forEach(number => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "available-number-card";
-        btn.textContent = number;
-
-        if (selectedTwilioNumberInput.value === number) {
-          btn.classList.add("selected");
-        }
-
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".available-number-card").forEach(card => {
-            card.classList.remove("selected");
-          });
-
-          btn.classList.add("selected");
-          selectedTwilioNumberInput.value = number;
-        });
-
-        availableNumbersContainer.appendChild(btn);
-      });
-    } catch (error) {
-      newNumberStatus.textContent = "Could not load numbers right now.";
-    }
-  }
-
-  phoneModeSelect.addEventListener("change", updatePhoneModeUI);
-  coverageRadios.forEach(radio => radio.addEventListener("change", updateCoverageUI));
-  findNumbersBtn.addEventListener("click", findNumbers);
-
-  updatePhoneModeUI();
-  updateCoverageUI();
-  <script>
-  const phoneModeSelect = document.getElementById("phone_mode");
-  const existingNumberFields = document.getElementById("existing-number-fields");
-  const newNumberFields = document.getElementById("new-number-fields");
-
-  const coverageRadios = document.querySelectorAll('input[name="coverage_mode"]');
-  const coverageCards = document.querySelectorAll(".coverage-choice-card");
-  const businessHoursBlock = document.getElementById("business-hours-block");
-
-  const findNumbersBtn = document.getElementById("find-numbers-btn");
-  const newNumberStatus = document.getElementById("new-number-status");
-  const availableNumbersContainer = document.getElementById("available-numbers");
-  const selectedTwilioNumberInput = document.getElementById("selected_twilio_number");
-  const areaCodeInput = document.getElementById("new_number_area_code");
-
-  // NEW time dropdown refs
   const startHour = document.getElementById("start_hour");
   const startMinute = document.getElementById("start_minute");
   const startPeriod = document.getElementById("start_period");
@@ -370,7 +288,9 @@
       card.classList.toggle("coverage-choice-card-active", radio.checked);
     });
 
-    businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
+    if (businessHoursBlock) {
+      businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
+    }
   }
 
   async function findNumbers() {
@@ -416,7 +336,6 @@
     }
   }
 
-  // NEW: convert 12-hour UI to 24-hour HH:MM for backend
   function to24Hour(hour, minute, period) {
     if (!hour || !minute || !period) return "";
 
@@ -432,13 +351,16 @@
   }
 
   function syncTimeFields() {
-    workdayStartHidden.value = to24Hour(startHour.value, startMinute.value, startPeriod.value);
-    workdayEndHidden.value = to24Hour(endHour.value, endMinute.value, endPeriod.value);
+    if (workdayStartHidden) {
+      workdayStartHidden.value = to24Hour(startHour?.value, startMinute?.value, startPeriod?.value);
+    }
+    if (workdayEndHidden) {
+      workdayEndHidden.value = to24Hour(endHour?.value, endMinute?.value, endPeriod?.value);
+    }
   }
 
-  // NEW: prefill dropdowns from existing saved HH:MM
   function populateTimeDropdowns(hiddenValue, hourEl, minuteEl, periodEl) {
-    if (!hiddenValue || !hiddenValue.includes(":")) return;
+    if (!hiddenValue || !hiddenValue.includes(":") || !hourEl || !minuteEl || !periodEl) return;
 
     const [hh, mm] = hiddenValue.split(":");
     let hour = parseInt(hh, 10);
@@ -459,20 +381,19 @@
     periodEl.value = period;
   }
 
-  phoneModeSelect.addEventListener("change", updatePhoneModeUI);
+  phoneModeSelect?.addEventListener("change", updatePhoneModeUI);
   coverageRadios.forEach(radio => radio.addEventListener("change", updateCoverageUI));
-  findNumbersBtn.addEventListener("click", findNumbers);
+  findNumbersBtn?.addEventListener("click", findNumbers);
 
   [startHour, startMinute, startPeriod, endHour, endMinute, endPeriod].forEach(el => {
     if (el) el.addEventListener("change", syncTimeFields);
   });
 
-  populateTimeDropdowns(workdayStartHidden.value, startHour, startMinute, startPeriod);
-  populateTimeDropdowns(workdayEndHidden.value, endHour, endMinute, endPeriod);
+  populateTimeDropdowns(workdayStartHidden?.value, startHour, startMinute, startPeriod);
+  populateTimeDropdowns(workdayEndHidden?.value, endHour, endMinute, endPeriod);
 
   updatePhoneModeUI();
   updateCoverageUI();
   syncTimeFields();
-</script>
 </script>
 {% endblock %}
