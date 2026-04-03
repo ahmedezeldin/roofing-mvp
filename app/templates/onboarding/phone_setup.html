@@ -43,7 +43,7 @@
       We’ll connect a number and make sure missed callers get a text back the way you want.
     </p>
 
-    <form action="/onboarding/phone-setup" method="post" class="phone-setup-form">
+    <form id="phone-setup-form" action="/onboarding/phone-setup" method="post" class="phone-setup-form">
       <input type="hidden" name="plan" value="{{ plan }}">
 
       <div class="phone-setup-grid">
@@ -142,6 +142,36 @@
               </div>
             </label>
           </div>
+
+          <div class="coverage-choice-group" id="coverage-choice-group">
+  <label class="coverage-choice-card">
+    <input
+      type="radio"
+      name="coverage_mode"
+      value="always"
+      {% if phone_setup_data.coverage_mode == "always" %}checked{% endif %}
+    >
+    <div class="coverage-choice-content">
+      <div class="coverage-choice-title">Protect missed calls 24/7</div>
+      <div class="coverage-choice-text">Recommended. If no one answers, the lead still gets captured.</div>
+    </div>
+  </label>
+
+  <label class="coverage-choice-card">
+    <input
+      type="radio"
+      name="coverage_mode"
+      value="after_hours"
+      {% if phone_setup_data.coverage_mode == "after_hours" %}checked{% endif %}
+    >
+    <div class="coverage-choice-content">
+      <div class="coverage-choice-title">Only protect calls outside business hours</div>
+      <div class="coverage-choice-text">Use your working hours so the service only steps in after-hours.</div>
+    </div>
+  </label>
+</div>
+
+<div class="field-error-text" id="coverage-mode-error"></div>
 
           <div id="business-hours-block" class="hidden-block">
   <div class="hours-grid">
@@ -301,6 +331,10 @@
 
   const selectedDays = new Set();
 
+  const coverageChoiceGroup = document.getElementById("coverage-choice-group");
+const coverageModeError = document.getElementById("coverage-mode-error");
+
+
   function setInvalid(el) {
     if (!el) return;
     el.classList.add("input-invalid");
@@ -328,17 +362,19 @@
   }
 
   function updateCoverageUI() {
-    const selected = document.querySelector('input[name="coverage_mode"]:checked')?.value;
+  const selected = document.querySelector('input[name="coverage_mode"]:checked')?.value;
 
-    coverageCards.forEach(card => {
-      const radio = card.querySelector('input[type="radio"]');
-      card.classList.toggle("coverage-choice-card-active", radio.checked);
-    });
+  coverageCards.forEach(card => {
+    const radio = card.querySelector('input[type="radio"]');
+    card.classList.toggle("coverage-choice-card-active", radio.checked);
+  });
 
-    if (businessHoursBlock) {
-      businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
-    }
+  clearCoverageInvalid();
+
+  if (businessHoursBlock) {
+    businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
   }
+}
 
   async function findNumbers() {
     const areaCode = areaCodeInput?.value.trim() || "";
@@ -468,6 +504,20 @@
     }
   }
 
+  function setCoverageInvalid() {
+  coverageChoiceGroup?.classList.add("input-invalid");
+  if (coverageModeError) {
+    coverageModeError.textContent = "Please choose when missed calls should be covered.";
+  }
+}
+
+function clearCoverageInvalid() {
+  coverageChoiceGroup?.classList.remove("input-invalid");
+  if (coverageModeError) {
+    coverageModeError.textContent = "";
+  }
+}
+
   function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
@@ -567,6 +617,13 @@
 
     const phoneMode = phoneModeSelect?.value;
     const coverageMode = document.querySelector('input[name="coverage_mode"]:checked')?.value;
+
+        if (!coverageMode) {
+      setCoverageInvalid();
+      hasError = true;
+    } else {
+      clearCoverageInvalid();
+    }
 
     if (phoneMode === "existing") {
       if (!validateRequiredInput(existingBusinessPhoneInput)) {
