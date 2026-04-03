@@ -265,9 +265,16 @@
 </div>
 
 <script>
+  const phoneSetupForm = document.getElementById("phone-setup-form");
+
   const phoneModeSelect = document.getElementById("phone_mode");
   const existingNumberFields = document.getElementById("existing-number-fields");
   const newNumberFields = document.getElementById("new-number-fields");
+
+  const existingBusinessPhoneInput = document.getElementById("business_phone");
+  const notificationEmailInput = document.getElementById("notification_email");
+  const teamMobileInput = document.getElementById("team_mobile"); // optional
+  const areaCodeInput = document.getElementById("new_number_area_code");
 
   const coverageRadios = document.querySelectorAll('input[name="coverage_mode"]');
   const coverageCards = document.querySelectorAll(".coverage-choice-card");
@@ -277,7 +284,6 @@
   const newNumberStatus = document.getElementById("new-number-status");
   const availableNumbersContainer = document.getElementById("available-numbers");
   const selectedTwilioNumberInput = document.getElementById("selected_twilio_number");
-  const areaCodeInput = document.getElementById("new_number_area_code");
 
   const startHour = document.getElementById("start_hour");
   const startMinute = document.getElementById("start_minute");
@@ -287,6 +293,33 @@
   const endPeriod = document.getElementById("end_period");
   const workdayStartHidden = document.getElementById("workday_start");
   const workdayEndHidden = document.getElementById("workday_end");
+
+  const daysGrid = document.getElementById("days-card-grid");
+  const businessDaysHidden = document.getElementById("business_days");
+  const businessDaysError = document.getElementById("business-days-error");
+  const dayCards = document.querySelectorAll(".day-card");
+
+  const selectedDays = new Set();
+
+  function setInvalid(el) {
+    if (!el) return;
+    el.classList.add("input-invalid");
+  }
+
+  function clearInvalid(el) {
+    if (!el) return;
+    el.classList.remove("input-invalid");
+  }
+
+  function setDaysInvalid() {
+    if (daysGrid) daysGrid.classList.add("input-invalid");
+    if (businessDaysError) businessDaysError.textContent = "Please choose at least one working day.";
+  }
+
+  function clearDaysInvalid() {
+    if (daysGrid) daysGrid.classList.remove("input-invalid");
+    if (businessDaysError) businessDaysError.textContent = "";
+  }
 
   function updatePhoneModeUI() {
     const isNew = phoneModeSelect.value === "new";
@@ -308,7 +341,7 @@
   }
 
   async function findNumbers() {
-    const areaCode = areaCodeInput.value.trim();
+    const areaCode = areaCodeInput?.value.trim() || "";
 
     newNumberStatus.textContent = "Finding available numbers...";
     availableNumbersContainer.innerHTML = "";
@@ -341,6 +374,7 @@
 
           btn.classList.add("selected");
           selectedTwilioNumberInput.value = number;
+          clearInvalid(availableNumbersContainer);
         });
 
         availableNumbersContainer.appendChild(btn);
@@ -395,19 +429,180 @@
     periodEl.value = period;
   }
 
+  function syncBusinessDaysHidden() {
+    businessDaysHidden.value = Array.from(selectedDays).join(",");
+  }
+
+  function hydrateBusinessDays() {
+    const raw = (businessDaysHidden.value || "").trim();
+    if (!raw) return;
+
+    raw.split(",").forEach(day => {
+      const normalized = day.trim();
+      if (normalized) selectedDays.add(normalized);
+    });
+
+    dayCards.forEach(card => {
+      const day = card.dataset.day;
+      if (selectedDays.has(day)) {
+        card.classList.add("active");
+      }
+    });
+  }
+
+  function toggleDay(card) {
+    const day = card.dataset.day;
+
+    if (selectedDays.has(day)) {
+      selectedDays.delete(day);
+      card.classList.remove("active");
+    } else {
+      selectedDays.add(day);
+      card.classList.add("active");
+    }
+
+    syncBusinessDaysHidden();
+
+    if (selectedDays.size > 0) {
+      clearDaysInvalid();
+    }
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function validateRequiredInput(input) {
+    if (!input) return true;
+
+    const value = input.value.trim();
+    if (!value) {
+      setInvalid(input);
+      return false;
+    }
+
+    clearInvalid(input);
+    return true;
+  }
+
+  function validateRequiredSelect(select) {
+    if (!select) return true;
+
+    const value = select.value.trim();
+    if (!value) {
+      setInvalid(select);
+      return false;
+    }
+
+    clearInvalid(select);
+    return true;
+  }
+
+  function validateAfterHoursFields() {
+    const selectedCoverage = document.querySelector('input[name="coverage_mode"]:checked')?.value;
+    if (selectedCoverage !== "after_hours") {
+      clearInvalid(startHour);
+      clearInvalid(startMinute);
+      clearInvalid(startPeriod);
+      clearInvalid(endHour);
+      clearInvalid(endMinute);
+      clearInvalid(endPeriod);
+      clearDaysInvalid();
+      return true;
+    }
+
+    let ok = true;
+
+    if (!startHour.value) { setInvalid(startHour); ok = false; } else { clearInvalid(startHour); }
+    if (!startMinute.value) { setInvalid(startMinute); ok = false; } else { clearInvalid(startMinute); }
+    if (!startPeriod.value) { setInvalid(startPeriod); ok = false; } else { clearInvalid(startPeriod); }
+
+    if (!endHour.value) { setInvalid(endHour); ok = false; } else { clearInvalid(endHour); }
+    if (!endMinute.value) { setInvalid(endMinute); ok = false; } else { clearInvalid(endMinute); }
+    if (!endPeriod.value) { setInvalid(endPeriod); ok = false; } else { clearInvalid(endPeriod); }
+
+    if (selectedDays.size === 0) {
+      setDaysInvalid();
+      ok = false;
+    } else {
+      clearDaysInvalid();
+    }
+
+    syncTimeFields();
+    return ok;
+  }
+
   phoneModeSelect?.addEventListener("change", updatePhoneModeUI);
   coverageRadios.forEach(radio => radio.addEventListener("change", updateCoverageUI));
   findNumbersBtn?.addEventListener("click", findNumbers);
 
   [startHour, startMinute, startPeriod, endHour, endMinute, endPeriod].forEach(el => {
-    if (el) el.addEventListener("change", syncTimeFields);
+    if (el) {
+      el.addEventListener("change", () => {
+        syncTimeFields();
+        clearInvalid(el);
+      });
+    }
   });
+
+  dayCards.forEach(card => {
+    card.addEventListener("click", () => toggleDay(card));
+  });
+
+  existingBusinessPhoneInput?.addEventListener("input", () => clearInvalid(existingBusinessPhoneInput));
+  notificationEmailInput?.addEventListener("input", () => clearInvalid(notificationEmailInput));
+  areaCodeInput?.addEventListener("input", () => clearInvalid(areaCodeInput));
 
   populateTimeDropdowns(workdayStartHidden?.value, startHour, startMinute, startPeriod);
   populateTimeDropdowns(workdayEndHidden?.value, endHour, endMinute, endPeriod);
+  hydrateBusinessDays();
 
   updatePhoneModeUI();
   updateCoverageUI();
   syncTimeFields();
+  syncBusinessDaysHidden();
+
+  phoneSetupForm?.addEventListener("submit", (event) => {
+    let hasError = false;
+
+    const phoneMode = phoneModeSelect?.value;
+    const coverageMode = document.querySelector('input[name="coverage_mode"]:checked')?.value;
+
+    if (phoneMode === "existing") {
+      if (!validateRequiredInput(existingBusinessPhoneInput)) {
+        hasError = true;
+      }
+    }
+
+    if (phoneMode === "new") {
+      if (!validateRequiredInput(areaCodeInput)) {
+        hasError = true;
+      }
+
+      if (!selectedTwilioNumberInput.value.trim()) {
+        setInvalid(availableNumbersContainer);
+        hasError = true;
+      } else {
+        clearInvalid(availableNumbersContainer);
+      }
+    }
+
+    if (!validateRequiredInput(notificationEmailInput)) {
+      hasError = true;
+    } else if (!isValidEmail(notificationEmailInput.value.trim())) {
+      setInvalid(notificationEmailInput);
+      hasError = true;
+    }
+
+    if (coverageMode === "after_hours") {
+      if (!validateAfterHoursFields()) {
+        hasError = true;
+      }
+    }
+
+    if (hasError) {
+      event.preventDefault();
+    }
+  });
 </script>
 {% endblock %}
