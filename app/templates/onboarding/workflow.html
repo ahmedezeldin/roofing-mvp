@@ -1,555 +1,384 @@
 {% extends "website.html" %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="/static/css/onboarding.css">
+<link rel="stylesheet" href="/static/css/onboarding-workflow.css">
 {% endblock %}
 
 {% block content %}
-<div class="onboarding-shell">
-  <aside class="onboarding-sidebar">
-    <div class="onboarding-sidebar-badge">Step 2 of 4</div>
-    <h1 class="onboarding-sidebar-title">Workflow preferences</h1>
-    <p class="onboarding-sidebar-text">
-      Choose how missed callers should be qualified before your team takes over. Start with the recommended sequence, then customize it.
+<div class="workflow-page-shell">
+  <section class="setup-progress-shell">
+    <div class="setup-progress-bar">
+      <div class="setup-step">
+        <div class="setup-step-number">1</div>
+        <div class="setup-step-label">Business</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step setup-step-active">
+        <div class="setup-step-number">2</div>
+        <div class="setup-step-label">Workflow</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">3</div>
+        <div class="setup-step-label">Phone Setup</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">4</div>
+        <div class="setup-step-label">Review</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="workflow-main-card">
+    <div class="workflow-kicker">Step 2 of 4</div>
+    <h1 class="workflow-title">Set up how we text missed callers</h1>
+    <p class="workflow-subtitle">
+      We’ll automatically text missed callers, qualify the lead, and help your team know when to step in.
     </p>
 
-    <div class="onboarding-steps">
-      <div class="onboarding-step complete">
-        <span>✓</span>
-        <div>
-          <strong>Company details</strong>
-          <small>Business identity and service area</small>
-        </div>
-      </div>
+    <form id="workflow-form" action="/onboarding/phone-setup" method="post">
+      <input type="hidden" name="steps_json" id="steps_json">
 
-      <div class="onboarding-step active">
-        <span>2</span>
-        <div>
-          <strong>Workflow preferences</strong>
-          <small>Lead qualification and handoff flow</small>
-        </div>
-      </div>
-
-      <div class="onboarding-step">
-        <span>3</span>
-        <div>
-          <strong>Phone setup</strong>
-          <small>Connect your texting/call flow</small>
-        </div>
-      </div>
-
-      <div class="onboarding-step">
-        <span>4</span>
-        <div>
-          <strong>Complete</strong>
-          <small>Review and enter the app</small>
-        </div>
-      </div>
-    </div>
-  </aside>
-
-  <section class="onboarding-card">
-    <div class="onboarding-top-row">
-      <div>
-        <div class="onboarding-kicker">Onboarding</div>
-        <h2 class="onboarding-title">Set up your lead qualification workflow</h2>
-        <p class="onboarding-subtitle">
-          This sequence controls how Roofing Front Desk responds to missed calls, qualifies the lead, and decides when your team should step in.
-        </p>
-      </div>
-    </div>
-
-    <div class="onboarding-toolbar">
-      <div class="onboarding-toolbar-left">
+      <div class="workflow-toolbar">
         <button type="button" class="btn btn-primary" id="add-step-btn">+ Add Step</button>
-        <button type="button" class="btn btn-secondary" id="reset-steps-btn">Reset to Recommended</button>
+        <button type="button" class="btn btn-secondary" id="reset-steps-btn">Use Recommended Flow</button>
       </div>
 
-      <div class="onboarding-toolbar-right">
-        <div class="workflow-mini-note">Recommended sequence loaded</div>
+      <div class="workflow-helper-text">
+        Drag steps to reorder, or use the arrow buttons.
       </div>
-    </div>
 
-    <form method="get" action="/onboarding/twilio" class="onboarding-form">
-      <div class="workflow-sequence-stack" id="workflow-sequence-stack">
+      <div id="workflow-steps" class="workflow-steps"></div>
 
-        <div class="workflow-step-card">
-          <div class="workflow-step-top">
-            <div class="workflow-step-left">
-              <div class="workflow-step-number">Step 1</div>
-              <div>
-                <div class="workflow-step-title">Missed Call Auto-Reply</div>
-                <div class="workflow-step-subtitle">
-                  First text sent immediately after a missed call.
-                </div>
-              </div>
-            </div>
+      <div class="workflow-details-card">
+        <div class="workflow-details-title">Auto-filled details</div>
+        <p class="workflow-details-subtitle">
+          Click one to insert it into the selected text message.
+        </p>
 
-            <div class="workflow-step-actions">
-              <span class="check-status enabled">Enabled</span>
-              <button type="button" class="btn btn-secondary btn-xs step-up">↑</button>
-              <button type="button" class="btn btn-secondary btn-xs step-down">↓</button>
-              <button type="button" class="btn btn-secondary btn-xs btn-delete step-delete">Delete</button>
-            </div>
-          </div>
-
-          <div class="settings-two-col">
-            <div class="settings-field">
-              <label class="settings-label">Trigger</label>
-              <select class="select">
-                <option selected>Immediately after missed call</option>
-                <option>After customer replies</option>
-                <option>After qualification completed</option>
-                <option>If no response</option>
-              </select>
-            </div>
-
-            <div class="settings-field">
-              <label class="settings-label">Delay</label>
-              <select class="select">
-                <option selected>0 minutes</option>
-                <option>5 minutes</option>
-                <option>15 minutes</option>
-                <option>30 minutes</option>
-                <option>1 hour</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="settings-field">
-            <label class="settings-label">Message Text</label>
-            <textarea class="textarea workflow-step-textarea">Hey, thanks for calling {{ business_name|default("your roofing company") }}. Sorry we missed you — are you looking for a repair, replacement, or inspection?</textarea>
-          </div>
+        <div class="variable-chip-row">
+          <button type="button" class="variable-chip" data-token="{business_name}">Business Name</button>
+          <button type="button" class="variable-chip" data-token="{customer_name}">Customer Name</button>
+          <button type="button" class="variable-chip" data-token="{job_type}">Job Type</button>
+          <button type="button" class="variable-chip" data-token="{postal_code}">Postal Code</button>
+          <button type="button" class="variable-chip" data-token="{urgency}">Urgency</button>
         </div>
-
-        <div class="workflow-step-card">
-          <div class="workflow-step-top">
-            <div class="workflow-step-left">
-              <div class="workflow-step-number">Step 2</div>
-              <div>
-                <div class="workflow-step-title">Ask for Postal Code</div>
-                <div class="workflow-step-subtitle">
-                  Capture service area and route the lead properly.
-                </div>
-              </div>
-            </div>
-
-            <div class="workflow-step-actions">
-              <span class="check-status enabled">Enabled</span>
-              <button type="button" class="btn btn-secondary btn-xs step-up">↑</button>
-              <button type="button" class="btn btn-secondary btn-xs step-down">↓</button>
-              <button type="button" class="btn btn-secondary btn-xs btn-delete step-delete">Delete</button>
-            </div>
-          </div>
-
-          <div class="settings-two-col">
-            <div class="settings-field">
-              <label class="settings-label">Trigger</label>
-              <select class="select">
-                <option>Immediately after missed call</option>
-                <option selected>After customer replies</option>
-                <option>After qualification completed</option>
-                <option>If no response</option>
-              </select>
-            </div>
-
-            <div class="settings-field">
-              <label class="settings-label">Delay</label>
-              <select class="select">
-                <option selected>0 minutes</option>
-                <option>5 minutes</option>
-                <option>15 minutes</option>
-                <option>30 minutes</option>
-                <option>1 hour</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="settings-field">
-            <label class="settings-label">Message Text</label>
-            <textarea class="textarea workflow-step-textarea">What's the property postal code?</textarea>
-          </div>
-        </div>
-
-        <div class="workflow-step-card">
-          <div class="workflow-step-top">
-            <div class="workflow-step-left">
-              <div class="workflow-step-number">Step 3</div>
-              <div>
-                <div class="workflow-step-title">Ask for Urgency</div>
-                <div class="workflow-step-subtitle">
-                  Clarify whether the lead needs emergency treatment or standard follow-up.
-                </div>
-              </div>
-            </div>
-
-            <div class="workflow-step-actions">
-              <span class="check-status enabled">Enabled</span>
-              <button type="button" class="btn btn-secondary btn-xs step-up">↑</button>
-              <button type="button" class="btn btn-secondary btn-xs step-down">↓</button>
-              <button type="button" class="btn btn-secondary btn-xs btn-delete step-delete">Delete</button>
-            </div>
-          </div>
-
-          <div class="settings-two-col">
-            <div class="settings-field">
-              <label class="settings-label">Trigger</label>
-              <select class="select">
-                <option>Immediately after missed call</option>
-                <option selected>After customer replies</option>
-                <option>After qualification completed</option>
-                <option>If no response</option>
-              </select>
-            </div>
-
-            <div class="settings-field">
-              <label class="settings-label">Delay</label>
-              <select class="select">
-                <option selected>0 minutes</option>
-                <option>5 minutes</option>
-                <option>15 minutes</option>
-                <option>30 minutes</option>
-                <option>1 hour</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="settings-field">
-            <label class="settings-label">Message Text</label>
-            <textarea class="textarea workflow-step-textarea">How urgent is it — low, medium, or emergency?</textarea>
-          </div>
-        </div>
-
-        <div class="workflow-step-card">
-          <div class="workflow-step-top">
-            <div class="workflow-step-left">
-              <div class="workflow-step-number">Step 4</div>
-              <div>
-                <div class="workflow-step-title">Insurance Check</div>
-                <div class="workflow-step-subtitle">
-                  Useful for storm damage and hail workflows.
-                </div>
-              </div>
-            </div>
-
-            <div class="workflow-step-actions">
-              <span class="check-status enabled">Enabled</span>
-              <button type="button" class="btn btn-secondary btn-xs step-up">↑</button>
-              <button type="button" class="btn btn-secondary btn-xs step-down">↓</button>
-              <button type="button" class="btn btn-secondary btn-xs btn-delete step-delete">Delete</button>
-            </div>
-          </div>
-
-          <div class="settings-two-col">
-            <div class="settings-field">
-              <label class="settings-label">Trigger</label>
-              <select class="select">
-                <option>Immediately after missed call</option>
-                <option selected>After customer replies</option>
-                <option>After qualification completed</option>
-                <option>If no response</option>
-              </select>
-            </div>
-
-            <div class="settings-field">
-              <label class="settings-label">Delay</label>
-              <select class="select">
-                <option selected>0 minutes</option>
-                <option>5 minutes</option>
-                <option>15 minutes</option>
-                <option>30 minutes</option>
-                <option>1 hour</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="settings-field">
-            <label class="settings-label">Message Text</label>
-            <textarea class="textarea workflow-step-textarea">Is this related to an insurance claim? Please reply yes or no.</textarea>
-          </div>
-        </div>
-
-        <div class="workflow-step-card">
-          <div class="workflow-step-top">
-            <div class="workflow-step-left">
-              <div class="workflow-step-number">Step 5</div>
-              <div>
-                <div class="workflow-step-title">Photo Request</div>
-                <div class="workflow-step-subtitle">
-                  Optional step for better triage before human follow-up.
-                </div>
-              </div>
-            </div>
-
-            <div class="workflow-step-actions">
-              <span class="check-status disabled">Disabled</span>
-              <button type="button" class="btn btn-secondary btn-xs step-up">↑</button>
-              <button type="button" class="btn btn-secondary btn-xs step-down">↓</button>
-              <button type="button" class="btn btn-secondary btn-xs btn-delete step-delete">Delete</button>
-            </div>
-          </div>
-
-          <div class="settings-two-col">
-            <div class="settings-field">
-              <label class="settings-label">Trigger</label>
-              <select class="select">
-                <option>Immediately after missed call</option>
-                <option>After customer replies</option>
-                <option selected>After qualification completed</option>
-                <option>If no response</option>
-              </select>
-            </div>
-
-            <div class="settings-field">
-              <label class="settings-label">Delay</label>
-              <select class="select">
-                <option selected>0 minutes</option>
-                <option>5 minutes</option>
-                <option>15 minutes</option>
-                <option>30 minutes</option>
-                <option>1 hour</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="settings-field">
-            <label class="settings-label">Message Text</label>
-            <textarea class="textarea workflow-step-textarea">If possible, please send 3–5 photos of the damage so our team can prepare before follow-up.</textarea>
-          </div>
-        </div>
-
-        <div class="workflow-step-card">
-          <div class="workflow-step-top">
-            <div class="workflow-step-left">
-              <div class="workflow-step-number">Step 6</div>
-              <div>
-                <div class="workflow-step-title">Qualified Lead Handoff</div>
-                <div class="workflow-step-subtitle">
-                  Close the automated portion and set expectation for live team follow-up.
-                </div>
-              </div>
-            </div>
-
-            <div class="workflow-step-actions">
-              <span class="check-status enabled">Enabled</span>
-              <button type="button" class="btn btn-secondary btn-xs step-up">↑</button>
-              <button type="button" class="btn btn-secondary btn-xs step-down">↓</button>
-              <button type="button" class="btn btn-secondary btn-xs btn-delete step-delete">Delete</button>
-            </div>
-          </div>
-
-          <div class="settings-two-col">
-            <div class="settings-field">
-              <label class="settings-label">Trigger</label>
-              <select class="select">
-                <option>Immediately after missed call</option>
-                <option>After customer replies</option>
-                <option selected>After qualification completed</option>
-                <option>If no response</option>
-              </select>
-            </div>
-
-            <div class="settings-field">
-              <label class="settings-label">Delay</label>
-              <select class="select">
-                <option selected>0 minutes</option>
-                <option>5 minutes</option>
-                <option>15 minutes</option>
-                <option>30 minutes</option>
-                <option>1 hour</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="settings-field">
-            <label class="settings-label">Message Text</label>
-            <textarea class="textarea workflow-step-textarea">Thanks — your request has been captured. A roofing specialist will follow up shortly to schedule an inspection or estimate.</textarea>
-          </div>
-        </div>
-
       </div>
 
       <div class="workflow-footer">
-        <div class="workflow-variable-box">
-          <div class="workflow-variable-title">Supported variables</div>
-          <div class="workflow-variable-row">
-            <button type="button" class="workflow-variable-chip">{business_name}</button>
-            <button type="button" class="workflow-variable-chip">{customer_name}</button>
-            <button type="button" class="workflow-variable-chip">{job_type}</button>
-            <button type="button" class="workflow-variable-chip">{postal_code}</button>
-            <button type="button" class="workflow-variable-chip">{urgency}</button>
-          </div>
-        </div>
-
-        <div class="onboarding-actions">
-          <a href="/onboarding/company" class="btn btn-secondary">Back</a>
-          <button type="submit" class="btn btn-primary">Continue to phone setup</button>
-        </div>
+        <a href="/signup" class="btn btn-secondary">Back</a>
+        <button type="submit" class="btn btn-primary">Continue to phone setup</button>
       </div>
     </form>
   </section>
 </div>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const stack = document.getElementById("workflow-sequence-stack");
-    const addStepBtn = document.getElementById("add-step-btn");
-    const resetStepsBtn = document.getElementById("reset-steps-btn");
-    const initialWorkflowHTML = stack.innerHTML;
-
-    function stepCards() {
-      return Array.from(document.querySelectorAll(".workflow-step-card"));
+  const defaultSteps = [
+    {
+      id: crypto.randomUUID(),
+      title: "Instant Reply",
+      description: "First text sent immediately after a missed call.",
+      trigger: "missed_call",
+      delayMinutes: 0,
+      message: "Hey, thanks for calling {business_name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?"
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Ask for Postal Code",
+      description: "Capture service area and route the lead properly.",
+      trigger: "after_reply",
+      delayMinutes: 0,
+      message: "Thanks — what’s the postal code for the property?"
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Ask About the Job",
+      description: "Understand what kind of roofing help they need.",
+      trigger: "after_reply",
+      delayMinutes: 0,
+      message: "Got it. Is this for a repair, replacement, leak, storm damage, or inspection?"
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Ask About Urgency",
+      description: "Identify emergencies and high-priority jobs.",
+      trigger: "after_reply",
+      delayMinutes: 0,
+      message: "How urgent is this — emergency, soon, or just getting quotes?"
+    },
+    {
+      id: crypto.randomUUID(),
+      title: "Final Handoff",
+      description: "Let the customer know your team will follow up.",
+      trigger: "after_reply",
+      delayMinutes: 0,
+      message: "Thanks — your request has been captured for {business_name}. A roofing specialist will follow up shortly to schedule an inspection or estimate."
     }
+  ];
 
-    function renumberSteps() {
-      stepCards().forEach((card, index) => {
-        const num = card.querySelector(".workflow-step-number");
-        if (num) num.textContent = `Step ${index + 1}`;
-      });
+  let steps = structuredClone(defaultSteps);
+  let activeTextarea = null;
+  let draggedId = null;
+
+  const stepsContainer = document.getElementById("workflow-steps");
+  const stepsInput = document.getElementById("steps_json");
+  const addStepBtn = document.getElementById("add-step-btn");
+  const resetStepsBtn = document.getElementById("reset-steps-btn");
+  const workflowForm = document.getElementById("workflow-form");
+
+  function escapeHtml(str) {
+    return str
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function getTriggerLabel(trigger) {
+    if (trigger === "missed_call") return "Immediately after missed call";
+    return "After customer replies";
+  }
+
+  function getDelayLabel(delayMinutes) {
+    if (delayMinutes === 0) return "Immediately";
+    if (delayMinutes === 1) return "1 minute later";
+    return `${delayMinutes} minutes later`;
+  }
+
+  function updateHiddenInput() {
+    stepsInput.value = JSON.stringify(steps);
+  }
+
+  function moveStep(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= steps.length) return;
+
+    [steps[index], steps[newIndex]] = [steps[newIndex], steps[index]];
+    renderSteps();
+  }
+
+  function deleteStep(id) {
+    steps = steps.filter(step => step.id !== id);
+    renderSteps();
+  }
+
+  function addCustomStep() {
+    const newStep = {
+      id: crypto.randomUUID(),
+      title: "Custom Follow-Up",
+      description: "Add your own extra question or message.",
+      trigger: "after_reply",
+      delayMinutes: 0,
+      message: ""
+    };
+
+    steps.push(newStep);
+    renderSteps();
+
+    const card = document.querySelector(`[data-step-id="${newStep.id}"]`);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.classList.add("new-step-highlight");
+
+      setTimeout(() => {
+        card.classList.remove("new-step-highlight");
+      }, 1800);
+
+      const textarea = card.querySelector("textarea");
+      if (textarea) {
+        textarea.focus();
+        activeTextarea = textarea;
+      }
     }
+  }
 
-    function bindStepButtons(scope = document) {
-      scope.querySelectorAll(".step-up").forEach((btn) => {
-        btn.onclick = function () {
-          const card = this.closest(".workflow-step-card");
-          const prev = card.previousElementSibling;
-          if (prev) {
-            card.parentNode.insertBefore(card, prev);
-            renumberSteps();
-          }
-        };
-      });
+  function resetRecommended() {
+    steps = structuredClone(defaultSteps);
+    renderSteps();
+  }
 
-      scope.querySelectorAll(".step-down").forEach((btn) => {
-        btn.onclick = function () {
-          const card = this.closest(".workflow-step-card");
-          const next = card.nextElementSibling;
-          if (next) {
-            card.parentNode.insertBefore(next, card);
-            renumberSteps();
-          }
-        };
-      });
+  function insertTokenIntoActiveTextarea(token) {
+    if (!activeTextarea) return;
 
-      scope.querySelectorAll(".step-delete").forEach((btn) => {
-        btn.onclick = function () {
-          if (stepCards().length <= 1) return;
-          const card = this.closest(".workflow-step-card");
-          card.remove();
-          renumberSteps();
-        };
-      });
-    }
+    const start = activeTextarea.selectionStart ?? activeTextarea.value.length;
+    const end = activeTextarea.selectionEnd ?? activeTextarea.value.length;
+    const oldValue = activeTextarea.value;
 
-    let activeTextarea = null;
+    activeTextarea.value = oldValue.slice(0, start) + token + oldValue.slice(end);
+    activeTextarea.dispatchEvent(new Event("input", { bubbles: true }));
 
-    function bindTextareas(scope = document) {
-      scope.querySelectorAll(".workflow-step-textarea").forEach((textarea) => {
-        textarea.addEventListener("focus", function () {
-          activeTextarea = this;
-        });
+    const newCursor = start + token.length;
+    activeTextarea.setSelectionRange(newCursor, newCursor);
+    activeTextarea.focus();
+  }
 
-        textarea.addEventListener("click", function () {
-          activeTextarea = this;
-        });
-      });
-    }
+  function renderSteps() {
+    stepsContainer.innerHTML = "";
 
-    function bindVariableChips() {
-      document.querySelectorAll(".workflow-variable-chip").forEach((chip) => {
-        chip.onclick = function () {
-          if (!activeTextarea) return;
+    steps.forEach((step, index) => {
+      const card = document.createElement("div");
+      card.className = "workflow-step-card";
+      card.draggable = true;
+      card.dataset.stepId = step.id;
 
-          const token = this.textContent;
-          const start = activeTextarea.selectionStart ?? activeTextarea.value.length;
-          const end = activeTextarea.selectionEnd ?? activeTextarea.value.length;
-          const text = activeTextarea.value;
-
-          activeTextarea.value = text.slice(0, start) + token + text.slice(end);
-          activeTextarea.focus();
-          activeTextarea.selectionStart = activeTextarea.selectionEnd = start + token.length;
-        };
-      });
-    }
-
-    function createNewStepCard(stepNumber) {
-      const wrapper = document.createElement("div");
-      wrapper.className = "workflow-step-card";
-      wrapper.innerHTML = `
-        <div class="workflow-step-top">
+      card.innerHTML = `
+        <div class="workflow-step-header">
           <div class="workflow-step-left">
-            <div class="workflow-step-number">Step ${stepNumber}</div>
+            <div class="workflow-step-badge">Step ${index + 1}</div>
             <div>
-              <div class="workflow-step-title">Custom Step</div>
-              <div class="workflow-step-subtitle">
-                Add your own qualification or handoff message.
+              <div class="workflow-step-title-row">
+                <button type="button" class="drag-handle" title="Drag to reorder">⋮⋮</button>
+                <h3 class="workflow-step-title">${escapeHtml(step.title)}</h3>
               </div>
+              <p class="workflow-step-description">${escapeHtml(step.description)}</p>
             </div>
           </div>
 
           <div class="workflow-step-actions">
-            <span class="check-status enabled">Enabled</span>
-            <button type="button" class="btn btn-secondary btn-xs step-up">↑</button>
-            <button type="button" class="btn btn-secondary btn-xs step-down">↓</button>
-            <button type="button" class="btn btn-secondary btn-xs btn-delete step-delete">Delete</button>
+            <button type="button" class="icon-btn move-up-btn" title="Move up">↑</button>
+            <button type="button" class="icon-btn move-down-btn" title="Move down">↓</button>
+            <button type="button" class="delete-btn">Delete</button>
           </div>
         </div>
 
-        <div class="settings-two-col">
-          <div class="settings-field">
-            <label class="settings-label">Trigger</label>
-            <select class="select">
-              <option>Immediately after missed call</option>
-              <option selected>After customer replies</option>
-              <option>After qualification completed</option>
-              <option>If no response</option>
-            </select>
-          </div>
+        <div class="workflow-field-group">
+          <label>When should this send?</label>
+          <select class="trigger-select">
+            <option value="missed_call" ${step.trigger === "missed_call" ? "selected" : ""}>Immediately after missed call</option>
+            <option value="after_reply" ${step.trigger === "after_reply" ? "selected" : ""}>After customer replies</option>
+          </select>
+        </div>
 
-          <div class="settings-field">
-            <label class="settings-label">Delay</label>
-            <select class="select">
-              <option selected>0 minutes</option>
-              <option>5 minutes</option>
-              <option>15 minutes</option>
-              <option>30 minutes</option>
-              <option>1 hour</option>
-            </select>
+        <div class="advanced-timing-wrap">
+          <button type="button" class="advanced-toggle">
+            Advanced timing
+            <span class="advanced-summary">${getDelayLabel(step.delayMinutes)}</span>
+          </button>
+
+          <div class="advanced-panel ${step.delayMinutes > 0 ? "open" : ""}">
+            <div class="workflow-field-group">
+              <label>When should this text send?</label>
+              <select class="delay-select">
+                <option value="0" ${step.delayMinutes === 0 ? "selected" : ""}>Immediately (recommended)</option>
+                <option value="1" ${step.delayMinutes === 1 ? "selected" : ""}>1 minute later</option>
+                <option value="5" ${step.delayMinutes === 5 ? "selected" : ""}>5 minutes later</option>
+                <option value="10" ${step.delayMinutes === 10 ? "selected" : ""}>10 minutes later</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div class="settings-field">
-          <label class="settings-label">Message Text</label>
-          <textarea class="textarea workflow-step-textarea">Type your custom follow-up message here.</textarea>
+        <div class="workflow-field-group">
+          <label>Text message</label>
+          <div class="field-helper">
+            Auto-filled details like <span class="token-chip-inline">{business_name}</span> will be replaced automatically.
+          </div>
+          <textarea class="message-textarea" rows="4" placeholder="Type your follow-up message here.">${escapeHtml(step.message)}</textarea>
         </div>
       `;
-      return wrapper;
-    }
 
-    if (addStepBtn) {
-      addStepBtn.addEventListener("click", function () {
-        const newCard = createNewStepCard(stepCards().length + 1);
-        stack.appendChild(newCard);
-        bindStepButtons(newCard);
-        bindTextareas(newCard);
-        renumberSteps();
+      const moveUpBtn = card.querySelector(".move-up-btn");
+      const moveDownBtn = card.querySelector(".move-down-btn");
+      const deleteBtn = card.querySelector(".delete-btn");
+      const triggerSelect = card.querySelector(".trigger-select");
+      const delaySelect = card.querySelector(".delay-select");
+      const textarea = card.querySelector(".message-textarea");
+      const advancedToggle = card.querySelector(".advanced-toggle");
+      const advancedPanel = card.querySelector(".advanced-panel");
+
+      moveUpBtn.addEventListener("click", () => moveStep(index, -1));
+      moveDownBtn.addEventListener("click", () => moveStep(index, 1));
+      deleteBtn.addEventListener("click", () => deleteStep(step.id));
+
+      triggerSelect.addEventListener("change", (e) => {
+        steps[index].trigger = e.target.value;
+        updateHiddenInput();
       });
-    }
 
-    if (resetStepsBtn) {
-      resetStepsBtn.addEventListener("click", function () {
-        stack.innerHTML = initialWorkflowHTML;
-        bindStepButtons();
-        bindTextareas();
-        bindVariableChips();
-        renumberSteps();
+      delaySelect.addEventListener("change", (e) => {
+        steps[index].delayMinutes = Number(e.target.value);
+        renderSteps();
       });
-    }
 
-    bindStepButtons();
-    bindTextareas();
-    bindVariableChips();
-    renumberSteps();
+      textarea.addEventListener("focus", () => {
+        activeTextarea = textarea;
+      });
+
+      textarea.addEventListener("click", () => {
+        activeTextarea = textarea;
+      });
+
+      textarea.addEventListener("input", (e) => {
+        steps[index].message = e.target.value;
+        updateHiddenInput();
+      });
+
+      advancedToggle.addEventListener("click", () => {
+        advancedPanel.classList.toggle("open");
+      });
+
+      card.addEventListener("dragstart", () => {
+        draggedId = step.id;
+        card.classList.add("dragging");
+      });
+
+      card.addEventListener("dragend", () => {
+        draggedId = null;
+        card.classList.remove("dragging");
+      });
+
+      card.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        card.classList.add("drag-over");
+      });
+
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("drag-over");
+      });
+
+      card.addEventListener("drop", (e) => {
+        e.preventDefault();
+        card.classList.remove("drag-over");
+
+        if (!draggedId || draggedId === step.id) return;
+
+        const fromIndex = steps.findIndex(s => s.id === draggedId);
+        const toIndex = steps.findIndex(s => s.id === step.id);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const [moved] = steps.splice(fromIndex, 1);
+        steps.splice(toIndex, 0, moved);
+        renderSteps();
+      });
+
+      stepsContainer.appendChild(card);
+    });
+
+    updateHiddenInput();
+  }
+
+  document.querySelectorAll(".variable-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      insertTokenIntoActiveTextarea(chip.dataset.token);
+    });
   });
+
+  addStepBtn.addEventListener("click", addCustomStep);
+  resetStepsBtn.addEventListener("click", resetRecommended);
+
+  workflowForm.addEventListener("submit", () => {
+    updateHiddenInput();
+  });
+
+  renderSteps();
 </script>
 {% endblock %}
