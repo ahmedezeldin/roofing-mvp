@@ -426,3 +426,68 @@
     flex-wrap: wrap;
   }
 }
+.days-card-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.day-card {
+  min-height: 50px;
+  border-radius: 14px;
+  border: 1px solid #d9e1ef;
+  background: #ffffff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.day-card:hover {
+  border-color: #b9c8e6;
+  background: #f8fbff;
+}
+
+.day-card.active {
+  border-color: #2563eb;
+  background: #eef4ff;
+  color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.days-card-grid.input-invalid {
+  padding: 10px;
+  border: 1px solid #ef4444;
+  border-radius: 16px;
+  background: #fef2f2;
+}
+
+.input-invalid,
+select.input-invalid,
+input.input-invalid,
+textarea.input-invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+  background: #fffafa;
+}
+
+.field-error-text {
+  margin-top: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .days-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .days-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
