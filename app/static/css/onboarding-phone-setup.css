@@ -515,3 +515,52 @@ textarea.input-invalid {
   font-size: 13px;
   font-weight: 700;
 }
+.days-card-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.day-card {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid #d9e1ef;
+  background: #ffffff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.day-card.active {
+  border-color: #4f46e5;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.days-card-grid.input-invalid {
+  padding: 10px;
+  border: 1px solid #ef4444;
+  border-radius: 16px;
+  background: #fef2f2;
+}
+
+.days-card-grid.input-invalid .day-card {
+  border-color: #fca5a5;
+  background: #fffafa;
+}
+
+.days-card-grid.input-invalid .day-card.active {
+  border-color: #ef4444;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.field-error-text {
+  margin-top: 8px;
+  min-height: 18px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+}
