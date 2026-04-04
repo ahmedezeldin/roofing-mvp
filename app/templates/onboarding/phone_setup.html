@@ -79,17 +79,34 @@
           </div>
 
           <div id="new-number-fields" class="hidden-block">
-            <div class="form-group">
-              <label for="new_number_area_code">Preferred area code</label>
-              <input
-                id="new_number_area_code"
-                type="text"
-                name="new_number_area_code"
-                placeholder="403"
-                maxlength="3"
-                value="{{ phone_setup_data.new_number_area_code }}"
-              >
-            </div>
+  <div class="form-group">
+    <label>Choose a number</label>
+    <div class="field-helper">
+      We’ll show available numbers you can reserve at checkout. Refresh if you want a different set.
+    </div>
+  </div>
+
+  <div class="new-number-toolbar">
+    <button type="button" class="btn btn-secondary" id="find-numbers-btn">
+      Load available numbers
+    </button>
+
+    <button type="button" class="btn btn-secondary" id="refresh-numbers-btn">
+      Refresh list
+    </button>
+
+    <div class="new-number-status" id="new-number-status"></div>
+  </div>
+
+  <div id="available-numbers" class="available-numbers"></div>
+
+  <input
+    type="hidden"
+    name="selected_twilio_number"
+    id="selected_twilio_number"
+    value="{{ phone_setup_data.selected_twilio_number }}"
+  >
+</div>
 
             <div class="new-number-toolbar">
               <button type="button" class="btn btn-secondary" id="find-numbers-btn">
@@ -275,14 +292,14 @@
 
   const existingBusinessPhoneInput = document.getElementById("business_phone");
   const notificationEmailInput = document.getElementById("notification_email");
-  const teamMobileInput = document.getElementById("team_mobile"); // optional
-  const areaCodeInput = document.getElementById("new_number_area_code");
+  const teamMobileInput = document.getElementById("team_mobile");
 
   const coverageRadios = document.querySelectorAll('input[name="coverage_mode"]');
   const coverageCards = document.querySelectorAll(".coverage-choice-card");
   const businessHoursBlock = document.getElementById("business-hours-block");
 
   const findNumbersBtn = document.getElementById("find-numbers-btn");
+  const refreshNumbersBtn = document.getElementById("refresh-numbers-btn");
   const newNumberStatus = document.getElementById("new-number-status");
   const availableNumbersContainer = document.getElementById("available-numbers");
   const selectedTwilioNumberInput = document.getElementById("selected_twilio_number");
@@ -301,11 +318,10 @@
   const businessDaysError = document.getElementById("business-days-error");
   const dayCards = document.querySelectorAll(".day-card");
 
-  const selectedDays = new Set();
-
   const coverageChoiceGroup = document.getElementById("coverage-choice-group");
-const coverageModeError = document.getElementById("coverage-mode-error");
+  const coverageModeError = document.getElementById("coverage-mode-error");
 
+  const selectedDays = new Set();
 
   function setInvalid(el) {
     if (!el) return;
@@ -319,12 +335,30 @@ const coverageModeError = document.getElementById("coverage-mode-error");
 
   function setDaysInvalid() {
     if (daysGrid) daysGrid.classList.add("input-invalid");
-    if (businessDaysError) businessDaysError.textContent = "Please choose at least one working day.";
+    if (businessDaysError) {
+      businessDaysError.textContent = "Please choose at least one working day.";
+    }
   }
 
   function clearDaysInvalid() {
     if (daysGrid) daysGrid.classList.remove("input-invalid");
-    if (businessDaysError) businessDaysError.textContent = "";
+    if (businessDaysError) {
+      businessDaysError.textContent = "";
+    }
+  }
+
+  function setCoverageInvalid() {
+    coverageChoiceGroup?.classList.add("input-invalid");
+    if (coverageModeError) {
+      coverageModeError.textContent = "Please choose when missed calls should be covered.";
+    }
+  }
+
+  function clearCoverageInvalid() {
+    coverageChoiceGroup?.classList.remove("input-invalid");
+    if (coverageModeError) {
+      coverageModeError.textContent = "";
+    }
   }
 
   function updatePhoneModeUI() {
@@ -334,28 +368,27 @@ const coverageModeError = document.getElementById("coverage-mode-error");
   }
 
   function updateCoverageUI() {
-  const selected = document.querySelector('input[name="coverage_mode"]:checked')?.value;
+    const selected = document.querySelector('input[name="coverage_mode"]:checked')?.value;
 
-  coverageCards.forEach(card => {
-    const radio = card.querySelector('input[type="radio"]');
-    card.classList.toggle("coverage-choice-card-active", radio.checked);
-  });
+    coverageCards.forEach(card => {
+      const radio = card.querySelector('input[type="radio"]');
+      card.classList.toggle("coverage-choice-card-active", radio.checked);
+    });
 
-  clearCoverageInvalid();
+    clearCoverageInvalid();
 
-  if (businessHoursBlock) {
-    businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
+    if (businessHoursBlock) {
+      businessHoursBlock.classList.toggle("hidden-block", selected !== "after_hours");
+    }
   }
-}
 
-  async function findNumbers() {
-    const areaCode = areaCodeInput?.value.trim() || "";
-
-    newNumberStatus.textContent = "Finding available numbers...";
+  async function loadAvailableNumbers() {
+    newNumberStatus.textContent = "Loading available numbers...";
     availableNumbersContainer.innerHTML = "";
+    clearInvalid(availableNumbersContainer);
 
     try {
-      const response = await fetch(`/api/twilio/available-numbers?area_code=${encodeURIComponent(areaCode)}`);
+      const response = await fetch(`/api/twilio/available-numbers?refresh=${Date.now()}`);
       const data = await response.json();
 
       if (!data.numbers || data.numbers.length === 0) {
@@ -363,7 +396,7 @@ const coverageModeError = document.getElementById("coverage-mode-error");
         return;
       }
 
-      newNumberStatus.textContent = "Choose a number. It will only be purchased after checkout.";
+      newNumberStatus.textContent = "Choose the number you want. It will only be purchased after checkout.";
 
       data.numbers.forEach(number => {
         const btn = document.createElement("button");
@@ -451,8 +484,7 @@ const coverageModeError = document.getElementById("coverage-mode-error");
     });
 
     dayCards.forEach(card => {
-      const day = card.dataset.day;
-      if (selectedDays.has(day)) {
+      if (selectedDays.has(card.dataset.day)) {
         card.classList.add("active");
       }
     });
@@ -476,20 +508,6 @@ const coverageModeError = document.getElementById("coverage-mode-error");
     }
   }
 
-  function setCoverageInvalid() {
-  coverageChoiceGroup?.classList.add("input-invalid");
-  if (coverageModeError) {
-    coverageModeError.textContent = "Please choose when missed calls should be covered.";
-  }
-}
-
-function clearCoverageInvalid() {
-  coverageChoiceGroup?.classList.remove("input-invalid");
-  if (coverageModeError) {
-    coverageModeError.textContent = "";
-  }
-}
-
   function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
@@ -507,21 +525,9 @@ function clearCoverageInvalid() {
     return true;
   }
 
-  function validateRequiredSelect(select) {
-    if (!select) return true;
-
-    const value = select.value.trim();
-    if (!value) {
-      setInvalid(select);
-      return false;
-    }
-
-    clearInvalid(select);
-    return true;
-  }
-
   function validateAfterHoursFields() {
     const selectedCoverage = document.querySelector('input[name="coverage_mode"]:checked')?.value;
+
     if (selectedCoverage !== "after_hours") {
       clearInvalid(startHour);
       clearInvalid(startMinute);
@@ -556,7 +562,8 @@ function clearCoverageInvalid() {
 
   phoneModeSelect?.addEventListener("change", updatePhoneModeUI);
   coverageRadios.forEach(radio => radio.addEventListener("change", updateCoverageUI));
-  findNumbersBtn?.addEventListener("click", findNumbers);
+  findNumbersBtn?.addEventListener("click", loadAvailableNumbers);
+  refreshNumbersBtn?.addEventListener("click", loadAvailableNumbers);
 
   [startHour, startMinute, startPeriod, endHour, endMinute, endPeriod].forEach(el => {
     if (el) {
@@ -573,7 +580,6 @@ function clearCoverageInvalid() {
 
   existingBusinessPhoneInput?.addEventListener("input", () => clearInvalid(existingBusinessPhoneInput));
   notificationEmailInput?.addEventListener("input", () => clearInvalid(notificationEmailInput));
-  areaCodeInput?.addEventListener("input", () => clearInvalid(areaCodeInput));
 
   populateTimeDropdowns(workdayStartHidden?.value, startHour, startMinute, startPeriod);
   populateTimeDropdowns(workdayEndHidden?.value, endHour, endMinute, endPeriod);
@@ -590,7 +596,7 @@ function clearCoverageInvalid() {
     const phoneMode = phoneModeSelect?.value;
     const coverageMode = document.querySelector('input[name="coverage_mode"]:checked')?.value;
 
-        if (!coverageMode) {
+    if (!coverageMode) {
       setCoverageInvalid();
       hasError = true;
     } else {
@@ -604,26 +610,7 @@ function clearCoverageInvalid() {
     }
 
     if (phoneMode === "new") {
-      if (!validateRequiredInput(areaCodeInput)) {
-        hasError = true;
-      }
-
-      if (!selectedTwilioNumberInput.value.trim()) {
-        setInvalid(availableNumbersContainer);
-        hasError = true;
-      } else {
-        clearInvalid(availableNumbersContainer);
-      }
-    }
-
-    if (!validateRequiredInput(notificationEmailInput)) {
-      hasError = true;
-    } else if (!isValidEmail(notificationEmailInput.value.trim())) {
-      setInvalid(notificationEmailInput);
-      hasError = true;
-    }
-
-    if (coverageMode === "after_hours") {
+      if (!selectedTwili === "after_hours") {
       if (!validateAfterHoursFields()) {
         hasError = true;
       }
