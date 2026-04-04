@@ -2124,3 +2124,72 @@ def api_twilio_available_numbers(area_code: str = Query(..., min_length=3, max_l
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
+@app.get("/onboarding/review", response_class=HTMLResponse)
+def onboarding_review_page(
+    request: Request,
+    plan: str = Query("pilot"),
+):
+    province_map = {
+        "AB": "Alberta",
+        "BC": "British Columbia",
+        "MB": "Manitoba",
+        "NB": "New Brunswick",
+        "NL": "Newfoundland and Labrador",
+        "NS": "Nova Scotia",
+        "NT": "Northwest Territories",
+        "NU": "Nunavut",
+        "ON": "Ontario",
+        "PE": "Prince Edward Island",
+        "QC": "Quebec",
+        "SK": "Saskatchewan",
+        "YT": "Yukon",
+    }
+
+    signup_data = {
+        "first_name": request.session.get("first_name", ""),
+        "last_name": request.session.get("last_name", ""),
+        "email": request.session.get("email", ""),
+        "city": request.session.get("city", ""),
+        "province": request.session.get("province", ""),
+        "province_name": province_map.get(request.session.get("province", ""), ""),
+    }
+
+    phone_setup_data = {
+        "phone_mode": request.session.get("phone_mode", ""),
+        "business_phone": request.session.get("business_phone", ""),
+        "selected_twilio_number": request.session.get("selected_twilio_number", ""),
+        "coverage_mode": request.session.get("coverage_mode", ""),
+        "workday_start": request.session.get("workday_start", ""),
+        "workday_end": request.session.get("workday_end", ""),
+        "business_days": request.session.get("business_days", ""),
+        "notification_email": request.session.get("notification_email", ""),
+        "team_mobile": request.session.get("team_mobile", ""),
+    }
+
+    day_map = {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun",
+    }
+
+    raw_days = phone_setup_data["business_days"]
+    phone_setup_data["business_days_display"] = ", ".join(
+        day_map.get(day.strip(), day.strip().title())
+        for day in raw_days.split(",")
+        if day.strip()
+    )
+
+    return templates.TemplateResponse(
+        "onboarding/review.html",
+        {
+            "request": request,
+            "page_title": "Review Setup",
+            "plan": plan,
+            "signup_data": signup_data,
+            "phone_setup_data": phone_setup_data,
+        },
+    )
