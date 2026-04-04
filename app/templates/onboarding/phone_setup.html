@@ -115,34 +115,6 @@
             Choose when Roofing Front Desk should protect missed calls.
           </p>
 
-          <div class="coverage-choice-group">
-            <label class="coverage-choice-card">
-              <input
-                type="radio"
-                name="coverage_mode"
-                value="always"
-                {% if phone_setup_data.coverage_mode == "always" %}checked{% endif %}
-              >
-              <div class="coverage-choice-content">
-                <div class="coverage-choice-title">Protect missed calls 24/7</div>
-                <div class="coverage-choice-text">Recommended. If no one answers, the lead still gets captured.</div>
-              </div>
-            </label>
-
-            <label class="coverage-choice-card">
-              <input
-                type="radio"
-                name="coverage_mode"
-                value="after_hours"
-                {% if phone_setup_data.coverage_mode == "after_hours" %}checked{% endif %}
-              >
-              <div class="coverage-choice-content">
-                <div class="coverage-choice-title">Only protect calls outside business hours</div>
-                <div class="coverage-choice-text">Use your working hours so the service only steps in after-hours.</div>
-              </div>
-            </label>
-          </div>
-
           <div class="coverage-choice-group" id="coverage-choice-group">
   <label class="coverage-choice-card">
     <input
