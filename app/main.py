@@ -706,7 +706,17 @@ def signup_submit(
     }
     
     if not province.strip():
-        error_message = "Please select a province."
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "Please select a province.",
+                "form_data": form_data,
+        },
+        status_code=400,
+    )
     
     if not agree_terms:
         return templates.TemplateResponse(
@@ -1825,14 +1835,6 @@ def validate_password_rules(password: str) -> Optional[str]:
         return "Password must include at least one special character."
     return None
 
-@app.get("/terms", response_class=HTMLResponse)
-def terms_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "terms.html",
-        {"page_title": "Terms of Service"},
-    )
-
 @app.get("/api/auth/check-email")
 def check_email_exists(
     email: str = Query(...),
@@ -1882,7 +1884,7 @@ def onboarding_phone_setup_page(
         "coverage_mode": "always",
         "workday_start": "",
         "workday_end": "",
-        "business_days": "mon_fri",
+        "business_days": "",
         "notification_email": "",
         "team_mobile": "",
         "new_number_area_code": "",
@@ -1971,113 +1973,6 @@ def onboarding_review_submit(
         status_code=303,
     )
 
-
-@app.get("/onboarding/review", response_class=HTMLResponse)
-def onboarding_review_page(
-    request: Request,
-    plan: str = Query("pilot"),
-):
-    province_map = {
-        "AB": "Alberta",
-        "BC": "British Columbia",
-        "MB": "Manitoba",
-        "NB": "New Brunswick",
-        "NL": "Newfoundland and Labrador",
-        "NS": "Nova Scotia",
-        "NT": "Northwest Territories",
-        "NU": "Nunavut",
-        "ON": "Ontario",
-        "PE": "Prince Edward Island",
-        "QC": "Quebec",
-        "SK": "Saskatchewan",
-        "YT": "Yukon",
-    }
-
-    # pull from session/cookies/db/whatever source you're using
-    signup_data = {
-        "first_name": request.session.get("first_name", ""),
-        "last_name": request.session.get("last_name", ""),
-        "email": request.session.get("email", ""),
-        "city": request.session.get("city", ""),
-        "province": request.session.get("province", ""),
-        "province_name": province_map.get(request.session.get("province", ""), ""),
-    }
-
-    phone_setup_data = {
-        "phone_mode": request.session.get("phone_mode", ""),
-        "business_phone": request.session.get("business_phone", ""),
-        "selected_twilio_number": request.session.get("selected_twilio_number", ""),
-        "coverage_mode": request.session.get("coverage_mode", ""),
-        "workday_start": request.session.get("workday_start", ""),
-        "workday_end": request.session.get("workday_end", ""),
-        "business_days": request.session.get("business_days", ""),
-        "notification_email": request.session.get("notification_email", ""),
-        "team_mobile": request.session.get("team_mobile", ""),
-    }
-
-    day_map = {
-        "mon": "Mon",
-        "tue": "Tue",
-        "wed": "Wed",
-        "thu": "Thu",
-        "fri": "Fri",
-        "sat": "Sat",
-        "sun": "Sun",
-    }
-
-    raw_days = phone_setup_data["business_days"]
-    phone_setup_data["business_days_display"] = ", ".join(
-        day_map.get(day.strip(), day.strip().title())
-        for day in raw_days.split(",")
-        if day.strip()
-    )
-
-    return templates.TemplateResponse(
-        "onboarding/review.html",
-        {
-            "request": request,
-            "page_title": "Review Setup",
-            "plan": plan,
-            "signup_data": signup_data,
-            "phone_setup_data": phone_setup_data,
-        },
-    )
-    
-@app.get("/api/twilio/available-numbers")
-def api_twilio_available_numbers(
-    area_code: str = Query(""),
-):
-    # Temporary mock data for now
-    mock_numbers = {
-        "403": ["+1 403-555-1201", "+1 403-555-1202", "+1 403-555-1203"],
-        "587": ["+1 587-555-2201", "+1 587-555-2202", "+1 587-555-2203"],
-        "825": ["+1 825-555-3201", "+1 825-555-3202", "+1 825-555-3203"],
-    }
-
-    numbers = mock_numbers.get(area_code.strip(), [
-        "+1 403-555-1201",
-        "+1 587-555-2201",
-        "+1 825-555-3201",
-    ])
-
-    return {"numbers": numbers[:3]}
-@app.get("/api/twilio/available-numbers")
-def api_twilio_available_numbers(
-    area_code: str = Query(""),
-):
-    mock_numbers = {
-        "403": ["+14035551201", "+14035551202", "+14035551203"],
-        "587": ["+15875552201", "+15875552202", "+15875552203"],
-        "825": ["+18255553201", "+18255553202", "+18255553203"],
-    }
-
-    clean_area_code = (area_code or "").strip()
-    numbers = mock_numbers.get(clean_area_code)
-
-    if not numbers:
-        numbers = ["+14035551201", "+15875552201", "+18255553201"]
-
-    return {"numbers": numbers}
 @app.post("/onboarding/workflow")
 def onboarding_workflow_submit(
     request: Request,
@@ -2098,6 +1993,104 @@ def onboarding_workflow_submit(
     )
 import os
 from fastapi import HTTPException, Query
+
+@app.get("/onboarding/review", response_class=HTMLResponse)
+def onboarding_review_page(
+    request: Request,
+    plan: str = Query("pilot"),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    province_map = {
+        "AB": "Alberta",
+        "BC": "British Columbia",
+        "MB": "Manitoba",
+        "NB": "New Brunswick",
+        "NL": "Newfoundland and Labrador",
+        "NS": "Nova Scotia",
+        "NT": "Northwest Territories",
+        "NU": "Nunavut",
+        "ON": "Ontario",
+        "PE": "Prince Edward Island",
+        "QC": "Quebec",
+        "SK": "Saskatchewan",
+        "YT": "Yukon",
+    }
+
+    full_name = (current_user.full_name or "").strip()
+    first_name = ""
+    last_name = ""
+    if full_name:
+        parts = full_name.split(" ", 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ""
+
+    primary_service_area = (workspace.primary_service_area or "").strip()
+    city = ""
+    province_code = ""
+
+    if "," in primary_service_area:
+        city_part, province_part = primary_service_area.split(",", 1)
+        city = city_part.strip()
+        province_code = province_part.strip()
+    else:
+        city = primary_service_area
+
+    signup_data = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": current_user.email or "",
+        "city": city,
+        "province": province_code,
+        "province_name": province_map.get(province_code, province_code),
+    }
+
+    phone_setup_data = {
+        "phone_mode": workspace.phone_mode or "",
+        "business_phone": workspace.business_phone or "",
+        "selected_twilio_number": workspace.pending_twilio_number or "",
+        "coverage_mode": workspace.coverage_mode or "",
+        "workday_start": workspace.workday_start or "",
+        "workday_end": workspace.workday_end or "",
+        "business_days": workspace.business_days or "",
+        "notification_email": workspace.notification_email or "",
+        "team_mobile": workspace.team_mobile or "",
+    }
+
+    day_map = {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun",
+    }
+
+    raw_days = phone_setup_data["business_days"]
+    phone_setup_data["business_days_display"] = ", ".join(
+        day_map.get(day.strip(), day.strip().title())
+        for day in raw_days.split(",")
+        if day.strip()
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "onboarding/review.html",
+        {
+            "page_title": "Review Setup",
+            "plan": plan.lower(),
+            "signup_data": signup_data,
+            "phone_setup_data": phone_setup_data,
+        },
+    )
 from twilio.rest import Client
 
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
@@ -2124,72 +2117,3 @@ def api_twilio_available_numbers(area_code: str = Query(..., min_length=3, max_l
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
-@app.get("/onboarding/review", response_class=HTMLResponse)
-def onboarding_review_page(
-    request: Request,
-    plan: str = Query("pilot"),
-):
-    province_map = {
-        "AB": "Alberta",
-        "BC": "British Columbia",
-        "MB": "Manitoba",
-        "NB": "New Brunswick",
-        "NL": "Newfoundland and Labrador",
-        "NS": "Nova Scotia",
-        "NT": "Northwest Territories",
-        "NU": "Nunavut",
-        "ON": "Ontario",
-        "PE": "Prince Edward Island",
-        "QC": "Quebec",
-        "SK": "Saskatchewan",
-        "YT": "Yukon",
-    }
-
-    signup_data = {
-        "first_name": request.session.get("first_name", ""),
-        "last_name": request.session.get("last_name", ""),
-        "email": request.session.get("email", ""),
-        "city": request.session.get("city", ""),
-        "province": request.session.get("province", ""),
-        "province_name": province_map.get(request.session.get("province", ""), ""),
-    }
-
-    phone_setup_data = {
-        "phone_mode": request.session.get("phone_mode", ""),
-        "business_phone": request.session.get("business_phone", ""),
-        "selected_twilio_number": request.session.get("selected_twilio_number", ""),
-        "coverage_mode": request.session.get("coverage_mode", ""),
-        "workday_start": request.session.get("workday_start", ""),
-        "workday_end": request.session.get("workday_end", ""),
-        "business_days": request.session.get("business_days", ""),
-        "notification_email": request.session.get("notification_email", ""),
-        "team_mobile": request.session.get("team_mobile", ""),
-    }
-
-    day_map = {
-        "mon": "Mon",
-        "tue": "Tue",
-        "wed": "Wed",
-        "thu": "Thu",
-        "fri": "Fri",
-        "sat": "Sat",
-        "sun": "Sun",
-    }
-
-    raw_days = phone_setup_data["business_days"]
-    phone_setup_data["business_days_display"] = ", ".join(
-        day_map.get(day.strip(), day.strip().title())
-        for day in raw_days.split(",")
-        if day.strip()
-    )
-
-    return templates.TemplateResponse(
-        "onboarding/review.html",
-        {
-            "request": request,
-            "page_title": "Review Setup",
-            "plan": plan,
-            "signup_data": signup_data,
-            "phone_setup_data": phone_setup_data,
-        },
-    )
