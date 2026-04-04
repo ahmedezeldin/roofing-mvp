@@ -278,7 +278,7 @@
   }
 }
 .hidden-block {
-  display: none;
+  display: none !important;
 }
 
 .coverage-choice-group {
