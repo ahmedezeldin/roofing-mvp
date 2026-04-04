@@ -497,3 +497,21 @@ textarea.input-invalid {
   border-radius: 16px;
   background: #fef2f2;
 }
+.days-card-grid.input-invalid {
+  padding: 10px;
+  border: 1px solid #ef4444;
+  border-radius: 16px;
+  background: #fef2f2;
+}
+
+.days-card-grid.input-invalid .day-card {
+  border-color: #fca5a5;
+  background: #fffafa;
+}
+
+.field-error-text {
+  margin-top: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+}
