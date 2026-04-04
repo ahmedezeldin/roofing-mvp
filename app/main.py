@@ -2104,10 +2104,10 @@ def api_twilio_available_numbers():
     client = get_twilio_client()
 
     try:
-        numbers = client.available_phone_numbers("CA").local.list(limit=10)
+        numbers = client.available_phone_numbers("CA").local.list(limit=6)
 
         return {
-            "numbers": [n.phone_number for n in numbers[:6]]
+            "numbers": [n.phone_number for n in numbers]
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
