@@ -2053,3 +2053,31 @@ def onboarding_workflow_submit(
         url=f"/onboarding/phone-setup?plan={plan}",
         status_code=303,
     )
+import os
+from fastapi import HTTPException, Query
+from twilio.rest import Client
+
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
+
+def get_twilio_client() -> Client:
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        raise HTTPException(status_code=500, detail="Twilio credentials are missing.")
+    return Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+
+@app.get("/api/twilio/available-numbers")
+def api_twilio_available_numbers(area_code: str = Query(..., min_length=3, max_length=3)):
+    client = get_twilio_client()
+
+    try:
+        numbers = client.available_phone_numbers("CA").local.list(
+            area_code=int(area_code),
+            limit=10
+        )
+
+        return {
+            "numbers": [n.phone_number for n in numbers]
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
