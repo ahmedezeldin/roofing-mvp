@@ -43,110 +43,110 @@
       Here’s what Roofing Front Desk is about to set up for your workspace.
     </p>
 
-   <div class="review-grid">
-  <section class="review-card">
-    <h2 class="review-card-title">Account</h2>
+    <div class="review-grid">
+      <section class="review-card">
+        <h2 class="review-card-title">Account</h2>
 
-    <div class="review-row">
-      <span>First name</span>
-      <strong>{{ signup_data.first_name or "Not set" }}</strong>
-    </div>
+        <div class="review-row">
+          <span>First name</span>
+          <strong>{{ signup_data.get("first_name", "Not set") if signup_data else "Not set" }}</strong>
+        </div>
 
-    <div class="review-row">
-      <span>Last name</span>
-      <strong>{{ signup_data.last_name or "Not set" }}</strong>
-    </div>
+        <div class="review-row">
+          <span>Last name</span>
+          <strong>{{ signup_data.get("last_name", "Not set") if signup_data else "Not set" }}</strong>
+        </div>
 
-    <div class="review-row">
-      <span>Email</span>
-      <strong>{{ signup_data.email or "Not set" }}</strong>
-    </div>
+        <div class="review-row">
+          <span>Email</span>
+          <strong>{{ signup_data.get("email", "Not set") if signup_data else "Not set" }}</strong>
+        </div>
 
-    <div class="review-row">
-      <span>City</span>
-      <strong>{{ signup_data.city or "Not set" }}</strong>
-    </div>
+        <div class="review-row">
+          <span>City</span>
+          <strong>{{ signup_data.get("city", "Not set") if signup_data else "Not set" }}</strong>
+        </div>
 
-    <div class="review-row">
-      <span>Province</span>
-      <strong>{{ signup_data.province_name or "Not set" }}</strong>
-    </div>
+        <div class="review-row">
+          <span>Province</span>
+          <strong>{{ signup_data.get("province_name", "Not set") if signup_data else "Not set" }}</strong>
+        </div>
 
-    <div class="review-row">
-      <span>Plan</span>
-      <strong>{{ "Growth" if plan == "growth" else "Pilot" }}</strong>
-    </div>
-  </section>
+        <div class="review-row">
+          <span>Plan</span>
+          <strong>{{ "Growth" if plan == "growth" else "Pilot" }}</strong>
+        </div>
+      </section>
 
-  <section class="review-card">
-    <h2 class="review-card-title">Phone setup</h2>
+      <section class="review-card">
+        <h2 class="review-card-title">Phone setup</h2>
 
-    <div class="review-row">
-      <span>Phone mode</span>
-      <strong>
-        {% if phone_setup_data.phone_mode == "new" %}
-          New number
-        {% else %}
-          Existing number
+        <div class="review-row">
+          <span>Phone mode</span>
+          <strong>
+            {% if phone_setup_data and phone_setup_data.get("phone_mode") == "new" %}
+              New number
+            {% else %}
+              Existing number
+            {% endif %}
+          </strong>
+        </div>
+
+        <div class="review-row">
+          <span>
+            {% if phone_setup_data and phone_setup_data.get("phone_mode") == "new" %}
+              Selected number
+            {% else %}
+              Business phone
+            {% endif %}
+          </span>
+          <strong>
+            {% if phone_setup_data and phone_setup_data.get("phone_mode") == "new" %}
+              {{ phone_setup_data.get("selected_twilio_number", "Not set") }}
+            {% else %}
+              {{ phone_setup_data.get("business_phone", "Not set") if phone_setup_data else "Not set" }}
+            {% endif %}
+          </strong>
+        </div>
+
+        <div class="review-row">
+          <span>Coverage</span>
+          <strong>
+            {% if phone_setup_data and phone_setup_data.get("coverage_mode") == "after_hours" %}
+              Outside business hours only
+            {% else %}
+              24/7
+            {% endif %}
+          </strong>
+        </div>
+
+        {% if phone_setup_data and phone_setup_data.get("coverage_mode") == "after_hours" %}
+        <div class="review-row">
+          <span>Business hours</span>
+          <strong>{{ phone_setup_data.get("workday_start", "Not set") }} – {{ phone_setup_data.get("workday_end", "Not set") }}</strong>
+        </div>
+
+        <div class="review-row">
+          <span>Working days</span>
+          <strong>{{ phone_setup_data.get("business_days_display", "Not set") }}</strong>
+        </div>
         {% endif %}
-      </strong>
-    </div>
+      </section>
 
-    <div class="review-row">
-      <span>
-        {% if phone_setup_data.phone_mode == "new" %}
-          Selected number
-        {% else %}
-          Business phone
-        {% endif %}
-      </span>
-      <strong>
-        {% if phone_setup_data.phone_mode == "new" %}
-          {{ phone_setup_data.selected_twilio_number or "Not set" }}
-        {% else %}
-          {{ phone_setup_data.business_phone or "Not set" }}
-        {% endif %}
-      </strong>
-    </div>
+      <section class="review-card review-card-full">
+        <h2 class="review-card-title">Notifications</h2>
 
-    <div class="review-row">
-      <span>Coverage</span>
-      <strong>
-        {% if phone_setup_data.coverage_mode == "after_hours" %}
-          Outside business hours only
-        {% else %}
-          24/7
-        {% endif %}
-      </strong>
-    </div>
+        <div class="review-row">
+          <span>Notification email</span>
+          <strong>{{ phone_setup_data.get("notification_email", "Not set") if phone_setup_data else "Not set" }}</strong>
+        </div>
 
-    {% if phone_setup_data.coverage_mode == "after_hours" %}
-    <div class="review-row">
-      <span>Business hours</span>
-      <strong>{{ phone_setup_data.workday_start }} – {{ phone_setup_data.workday_end }}</strong>
+        <div class="review-row">
+          <span>Urgent lead mobile</span>
+          <strong>{{ phone_setup_data.get("team_mobile", "Not set") if phone_setup_data else "Not set" }}</strong>
+        </div>
+      </section>
     </div>
-
-    <div class="review-row">
-      <span>Working days</span>
-      <strong>{{ phone_setup_data.business_days_display or "Not set" }}</strong>
-    </div>
-    {% endif %}
-  </section>
-
-  <section class="review-card review-card-full">
-    <h2 class="review-card-title">Notifications</h2>
-
-    <div class="review-row">
-      <span>Notification email</span>
-      <strong>{{ phone_setup_data.notification_email or "Not set" }}</strong>
-    </div>
-
-    <div class="review-row">
-      <span>Urgent lead mobile</span>
-      <strong>{{ phone_setup_data.team_mobile or "Not set" }}</strong>
-    </div>
-  </section>
-</div>
 
     <form action="/onboarding/review" method="post" class="review-footer">
       <input type="hidden" name="plan" value="{{ plan }}">
