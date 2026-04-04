@@ -1887,7 +1887,6 @@ def onboarding_phone_setup_page(
         "business_days": "",
         "notification_email": "",
         "team_mobile": "",
-        "new_number_area_code": "",
     }
 
     if workspace:
@@ -1901,7 +1900,6 @@ def onboarding_phone_setup_page(
             "business_days": workspace.business_days or "mon_fri",
             "notification_email": workspace.notification_email or "",
             "team_mobile": workspace.team_mobile or "",
-            "new_number_area_code": "",
         }
 
     return templates.TemplateResponse(
@@ -1921,12 +1919,11 @@ def onboarding_phone_setup_submit(
     plan: str = Form("pilot"),
     phone_mode: str = Form("existing"),
     business_phone: str = Form(""),
-    new_number_area_code: str = Form(""),
     selected_twilio_number: str = Form(""),
     coverage_mode: str = Form("always"),
     workday_start: str = Form(""),
     workday_end: str = Form(""),
-    business_days: str = Form("mon_fri"),
+    business_days: str = Form(""),
     notification_email: str = Form(""),
     team_mobile: str = Form(""),
     db: Session = Depends(get_db),
@@ -1948,7 +1945,7 @@ def onboarding_phone_setup_submit(
     if workspace.coverage_mode == "after_hours":
         workspace.workday_start = (workday_start or "").strip()
         workspace.workday_end = (workday_end or "").strip()
-        workspace.business_days = (business_days or "mon_fri").strip()
+        workspace.business_days = (business_days or "").strip()
     else:
         workspace.workday_start = None
         workspace.workday_end = None
@@ -2103,17 +2100,14 @@ def get_twilio_client() -> Client:
 
 
 @app.get("/api/twilio/available-numbers")
-def api_twilio_available_numbers(area_code: str = Query(..., min_length=3, max_length=3)):
+def api_twilio_available_numbers():
     client = get_twilio_client()
 
     try:
-        numbers = client.available_phone_numbers("CA").local.list(
-            area_code=int(area_code),
-            limit=10
-        )
+        numbers = client.available_phone_numbers("CA").local.list(limit=10)
 
         return {
-            "numbers": [n.phone_number for n in numbers]
+            "numbers": [n.phone_number for n in numbers[:6]]
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
