@@ -86,32 +86,15 @@
               </div>
             </div>
 
-  <div class="new-number-toolbar">
-    <button type="button" class="btn btn-secondary" id="find-numbers-btn">
-      Load available numbers
-    </button>
-
-    <button type="button" class="btn btn-secondary" id="refresh-numbers-btn">
-      Refresh list
-    </button>
-
-    <div class="new-number-status" id="new-number-status"></div>
-  </div>
-
-  <div id="available-numbers" class="available-numbers"></div>
-
-  <input
-    type="hidden"
-    name="selected_twilio_number"
-    id="selected_twilio_number"
-    value="{{ phone_setup_data.selected_twilio_number }}"
-  >
-</div>
-
             <div class="new-number-toolbar">
               <button type="button" class="btn btn-secondary" id="find-numbers-btn">
-                Find available numbers
+                Load available numbers
               </button>
+
+              <button type="button" class="btn btn-secondary" id="refresh-numbers-btn">
+                Refresh list
+              </button>
+
               <div class="new-number-status" id="new-number-status"></div>
             </div>
 
@@ -292,7 +275,6 @@
 
   const existingBusinessPhoneInput = document.getElementById("business_phone");
   const notificationEmailInput = document.getElementById("notification_email");
-  const teamMobileInput = document.getElementById("team_mobile");
 
   const coverageRadios = document.querySelectorAll('input[name="coverage_mode"]');
   const coverageCards = document.querySelectorAll(".coverage-choice-card");
@@ -348,14 +330,14 @@
   }
 
   function setCoverageInvalid() {
-    coverageChoiceGroup?.classList.add("input-invalid");
+    if (coverageChoiceGroup) coverageChoiceGroup.classList.add("input-invalid");
     if (coverageModeError) {
       coverageModeError.textContent = "Please choose when missed calls should be covered.";
     }
   }
 
   function clearCoverageInvalid() {
-    coverageChoiceGroup?.classList.remove("input-invalid");
+    if (coverageChoiceGroup) coverageChoiceGroup.classList.remove("input-invalid");
     if (coverageModeError) {
       coverageModeError.textContent = "";
     }
@@ -382,14 +364,19 @@
     }
   }
 
-  async function loadAvailableNumbers() {
+      async function loadAvailableNumbers() {
     newNumberStatus.textContent = "Loading available numbers...";
     availableNumbersContainer.innerHTML = "";
     clearInvalid(availableNumbersContainer);
 
     try {
-      const response = await fetch(`/api/twilio/available-numbers?refresh=${Date.now()}`);
+      const response = await fetch(`/api/twilio/available-numbers?area_code=403&refresh=${Date.now()}`);
       const data = await response.json();
+
+      if (!response.ok) {
+        newNumberStatus.textContent = data.detail || "Could not load numbers right now.";
+        return;
+      }
 
       if (!data.numbers || data.numbers.length === 0) {
         newNumberStatus.textContent = "No available numbers found right now.";
@@ -610,7 +597,22 @@
     }
 
     if (phoneMode === "new") {
-      if (!selectedTwili === "after_hours") {
+      if (!selectedTwilioNumberInput.value.trim()) {
+        setInvalid(availableNumbersContainer);
+        hasError = true;
+      } else {
+        clearInvalid(availableNumbersContainer);
+      }
+    }
+
+    if (!validateRequiredInput(notificationEmailInput)) {
+      hasError = true;
+    } else if (!isValidEmail(notificationEmailInput.value.trim())) {
+      setInvalid(notificationEmailInput);
+      hasError = true;
+    }
+
+    if (coverageMode === "after_hours") {
       if (!validateAfterHoursFields()) {
         hasError = true;
       }
