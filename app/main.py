@@ -2120,77 +2120,23 @@ PROVINCE_AREA_CODE_MAP: Dict[str, List[str]] = {
 
 
 @app.get("/api/twilio/available-numbers")
-def api_twilio_available_numbers(
-    city: str = Query("", description="City from signup/onboarding"),
-    province: str = Query("", description="Province code like AB"),
-):
+def api_twilio_available_numbers():
+    print("DEBUG: /api/twilio/available-numbers route hit")
+
     client = get_twilio_client()
 
-    city_normalized = (city or "").strip().lower()
-    province_normalized = (province or "").strip().upper()
+    try:
+        numbers = client.available_phone_numbers("CA").local.list(limit=10)
+        result = [n.phone_number for n in numbers]
 
-    # Tier 1: exact city + province
-    if city_normalized:
-        numbers = try_twilio_local_search(
-            client,
-            in_locality=city_normalized,
-            in_region=province_normalized if province_normalized else None,
-            sms_enabled=True,
-        )
-        if numbers:
-            return {
-                "numbers": numbers[:6],
-                "match_type": "city",
-                "match_label": f"Best match for {city.title()}",
-            }
+        print("DEBUG: Twilio numbers returned:", result)
 
-    # Tier 2: province-wide via area code map
-    province_area_codes = PROVINCE_AREA_CODE_MAP.get(province_normalized, [])
-    for code in province_area_codes:
-        numbers = try_twilio_local_search(
-            client,
-            area_code=int(code),
-            sms_enabled=True,
-        )
-        if numbers:
-            return {
-                "numbers": numbers[:6],
-                "match_type": "province",
-                "match_label": f"Closest match in {province_normalized}",
-            }
-
-    # Tier 3: city-specific area code fallbacks
-    city_area_codes = CITY_AREA_CODE_MAP.get(city_normalized, [])
-    for code in city_area_codes:
-        numbers = try_twilio_local_search(
-            client,
-            area_code=int(code),
-            sms_enabled=True,
-        )
-        if numbers:
-            return {
-                "numbers": numbers[:6],
-                "match_type": "area_code",
-                "match_label": f"Closest local match near {city.title()}",
-            }
-
-    # Tier 4: broad Canadian fallback
-    numbers = try_twilio_local_search(
-        client,
-        sms_enabled=True,
-    )
-    if numbers:
         return {
-            "numbers": numbers[:6],
-            "match_type": "canada",
-            "match_label": "Closest available Canadian local numbers",
+            "numbers": result
         }
-
-    return {
-        "numbers": [],
-        "match_type": "none",
-        "match_label": "No numbers available right now",
-    }
+    except Exception as exc:
+        print("DEBUG: Twilio lookup failed:", str(exc))
+        raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
 
 def unique_phone_numbers(numbers) -> List[str]:
     seen = set()
