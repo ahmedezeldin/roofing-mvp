@@ -714,9 +714,9 @@ def signup_submit(
                 "plan": normalized_plan,
                 "error_message": "Please select a province.",
                 "form_data": form_data,
-        },
-        status_code=400,
-    )
+            },
+            status_code=400,
+        )
     
     if not agree_terms:
         return templates.TemplateResponse(
