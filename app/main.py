@@ -863,13 +863,9 @@ def signup_submit(
     return response
 
 
-@app.get("/onboarding/company", response_class=HTMLResponse)
-def onboarding_company_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "onboarding/company.html",
-        {"page_title": "Company Details"},
-    )
+@app.get("/onboarding/company")
+def onboarding_company_page(plan: str = Query("pilot")):
+    return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
 
 
 @app.get("/onboarding/twilio", response_class=HTMLResponse)
@@ -1096,7 +1092,7 @@ def billing_success_page(
                 </div>
 
                 <div class="cta-row">
-                  <a class="btn btn-primary" href="/onboarding/company">Continue setup</a>
+                  <a class="btn btn-primary" href="/onboarding/business">Continue setup</a>
                   <a class="btn btn-secondary" href="/demo/dashboard">View product demo</a>
                 </div>
 
