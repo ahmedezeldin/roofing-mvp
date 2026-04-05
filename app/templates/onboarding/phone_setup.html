@@ -81,9 +81,6 @@
           <div id="new-number-fields" class="hidden-block">
             <div class="form-group">
               <label>Choose a number</label>
-              <div class="field-helper">
-                We’ll show available numbers you can reserve at checkout. Refresh if you want a different set.
-              </div>
             </div>
 
             <div class="new-number-toolbar">
@@ -91,22 +88,22 @@
                 Load available numbers
               </button>
 
-              <button type="button" class="btn btn-secondary" id="refresh-numbers-btn">
+              <button type="button" class="btn btn-secondary hidden-block" id="refresh-numbers-btn">
                 Refresh list
               </button>
 
               <div class="new-number-status" id="new-number-status"></div>
             </div>
 
-            <div id="available-numbers" class="available-numbers"></div>
+              <div id="available-numbers" class="available-numbers"></div>
 
-            <input
-              type="hidden"
-              name="selected_twilio_number"
-              id="selected_twilio_number"
-              value="{{ phone_setup_data.selected_twilio_number }}"
-            >
-          </div>
+              <input
+                type="hidden"
+                name="selected_twilio_number"
+                id="selected_twilio_number"
+                value="{{ phone_setup_data.selected_twilio_number }}"
+              >
+            </div>
         </div>
 
         <div class="phone-setup-card">
@@ -344,10 +341,20 @@
   }
 
   function updatePhoneModeUI() {
-    const isNew = phoneModeSelect.value === "new";
-    existingNumberFields.classList.toggle("hidden-block", isNew);
-    newNumberFields.classList.toggle("hidden-block", !isNew);
+  const isNew = phoneModeSelect.value === "new";
+
+  existingNumberFields.classList.toggle("hidden-block", isNew);
+  newNumberFields.classList.toggle("hidden-block", !isNew);
+
+  if (!isNew) {
+    if (findNumbersBtn) findNumbersBtn.classList.remove("hidden-block");
+    if (refreshNumbersBtn) refreshNumbersBtn.classList.add("hidden-block");
+    newNumberStatus.textContent = "";
+    availableNumbersContainer.innerHTML = "";
+    selectedTwilioNumberInput.value = "";
+    clearInvalid(availableNumbersContainer);
   }
+}
 
   function updateCoverageUI() {
     const selected = document.querySelector('input[name="coverage_mode"]:checked')?.value;
@@ -365,52 +372,60 @@
   }
 
       async function loadAvailableNumbers() {
-    newNumberStatus.textContent = "Loading available numbers...";
-    availableNumbersContainer.innerHTML = "";
-    clearInvalid(availableNumbersContainer);
+  newNumberStatus.textContent = "Loading available Calgary numbers...";
+  availableNumbersContainer.innerHTML = "";
+  clearInvalid(availableNumbersContainer);
 
-    try {
-      const response = await fetch(`/api/twilio/available-numbers?area_code=403&refresh=${Date.now()}`);
-      const data = await response.json();
+  try {
+    const response = await fetch(`/api/twilio/available-numbers?area_code=403&refresh=${Date.now()}`);
+    const data = await response.json();
 
-      if (!response.ok) {
-        newNumberStatus.textContent = data.detail || "Could not load numbers right now.";
-        return;
+    if (!response.ok) {
+      newNumberStatus.textContent = data.detail || "Could not load numbers right now.";
+      return;
+    }
+
+    if (!data.numbers || data.numbers.length === 0) {
+      newNumberStatus.textContent = "No Calgary numbers found right now.";
+      return;
+    }
+
+    newNumberStatus.textContent = "Choose the number you want. It will only be purchased after checkout.";
+
+    if (findNumbersBtn) {
+      findNumbersBtn.classList.add("hidden-block");
+    }
+
+    if (refreshNumbersBtn) {
+      refreshNumbersBtn.classList.remove("hidden-block");
+    }
+
+    data.numbers.forEach(number => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "available-number-card";
+      btn.textContent = number;
+
+      if (selectedTwilioNumberInput.value === number) {
+        btn.classList.add("selected");
       }
 
-      if (!data.numbers || data.numbers.length === 0) {
-        newNumberStatus.textContent = "No available numbers found right now.";
-        return;
-      }
-
-      newNumberStatus.textContent = "Choose the number you want. It will only be purchased after checkout.";
-
-      data.numbers.forEach(number => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "available-number-card";
-        btn.textContent = number;
-
-        if (selectedTwilioNumberInput.value === number) {
-          btn.classList.add("selected");
-        }
-
-        btn.addEventListener("click", () => {
-          document.querySelectorAll(".available-number-card").forEach(card => {
-            card.classList.remove("selected");
-          });
-
-          btn.classList.add("selected");
-          selectedTwilioNumberInput.value = number;
-          clearInvalid(availableNumbersContainer);
+      btn.addEventListener("click", () => {
+        availableNumbersContainer.querySelectorAll(".available-number-card").forEach(card => {
+          card.classList.remove("selected");
         });
 
-        availableNumbersContainer.appendChild(btn);
+        btn.classList.add("selected");
+        selectedTwilioNumberInput.value = number;
+        clearInvalid(availableNumbersContainer);
       });
-    } catch (error) {
-      newNumberStatus.textContent = "Could not load numbers right now.";
-    }
+
+      availableNumbersContainer.appendChild(btn);
+    });
+  } catch (error) {
+    newNumberStatus.textContent = "Could not load numbers right now.";
   }
+}
 
   function to24Hour(hour, minute, period) {
     if (!hour || !minute || !period) return "";
