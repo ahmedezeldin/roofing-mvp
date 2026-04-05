@@ -1937,7 +1937,7 @@ def onboarding_business_page(
 
     return templates.TemplateResponse(
         request,
-        "onboarding/business.html",
+        "onboarding/signup.html",
         {
             "page_title": "Company Details",
             "plan": plan.lower(),
