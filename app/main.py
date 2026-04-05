@@ -2100,14 +2100,26 @@ def get_twilio_client() -> Client:
 
 
 @app.get("/api/twilio/available-numbers")
-def api_twilio_available_numbers():
+def api_twilio_available_numbers(
+    area_code: str = Query("403", min_length=3, max_length=3)
+):
     client = get_twilio_client()
 
-    try:
-        numbers = client.available_phone_numbers("CA").local.list(limit=6)
+    if area_code != "403":
+        area_code = "403"
 
-        return {
-            "numbers": [n.phone_number for n in numbers]
-        }
+    try:
+        numbers = client.available_phone_numbers("CA").local.list(
+            area_code=403,
+            limit=20
+        )
+
+        calgary_numbers = [
+            n.phone_number
+            for n in numbers
+            if str(n.phone_number).startswith("+1403")
+        ]
+
+        return {"numbers": calgary_numbers[:6]}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
