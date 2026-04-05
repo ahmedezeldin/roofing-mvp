@@ -302,6 +302,9 @@
 
   const selectedDays = new Set();
 
+  const signupCity = "{{ signup_city or '' }}";
+  const signupProvince = "{{ signup_province or '' }}";
+
   function setInvalid(el) {
     if (!el) return;
     el.classList.add("input-invalid");
@@ -377,7 +380,7 @@
   clearInvalid(availableNumbersContainer);
 
   try {
-    const response = await fetch(`/api/twilio/available-numbers?area_code=403&refresh=${Date.now()}`);
+    const response = await fetch(`/api/twilio/available-numbers?city=${encodeURIComponent(userCity)}&province=${encodeURIComponent(userProvince)}&refresh=${Date.now()}`);
     const data = await response.json();
 
     if (!response.ok) {
