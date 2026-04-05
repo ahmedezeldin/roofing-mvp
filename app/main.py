@@ -2088,6 +2088,8 @@ def onboarding_review_page(
             "phone_setup_data": phone_setup_data,
         },
     )
+from typing import List, Dict
+from fastapi import Query, HTTPException
 from twilio.rest import Client
 
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
@@ -2099,27 +2101,113 @@ def get_twilio_client() -> Client:
     return Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 
+CITY_AREA_CODE_MAP: Dict[str, List[str]] = {
+    "calgary": ["403", "587", "825", "368"],
+    "edmonton": ["780", "587", "825", "368"],
+    "red deer": ["403", "587", "825", "368"],
+    "lethbridge": ["403", "587", "825", "368"],
+    "medicine hat": ["403", "587", "825", "368"],
+}
+
+PROVINCE_AREA_CODE_MAP: Dict[str, List[str]] = {
+    "AB": ["403", "587", "780", "825", "368"],
+    "BC": ["236", "250", "604", "672", "778"],
+    "SK": ["306", "639"],
+    "MB": ["204", "431"],
+    "ON": ["226", "249", "289", "343", "365", "416", "437", "519", "548", "613", "647", "705", "742", "807", "905"],
+    "QC": ["263", "354", "367", "418", "438", "450", "468", "514", "579", "581", "819", "873"],
+}
+
+
 @app.get("/api/twilio/available-numbers")
 def api_twilio_available_numbers(
-    area_code: str = Query("403", min_length=3, max_length=3)
+    city: str = Query("", description="City from signup/onboarding"),
+    province: str = Query("", description="Province code like AB"),
 ):
     client = get_twilio_client()
 
-    if area_code != "403":
-        area_code = "403"
+    city_normalized = (city or "").strip().lower()
+    province_normalized = (province or "").strip().upper()
 
-    try:
-        numbers = client.available_phone_numbers("CA").local.list(
-            area_code=403,
-            limit=20
+    # Tier 1: exact city + province
+    if city_normalized:
+        numbers = try_twilio_local_search(
+            client,
+            in_locality=city_normalized,
+            in_region=province_normalized if province_normalized else None,
+            sms_enabled=True,
         )
+        if numbers:
+            return {
+                "numbers": numbers[:6],
+                "match_type": "city",
+                "match_label": f"Best match for {city.title()}",
+            }
 
-        calgary_numbers = [
-            n.phone_number
-            for n in numbers
-            if str(n.phone_number).startswith("+1403")
-        ]
+    # Tier 2: province-wide via area code map
+    province_area_codes = PROVINCE_AREA_CODE_MAP.get(province_normalized, [])
+    for code in province_area_codes:
+        numbers = try_twilio_local_search(
+            client,
+            area_code=int(code),
+            sms_enabled=True,
+        )
+        if numbers:
+            return {
+                "numbers": numbers[:6],
+                "match_type": "province",
+                "match_label": f"Closest match in {province_normalized}",
+            }
 
-        return {"numbers": calgary_numbers[:6]}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Twilio lookup failed: {exc}")
+    # Tier 3: city-specific area code fallbacks
+    city_area_codes = CITY_AREA_CODE_MAP.get(city_normalized, [])
+    for code in city_area_codes:
+        numbers = try_twilio_local_search(
+            client,
+            area_code=int(code),
+            sms_enabled=True,
+        )
+        if numbers:
+            return {
+                "numbers": numbers[:6],
+                "match_type": "area_code",
+                "match_label": f"Closest local match near {city.title()}",
+            }
+
+    # Tier 4: broad Canadian fallback
+    numbers = try_twilio_local_search(
+        client,
+        sms_enabled=True,
+    )
+    if numbers:
+        return {
+            "numbers": numbers[:6],
+            "match_type": "canada",
+            "match_label": "Closest available Canadian local numbers",
+        }
+
+    return {
+        "numbers": [],
+        "match_type": "none",
+        "match_label": "No numbers available right now",
+    }
+
+def unique_phone_numbers(numbers) -> List[str]:
+    seen = set()
+    result = []
+    for n in numbers:
+        phone = getattr(n, "phone_number", None)
+        if not phone:
+            continue
+        if phone in seen:
+            continue
+        seen.add(phone)
+        result.append(phone)
+    return result
+
+def try_twilio_local_search(client: Client, **kwargs) -> List[str]:
+    try:
+        numbers = client.available_phone_numbers("CA").local.list(limit=10, **kwargs)
+        return unique_phone_numbers(numbers)
+    except Exception:
+        return []
