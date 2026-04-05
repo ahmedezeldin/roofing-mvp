@@ -128,3 +128,18 @@ class Message(Base):
 
     workspace = relationship("Workspace", back_populates="messages")
     lead = relationship("Lead", back_populates="messages")
+
+class OnboardingProgress(Base):
+    __tablename__ = "onboarding_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("app_users.id"), nullable=False, unique=True, index=True)
+
+    business_data = Column(JSON, nullable=False, default=dict)
+    workflow_data = Column(JSON, nullable=False, default=dict)
+    phone_setup_data = Column(JSON, nullable=False, default=dict)
+
+    last_completed_step = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
