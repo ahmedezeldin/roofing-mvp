@@ -2157,3 +2157,112 @@ def try_twilio_local_search(client: Client, **kwargs) -> List[str]:
         return unique_phone_numbers(numbers)
     except Exception:
         return []
+
+@app.route("/onboarding/business", methods=["GET", "POST"])
+@login_required
+def onboarding_business():
+    user_id = current_user.id
+    progress = get_or_create_onboarding_progress(user_id)
+
+    if request.method == "POST":
+        business_data = {
+            "company_name": request.form.get("company_name", "").strip(),
+            "city": request.form.get("city", "").strip(),
+            "province": request.form.get("province", "").strip(),
+            "industry": request.form.get("industry", "").strip(),
+        }
+
+        save_business_step(user_id, business_data)
+        return redirect(url_for("onboarding_workflow"))
+
+    return render_template(
+        "onboarding_business.html",
+        signup_data=progress.business_data,
+    )
+
+@app.route("/onboarding/workflow", methods=["GET", "POST"])
+@login_required
+def onboarding_workflow():
+    user_id = current_user.id
+    progress = get_or_create_onboarding_progress(user_id)
+
+    if not progress.business_data:
+        return redirect(url_for("onboarding_business"))
+
+    if request.method == "POST":
+        workflow_data = {
+            "lead_type": request.form.get("lead_type", "").strip(),
+            "message_tone": request.form.get("message_tone", "").strip(),
+            "booking_goal": request.form.get("booking_goal", "").strip(),
+        }
+
+        save_workflow_step(user_id, workflow_data)
+        return redirect(url_for("onboarding_phone_setup"))
+
+    return render_template(
+        "onboarding_workflow.html",
+        signup_data=progress.business_data,
+        workflow_data=progress.workflow_data,
+    )
+
+@app.route("/onboarding/phone-setup", methods=["GET", "POST"])
+@login_required
+def onboarding_phone_setup():
+    user_id = current_user.id
+    progress = get_or_create_onboarding_progress(user_id)
+
+    if not progress.business_data:
+        return redirect(url_for("onboarding_business"))
+    if not progress.workflow_data:
+        return redirect(url_for("onboarding_workflow"))
+
+    if request.method == "POST":
+        phone_setup_data = {
+            "phone_mode": request.form.get("phone_mode", "").strip(),
+            "business_phone": request.form.get("business_phone", "").strip(),
+            "selected_twilio_number": request.form.get("selected_twilio_number", "").strip(),
+            "coverage_mode": request.form.get("coverage_mode", "").strip(),
+            "workday_start": request.form.get("workday_start", "").strip(),
+            "workday_end": request.form.get("workday_end", "").strip(),
+            "business_days": request.form.get("business_days", "").strip(),
+            "notification_email": request.form.get("notification_email", "").strip(),
+            "team_mobile": request.form.get("team_mobile", "").strip(),
+        }
+
+        save_phone_step(user_id, phone_setup_data)
+        return redirect(url_for("onboarding_review"))
+
+    signup_data = progress.business_data
+
+    return render_template(
+        "phone_setup.html",
+        signup_city=signup_data.get("city", ""),
+        signup_province=signup_data.get("province", ""),
+        phone_setup_data=progress.phone_setup_data,
+        workflow_data=progress.workflow_data,
+        signup_data=signup_data,
+    )
+
+@app.route("/onboarding/review", methods=["GET", "POST"])
+@login_required
+def onboarding_review():
+    user_id = current_user.id
+    progress = get_or_create_onboarding_progress(user_id)
+
+    if not progress.business_data:
+        return redirect(url_for("onboarding_business"))
+    if not progress.workflow_data:
+        return redirect(url_for("onboarding_workflow"))
+    if not progress.phone_setup_data:
+        return redirect(url_for("onboarding_phone_setup"))
+
+    if request.method == "POST":
+        # final submit / checkout / provisioning logic here
+        pass
+
+    return render_template(
+        "onboarding_review.html",
+        signup_data=progress.business_data,
+        workflow_data=progress.workflow_data,
+        phone_setup_data=progress.phone_setup_data,
+    )
