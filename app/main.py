@@ -856,7 +856,7 @@ def signup_submit(
     token, expires_at = create_user_session(db, user.id, remember_me=True)
 
     response = RedirectResponse(
-        url=f"/onboarding/workflow?plan={normalized_plan}",
+        url=f"/onboarding/business?plan={normalized_plan}",
         status_code=303,
     )
     set_auth_cookie(response, token, expires_at)
@@ -869,22 +869,6 @@ def onboarding_company_page(request: Request):
         request,
         "onboarding/company.html",
         {"page_title": "Company Details"},
-    )
-
-
-@app.get("/onboarding/workflow", response_class=HTMLResponse)
-def onboarding_workflow_page(
-    request: Request,
-    plan: str = Query("pilot"),
-):
-    return templates.TemplateResponse(
-        request,
-        "onboarding/workflow.html",
-        {
-            "page_title": "Workflow Preferences",
-            "business_name": "your roofing company",
-            "plan": plan.lower(),
-        },
     )
 
 
@@ -1868,226 +1852,7 @@ def privacy_page(request: Request):
         "privacy.html",
         {"page_title": "Privacy Policy"},
     )
-
-@app.get("/onboarding/phone-setup", response_class=HTMLResponse)
-def onboarding_phone_setup_page(
-    request: Request,
-    plan: str = Query("pilot"),
-    db: Session = Depends(get_db),
-):
-    workspace = get_current_workspace(request, db)
-
-    phone_setup_data = {
-        "phone_mode": "existing",
-        "business_phone": "",
-        "selected_twilio_number": "",
-        "coverage_mode": "always",
-        "workday_start": "",
-        "workday_end": "",
-        "business_days": "",
-        "notification_email": "",
-        "team_mobile": "",
-    }
-
-    if workspace:
-        phone_setup_data = {
-            "phone_mode": workspace.phone_mode or "existing",
-            "business_phone": workspace.business_phone or "",
-            "selected_twilio_number": workspace.pending_twilio_number or "",
-            "coverage_mode": workspace.coverage_mode or "always",
-            "workday_start": workspace.workday_start or "",
-            "workday_end": workspace.workday_end or "",
-            "business_days": workspace.business_days or "mon_fri",
-            "notification_email": workspace.notification_email or "",
-            "team_mobile": workspace.team_mobile or "",
-        }
-
-    return templates.TemplateResponse(
-        request,
-        "onboarding/phone_setup.html",
-        {
-            "page_title": "Phone Setup",
-            "plan": plan.lower(),
-            "phone_setup_data": phone_setup_data,
-        },
-    )
-
-
-@app.post("/onboarding/phone-setup")
-def onboarding_phone_setup_submit(
-    request: Request,
-    plan: str = Form("pilot"),
-    phone_mode: str = Form("existing"),
-    business_phone: str = Form(""),
-    selected_twilio_number: str = Form(""),
-    coverage_mode: str = Form("always"),
-    workday_start: str = Form(""),
-    workday_end: str = Form(""),
-    business_days: str = Form(""),
-    notification_email: str = Form(""),
-    team_mobile: str = Form(""),
-    db: Session = Depends(get_db),
-):
-    workspace = get_current_workspace(request, db)
-    if not workspace:
-        return RedirectResponse(url="/signup", status_code=303)
-
-    workspace.phone_mode = (phone_mode or "existing").strip()
-    workspace.coverage_mode = (coverage_mode or "always").strip()
-
-    if workspace.phone_mode == "existing":
-        workspace.business_phone = (business_phone or "").strip()
-        workspace.pending_twilio_number = None
-    else:
-        workspace.business_phone = None
-        workspace.pending_twilio_number = (selected_twilio_number or "").strip() or None
-
-    if workspace.coverage_mode == "after_hours":
-        workspace.workday_start = (workday_start or "").strip()
-        workspace.workday_end = (workday_end or "").strip()
-        workspace.business_days = (business_days or "").strip()
-    else:
-        workspace.workday_start = None
-        workspace.workday_end = None
-        workspace.business_days = None
-
-    workspace.notification_email = (notification_email or "").strip() or None
-    workspace.team_mobile = (team_mobile or "").strip() or None
-
-    db.commit()
-
-    return RedirectResponse(
-        url=f"/onboarding/review?plan={plan}",
-        status_code=303,
-    )
-
-@app.post("/onboarding/review")
-def onboarding_review_submit(
-    plan: str = Form("pilot"),
-):
-    return RedirectResponse(
-        url=f"/billing?plan={plan}",
-        status_code=303,
-    )
-
-@app.post("/onboarding/workflow")
-def onboarding_workflow_submit(
-    request: Request,
-    plan: str = Form("pilot"),
-    steps_json: str = Form("[]"),
-    db: Session = Depends(get_db),
-):
-    workspace = get_current_workspace(request, db)
-    if not workspace:
-        return RedirectResponse(url="/signup", status_code=303)
-
-    # save later if you want
-    # for now just keep moving through flow
-
-    return RedirectResponse(
-        url=f"/onboarding/phone-setup?plan={plan}",
-        status_code=303,
-    )
-import os
-from fastapi import HTTPException, Query
-
-@app.get("/onboarding/review", response_class=HTMLResponse)
-def onboarding_review_page(
-    request: Request,
-    plan: str = Query("pilot"),
-    db: Session = Depends(get_db),
-):
-    current_user = get_current_user_from_cookie(request, db)
-    if not current_user:
-        return RedirectResponse(url="/login", status_code=303)
-
-    workspace = get_current_workspace(request, db)
-    if not workspace:
-        return RedirectResponse(url="/signup", status_code=303)
-
-    province_map = {
-        "AB": "Alberta",
-        "BC": "British Columbia",
-        "MB": "Manitoba",
-        "NB": "New Brunswick",
-        "NL": "Newfoundland and Labrador",
-        "NS": "Nova Scotia",
-        "NT": "Northwest Territories",
-        "NU": "Nunavut",
-        "ON": "Ontario",
-        "PE": "Prince Edward Island",
-        "QC": "Quebec",
-        "SK": "Saskatchewan",
-        "YT": "Yukon",
-    }
-
-    full_name = (current_user.full_name or "").strip()
-    first_name = ""
-    last_name = ""
-    if full_name:
-        parts = full_name.split(" ", 1)
-        first_name = parts[0]
-        last_name = parts[1] if len(parts) > 1 else ""
-
-    primary_service_area = (workspace.primary_service_area or "").strip()
-    city = ""
-    province_code = ""
-
-    if "," in primary_service_area:
-        city_part, province_part = primary_service_area.split(",", 1)
-        city = city_part.strip()
-        province_code = province_part.strip()
-    else:
-        city = primary_service_area
-
-    signup_data = {
-        "first_name": first_name,
-        "last_name": last_name,
-        "email": current_user.email or "",
-        "city": city,
-        "province": province_code,
-        "province_name": province_map.get(province_code, province_code),
-    }
-
-    phone_setup_data = {
-        "phone_mode": workspace.phone_mode or "",
-        "business_phone": workspace.business_phone or "",
-        "selected_twilio_number": workspace.pending_twilio_number or "",
-        "coverage_mode": workspace.coverage_mode or "",
-        "workday_start": workspace.workday_start or "",
-        "workday_end": workspace.workday_end or "",
-        "business_days": workspace.business_days or "",
-        "notification_email": workspace.notification_email or "",
-        "team_mobile": workspace.team_mobile or "",
-    }
-
-    day_map = {
-        "mon": "Mon",
-        "tue": "Tue",
-        "wed": "Wed",
-        "thu": "Thu",
-        "fri": "Fri",
-        "sat": "Sat",
-        "sun": "Sun",
-    }
-
-    raw_days = phone_setup_data["business_days"]
-    phone_setup_data["business_days_display"] = ", ".join(
-        day_map.get(day.strip(), day.strip().title())
-        for day in raw_days.split(",")
-        if day.strip()
-    )
-
-    return templates.TemplateResponse(
-        request,
-        "onboarding/review.html",
-        {
-            "page_title": "Review Setup",
-            "plan": plan.lower(),
-            "signup_data": signup_data,
-            "phone_setup_data": phone_setup_data,
-        },
-    )
+    
 from typing import List, Dict
 from fastapi import Query, HTTPException
 from twilio.rest import Client
@@ -2158,111 +1923,333 @@ def try_twilio_local_search(client: Client, **kwargs) -> List[str]:
     except Exception:
         return []
 
-@app.route("/onboarding/business", methods=["GET", "POST"])
-@login_required
-def onboarding_business():
-    user_id = current_user.id
-    progress = get_or_create_onboarding_progress(user_id)
+@app.get("/onboarding/business", response_class=HTMLResponse)
+def onboarding_business_page(
+    request: Request,
+    plan: str = Query("pilot"),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
 
-    if request.method == "POST":
-        business_data = {
-            "company_name": request.form.get("company_name", "").strip(),
-            "city": request.form.get("city", "").strip(),
-            "province": request.form.get("province", "").strip(),
-            "industry": request.form.get("industry", "").strip(),
-        }
+    progress = get_or_create_onboarding_progress(db, user.id)
 
-        save_business_step(user_id, business_data)
-        return redirect(url_for("onboarding_workflow"))
-
-    return render_template(
-        "onboarding_business.html",
-        signup_data=progress.business_data,
+    return templates.TemplateResponse(
+        request,
+        "onboarding/company.html",
+        {
+            "page_title": "Company Details",
+            "plan": plan.lower(),
+            "signup_data": progress.business_data or {},
+        },
     )
 
-@app.route("/onboarding/workflow", methods=["GET", "POST"])
-@login_required
-def onboarding_workflow():
-    user_id = current_user.id
-    progress = get_or_create_onboarding_progress(user_id)
 
-    if not progress.business_data:
-        return redirect(url_for("onboarding_business"))
+@app.post("/onboarding/business")
+def onboarding_business_submit(
+    request: Request,
+    plan: str = Form("pilot"),
+    company_name: str = Form(""),
+    city: str = Form(""),
+    province: str = Form(""),
+    industry: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    workspace = get_current_workspace(request, db)
 
-    if request.method == "POST":
-        workflow_data = {
-            "lead_type": request.form.get("lead_type", "").strip(),
-            "message_tone": request.form.get("message_tone", "").strip(),
-            "booking_goal": request.form.get("booking_goal", "").strip(),
-        }
+    business_data = {
+        "company_name": company_name.strip(),
+        "city": city.strip(),
+        "province": province.strip(),
+        "industry": industry.strip(),
+    }
 
-        save_workflow_step(user_id, workflow_data)
-        return redirect(url_for("onboarding_phone_setup"))
+    save_business_step(db, user.id, business_data)
 
-    return render_template(
-        "onboarding_workflow.html",
-        signup_data=progress.business_data,
-        workflow_data=progress.workflow_data,
+    if workspace:
+        workspace.company_name = company_name.strip()
+        workspace.primary_service_area = f"{city.strip()}, {province.strip()}"
+        db.commit()
+
+    return RedirectResponse(
+        url=f"/onboarding/workflow?plan={plan}",
+        status_code=303,
     )
 
-@app.route("/onboarding/phone-setup", methods=["GET", "POST"])
-@login_required
-def onboarding_phone_setup():
-    user_id = current_user.id
-    progress = get_or_create_onboarding_progress(user_id)
+@app.get("/onboarding/workflow", response_class=HTMLResponse)
+def onboarding_workflow_page(
+    request: Request,
+    plan: str = Query("pilot"),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    progress = get_or_create_onboarding_progress(db, user.id)
 
     if not progress.business_data:
-        return redirect(url_for("onboarding_business"))
+        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "onboarding/workflow.html",
+        {
+            "page_title": "Workflow Preferences",
+            "plan": plan.lower(),
+            "signup_data": progress.business_data,
+            "workflow_data": progress.workflow_data or {},
+            "business_name": progress.business_data.get("company_name", "your roofing company"),
+        },
+    )
+
+@app.get("/onboarding/phone-setup", response_class=HTMLResponse)
+def onboarding_phone_setup_page(
+    request: Request,
+    plan: str = Query("pilot"),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    progress = get_or_create_onboarding_progress(db, user.id)
+
+    if not progress.business_data:
+        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
     if not progress.workflow_data:
-        return redirect(url_for("onboarding_workflow"))
+        return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
 
-    if request.method == "POST":
-        phone_setup_data = {
-            "phone_mode": request.form.get("phone_mode", "").strip(),
-            "business_phone": request.form.get("business_phone", "").strip(),
-            "selected_twilio_number": request.form.get("selected_twilio_number", "").strip(),
-            "coverage_mode": request.form.get("coverage_mode", "").strip(),
-            "workday_start": request.form.get("workday_start", "").strip(),
-            "workday_end": request.form.get("workday_end", "").strip(),
-            "business_days": request.form.get("business_days", "").strip(),
-            "notification_email": request.form.get("notification_email", "").strip(),
-            "team_mobile": request.form.get("team_mobile", "").strip(),
-        }
+    phone_setup_data = {
+        "phone_mode": "existing",
+        "business_phone": "",
+        "selected_twilio_number": "",
+        "coverage_mode": "always",
+        "workday_start": "",
+        "workday_end": "",
+        "business_days": "",
+        "notification_email": user.email or "",
+        "team_mobile": "",
+    }
 
-        save_phone_step(user_id, phone_setup_data)
-        return redirect(url_for("onboarding_review"))
+    if progress.phone_setup_data:
+        phone_setup_data.update(progress.phone_setup_data)
 
     signup_data = progress.business_data
 
-    return render_template(
-        "phone_setup.html",
-        signup_city=signup_data.get("city", ""),
-        signup_province=signup_data.get("province", ""),
-        phone_setup_data=progress.phone_setup_data,
-        workflow_data=progress.workflow_data,
-        signup_data=signup_data,
+    return templates.TemplateResponse(
+        request,
+        "onboarding/phone_setup.html",
+        {
+            "page_title": "Phone Setup",
+            "plan": plan.lower(),
+            "signup_data": signup_data,
+            "signup_city": signup_data.get("city", ""),
+            "signup_province": signup_data.get("province", ""),
+            "workflow_data": progress.workflow_data,
+            "phone_setup_data": phone_setup_data,
+        },
     )
 
-@app.route("/onboarding/review", methods=["GET", "POST"])
-@login_required
-def onboarding_review():
-    user_id = current_user.id
-    progress = get_or_create_onboarding_progress(user_id)
+
+@app.post("/onboarding/phone-setup")
+def onboarding_phone_setup_submit(
+    request: Request,
+    plan: str = Form("pilot"),
+    phone_mode: str = Form("existing"),
+    business_phone: str = Form(""),
+    selected_twilio_number: str = Form(""),
+    coverage_mode: str = Form("always"),
+    workday_start: str = Form(""),
+    workday_end: str = Form(""),
+    business_days: str = Form(""),
+    notification_email: str = Form(""),
+    team_mobile: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    workspace = get_current_workspace(request, db)
+    progress = get_or_create_onboarding_progress(db, user.id)
 
     if not progress.business_data:
-        return redirect(url_for("onboarding_business"))
+        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
     if not progress.workflow_data:
-        return redirect(url_for("onboarding_workflow"))
+        return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
+
+    phone_setup_data = {
+        "phone_mode": (phone_mode or "existing").strip(),
+        "business_phone": (business_phone or "").strip(),
+        "selected_twilio_number": (selected_twilio_number or "").strip(),
+        "coverage_mode": (coverage_mode or "always").strip(),
+        "workday_start": (workday_start or "").strip(),
+        "workday_end": (workday_end or "").strip(),
+        "business_days": (business_days or "").strip(),
+        "notification_email": (notification_email or "").strip(),
+        "team_mobile": (team_mobile or "").strip(),
+    }
+
+    save_phone_step(db, user.id, phone_setup_data)
+
+    if workspace:
+        workspace.phone_mode = phone_setup_data["phone_mode"]
+        workspace.coverage_mode = phone_setup_data["coverage_mode"]
+
+        if workspace.phone_mode == "existing":
+            workspace.business_phone = phone_setup_data["business_phone"] or None
+            workspace.pending_twilio_number = None
+        else:
+            workspace.business_phone = None
+            workspace.pending_twilio_number = phone_setup_data["selected_twilio_number"] or None
+
+        if workspace.coverage_mode == "after_hours":
+            workspace.workday_start = phone_setup_data["workday_start"] or None
+            workspace.workday_end = phone_setup_data["workday_end"] or None
+            workspace.business_days = phone_setup_data["business_days"] or None
+        else:
+            workspace.workday_start = None
+            workspace.workday_end = None
+            workspace.business_days = None
+
+        workspace.notification_email = phone_setup_data["notification_email"] or None
+        workspace.team_mobile = phone_setup_data["team_mobile"] or None
+        db.commit()
+
+    return RedirectResponse(
+        url=f"/onboarding/review?plan={plan}",
+        status_code=303,
+    )
+
+@app.post("/onboarding/review")
+def onboarding_review_submit(
+    request: Request,
+    plan: str = Form("pilot"),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    progress = get_or_create_onboarding_progress(db, user.id)
+
+    if not progress.business_data:
+        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
+    if not progress.workflow_data:
+        return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
     if not progress.phone_setup_data:
-        return redirect(url_for("onboarding_phone_setup"))
+        return RedirectResponse(url=f"/onboarding/phone-setup?plan={plan}", status_code=303)
 
-    if request.method == "POST":
-        # final submit / checkout / provisioning logic here
-        pass
+    return RedirectResponse(url=f"/billing?plan={plan}", status_code=303)
 
-    return render_template(
-        "onboarding_review.html",
-        signup_data=progress.business_data,
-        workflow_data=progress.workflow_data,
-        phone_setup_data=progress.phone_setup_data,
+def get_or_create_onboarding_progress(db: Session, user_id: int) -> models.OnboardingProgress:
+    progress = (
+        db.query(models.OnboardingProgress)
+        .filter(models.OnboardingProgress.user_id == user_id)
+        .first()
+    )
+    if not progress:
+        progress = models.OnboardingProgress(user_id=user_id)
+        db.add(progress)
+        db.commit()
+        db.refresh(progress)
+    return progress
+
+
+def save_business_step(db: Session, user_id: int, data: dict) -> models.OnboardingProgress:
+    progress = get_or_create_onboarding_progress(db, user_id)
+    progress.business_data = data
+    progress.last_completed_step = max(progress.last_completed_step, 1)
+    db.commit()
+    db.refresh(progress)
+    return progress
+
+
+def save_workflow_step(db: Session, user_id: int, data: dict) -> models.OnboardingProgress:
+    progress = get_or_create_onboarding_progress(db, user_id)
+    progress.workflow_data = data
+    progress.last_completed_step = max(progress.last_completed_step, 2)
+    db.commit()
+    db.refresh(progress)
+    return progress
+
+
+def save_phone_step(db: Session, user_id: int, data: dict) -> models.OnboardingProgress:
+    progress = get_or_create_onboarding_progress(db, user_id)
+    progress.phone_setup_data = data
+    progress.last_completed_step = max(progress.last_completed_step, 3)
+    db.commit()
+    db.refresh(progress)
+    return progress
+    
+def require_current_user(request: Request, db: Session) -> Optional[models.AppUser]:
+    return get_current_user_from_cookie(request, db)
+
+@app.post("/onboarding/workflow")
+def onboarding_workflow_submit(
+    request: Request,
+    plan: str = Form("pilot"),
+    steps_json: str = Form("[]"),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    progress = get_or_create_onboarding_progress(db, user.id)
+
+    if not progress.business_data:
+        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
+
+    workflow_data = {
+        "steps_json": steps_json,
+    }
+
+    save_workflow_step(db, user.id, workflow_data)
+
+    return RedirectResponse(
+        url=f"/onboarding/phone-setup?plan={plan}",
+        status_code=303,
+    )
+
+@app.get("/onboarding/review", response_class=HTMLResponse)
+def onboarding_review_page(
+    request: Request,
+    plan: str = Query("pilot"),
+    db: Session = Depends(get_db),
+):
+    user = require_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    progress = get_or_create_onboarding_progress(db, user.id)
+
+    if not progress.business_data:
+        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
+    if not progress.workflow_data:
+        return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
+    if not progress.phone_setup_data:
+        return RedirectResponse(url=f"/onboarding/phone-setup?plan={plan}", status_code=303)
+
+    signup_data = progress.business_data
+    phone_setup_data = dict(progress.phone_setup_data)
+
+    day_map = {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun",
+    }
+
+    raw_days = phone_setup_data.get("business_days", "")
+    phone_setup_data["business_days_display"] = ", ".join(
+        day_map.get(day.strip(), day.strip().title())
+        for day in raw_days.split(",")
+        if day.strip()
+    )
+
+    return templates.TemplateResponse(
+        request,
+        "onboarding/review.html",
+        {
+            "page_title": "Review Setup",
+            "plan": plan.lower(),
+            "signup_data": signup_data,
+            "workflow_data": progress.workflow_data,
+            "phone_setup_data": phone_setup_data,
+        },
     )
