@@ -379,8 +379,14 @@
   availableNumbersContainer.innerHTML = "";
   clearInvalid(availableNumbersContainer);
 
+  const city = signupCity || "Calgary";
+  const province = signupProvince || "AB";
+
   try {
-    const response = await fetch(`/api/twilio/available-numbers?city=${encodeURIComponent(userCity)}&province=${encodeURIComponent(userProvince)}&refresh=${Date.now()}`);
+    const response = await fetch(
+      `/api/twilio/available-numbers?city=${encodeURIComponent(city)}&province=${encodeURIComponent(province)}&refresh=${Date.now()}`
+    );
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -395,13 +401,8 @@
 
     newNumberStatus.textContent = "Choose the number you want. It will only be purchased after checkout.";
 
-    if (findNumbersBtn) {
-      findNumbersBtn.classList.add("hidden-block");
-    }
-
-    if (refreshNumbersBtn) {
-      refreshNumbersBtn.classList.remove("hidden-block");
-    }
+    if (findNumbersBtn) findNumbersBtn.classList.add("hidden-block");
+    if (refreshNumbersBtn) refreshNumbersBtn.classList.remove("hidden-block");
 
     data.numbers.forEach(number => {
       const btn = document.createElement("button");
@@ -426,6 +427,7 @@
       availableNumbersContainer.appendChild(btn);
     });
   } catch (error) {
+    console.error("Failed to load available numbers:", error);
     newNumberStatus.textContent = "Could not load numbers right now.";
   }
 }
