@@ -4,17 +4,12 @@
 <link rel="stylesheet" href="/static/css/signup.css">
 {% endblock %}
 
-{% if error_message %}
-<div class="form-error">
-  {{ error_message }}
-</div>
-{% endif %}
-
 {% block content %}
 <div class="signup-page-shell">
   {% set selected_plan = plan if plan else 'pilot' %}
-{% set plan_name = 'Growth' if selected_plan == 'growth' else 'Pilot' %}
-{% set plan_price = '$999/month' if selected_plan == 'growth' else '$499/month' %}
+  {% set plan_name = 'Growth' if selected_plan == 'growth' else 'Pilot' %}
+  {% set plan_price = '$999/month' if selected_plan == 'growth' else '$499/month' %}
+
   <!-- TOP TIMELINE -->
   <section class="setup-progress-shell">
     <div class="setup-progress-bar">
@@ -34,13 +29,20 @@
 
       <div class="setup-step">
         <div class="setup-step-number">3</div>
-        <div class="setup-step-label">Review</div>
+        <div class="setup-step-label">Phone Setup</div>
       </div>
 
       <div class="setup-step-line"></div>
 
       <div class="setup-step">
         <div class="setup-step-number">4</div>
+        <div class="setup-step-label">Review</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">5</div>
         <div class="setup-step-label">Payment</div>
       </div>
     </div>
@@ -49,138 +51,150 @@
   <div class="signup-grid">
     <!-- LEFT: FORM -->
     <section class="signup-main-card">
-      <div class="signup-kicker">Step 1 of 4</div>
+      <div class="signup-kicker">Step 1 of 5</div>
       <h1 class="signup-title">Set up your Roofing Front Desk workspace</h1>
       <p class="signup-subtitle">
-  You’ve chosen the {{ plan_name }} plan. Start by creating your account details, then continue through workflow setup, review, and secure payment.
-</p>
+        You’ve chosen the {{ plan_name }} plan. Start by creating your account details, then continue through workflow setup, phone setup, review, and secure payment.
+      </p>
 
-     <form action="/signup" method="post" class="signup-form" novalidate>
-  <input type="hidden" name="plan" value="{{ plan }}">
+      <form action="/signup" method="post" class="signup-form" novalidate>
+        <input type="hidden" name="plan" value="{{ plan }}">
 
-  {% if error_message %}
-  <div class="form-error">
-    {{ error_message }}
-  </div>
-  {% endif %}
+        {% if error_message %}
+        <div class="form-error">
+          {{ error_message }}
+        </div>
+        {% endif %}
 
- <div class="form-row">
-  <div class="form-group form-group-full">
-    <label for="company_name">Business Name</label>
-    <input
-      id="company_name"
-      name="company_name"
-      type="text"
-      value="{{ form_data.company_name if form_data else '' }}"
-      placeholder="Karl's Roofing"
-      required
-    >
-  </div>
-</div>
+        <!-- Business Name -->
+        <div class="form-row">
+          <div class="form-group form-group-full">
+            <label for="company_name">Business Name</label>
+            <input
+              id="company_name"
+              name="company_name"
+              type="text"
+              value="{{ form_data.company_name if form_data else '' }}"
+              placeholder="Karl's Roofing"
+              required
+            >
+          </div>
+        </div>
 
-<div class="form-row">
-  <div class="form-group">
-    <label for="first_name">First Name</label>
-    <input
-      id="first_name"
-      name="first_name"
-      type="text"
-      value="{{ form_data.first_name if form_data else '' }}"
-      required
-    >
-  </div>
+        <!-- First / Last -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first_name">First Name</label>
+            <input
+              id="first_name"
+              name="first_name"
+              type="text"
+              value="{{ form_data.first_name if form_data else '' }}"
+              required
+            >
+          </div>
 
-  <div class="form-group">
-    <label for="last_name">Last Name</label>
-    <input
-      id="last_name"
-      name="last_name"
-      type="text"
-      value="{{ form_data.last_name if form_data else '' }}"
-      required
-    >
-  </div>
-</div>
+          <div class="form-group">
+            <label for="last_name">Last Name</label>
+            <input
+              id="last_name"
+              name="last_name"
+              type="text"
+              value="{{ form_data.last_name if form_data else '' }}"
+              required
+            >
+          </div>
+        </div>
 
-<div class="form-row">
-  <div class="form-group form-group-full">
-    <label for="email">Email</label>
-    <input
-      id="email"
-      name="email"
-      type="email"
-      value="{{ form_data.email if form_data else '' }}"
-      required
-    >
-  </div>
-</div>
+        <!-- Email -->
+        <div class="form-row">
+          <div class="form-group form-group-full">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value="{{ form_data.email if form_data else '' }}"
+              required
+            >
+            <div class="field-status" id="email-status"></div>
+          </div>
+        </div>
 
-<div class="form-row">
-  <div class="form-group">
-    <label for="city">City</label>
-    <input
-      id="city"
-      name="city"
-      type="text"
-      value="{{ form_data.city if form_data else '' }}"
-      required
-    >
-  </div>
+        <!-- City / Province -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="city">City</label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              value="{{ form_data.city if form_data else '' }}"
+              required
+            >
+          </div>
 
-    <div class="form-group">
-  <label for="province">Province</label>
-  <select id="province" name="province" required autocomplete="off">
-    <option value="" {% if not form_data.province %}selected{% endif %}>Select province</option>
-    <option value="AB" {% if form_data.province == "AB" %}selected{% endif %}>Alberta</option>
-    <option value="BC" {% if form_data.province == "BC" %}selected{% endif %}>British Columbia</option>
-    <option value="MB" {% if form_data.province == "MB" %}selected{% endif %}>Manitoba</option>
-    <option value="NB" {% if form_data.province == "NB" %}selected{% endif %}>New Brunswick</option>
-    <option value="NL" {% if form_data.province == "NL" %}selected{% endif %}>Newfoundland and Labrador</option>
-    <option value="NS" {% if form_data.province == "NS" %}selected{% endif %}>Nova Scotia</option>
-    <option value="NT" {% if form_data.province == "NT" %}selected{% endif %}>Northwest Territories</option>
-    <option value="NU" {% if form_data.province == "NU" %}selected{% endif %}>Nunavut</option>
-    <option value="ON" {% if form_data.province == "ON" %}selected{% endif %}>Ontario</option>
-    <option value="PE" {% if form_data.province == "PE" %}selected{% endif %}>Prince Edward Island</option>
-    <option value="QC" {% if form_data.province == "QC" %}selected{% endif %}>Quebec</option>
-    <option value="SK" {% if form_data.province == "SK" %}selected{% endif %}>Saskatchewan</option>
-    <option value="YT" {% if form_data.province == "YT" %}selected{% endif %}>Yukon</option>
-  </select>
-</div>
-  </div>
+          <div class="form-group">
+            <label for="province">Province</label>
+            <select id="province" name="province" required autocomplete="off">
+              <option value="" {% if not form_data or not form_data.province %}selected{% endif %}>Select province</option>
+              <option value="AB" {% if form_data and form_data.province == "AB" %}selected{% endif %}>Alberta</option>
+              <option value="BC" {% if form_data and form_data.province == "BC" %}selected{% endif %}>British Columbia</option>
+              <option value="MB" {% if form_data and form_data.province == "MB" %}selected{% endif %}>Manitoba</option>
+              <option value="NB" {% if form_data and form_data.province == "NB" %}selected{% endif %}>New Brunswick</option>
+              <option value="NL" {% if form_data and form_data.province == "NL" %}selected{% endif %}>Newfoundland and Labrador</option>
+              <option value="NS" {% if form_data and form_data.province == "NS" %}selected{% endif %}>Nova Scotia</option>
+              <option value="NT" {% if form_data and form_data.province == "NT" %}selected{% endif %}>Northwest Territories</option>
+              <option value="NU" {% if form_data and form_data.province == "NU" %}selected{% endif %}>Nunavut</option>
+              <option value="ON" {% if form_data and form_data.province == "ON" %}selected{% endif %}>Ontario</option>
+              <option value="PE" {% if form_data and form_data.province == "PE" %}selected{% endif %}>Prince Edward Island</option>
+              <option value="QC" {% if form_data and form_data.province == "QC" %}selected{% endif %}>Quebec</option>
+              <option value="SK" {% if form_data and form_data.province == "SK" %}selected{% endif %}>Saskatchewan</option>
+              <option value="YT" {% if form_data and form_data.province == "YT" %}selected{% endif %}>Yukon</option>
+            </select>
+          </div>
+        </div>
 
-  <div class="form-group">
-  <label for="password">Password</label>
-  <input id="password" type="password" name="password" required>
-  <div class="password-rules" id="password-rules">
-    <div class="password-rule" id="rule-length">At least 8 characters</div>
-<div class="password-rule" id="rule-uppercase">One uppercase letter</div>
-<div class="password-rule" id="rule-lowercase">One lowercase letter</div>
-<div class="password-rule" id="rule-number">One number</div>
-<div class="password-rule" id="rule-special">One special character</div>
-  </div>
-</div>
+        <!-- Password -->
+        <div class="form-row">
+          <div class="form-group form-group-full">
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required>
+            <div class="password-rules" id="password-rules">
+              <div class="password-rule" id="rule-length">At least 8 characters</div>
+              <div class="password-rule" id="rule-uppercase">One uppercase letter</div>
+              <div class="password-rule" id="rule-lowercase">One lowercase letter</div>
+              <div class="password-rule" id="rule-number">One number</div>
+              <div class="password-rule" id="rule-special">One special character</div>
+            </div>
+          </div>
+        </div>
 
-<div class="form-group">
-  <label for="confirm_password">Confirm Password</label>
-  <input id="confirm_password" type="password" name="confirm_password" required>
-  <div class="confirm-password-status" id="confirm-password-status"></div>
-</div>
+        <!-- Confirm Password -->
+        <div class="form-row">
+          <div class="form-group form-group-full">
+            <label for="confirm_password">Confirm Password</label>
+            <input id="confirm_password" type="password" name="confirm_password" required>
+            <div class="confirm-password-status" id="confirm-password-status"></div>
+          </div>
+        </div>
 
-  <label class="checkbox-row">
-  <input type="checkbox" name="agree_terms" value="1" required>
-  <span>
-    I agree to the
-    <a href="/terms" target="_blank">Terms of Service</a>
-    and
-    <a href="/privacy" target="_blank">Privacy Policy</a>.
-  </span>
-</label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="agree_terms" value="1" required>
+          <span>
+            I agree to the
+            <a href="/terms" target="_blank">Terms of Service</a>
+            and
+            <a href="/privacy" target="_blank">Privacy Policy</a>.
+          </span>
+        </label>
 
-  <button type="submit" class="btn btn-primary btn-full">Continue to workflow setup</button>
-       <div class="signup-login-note">
-  Already have an account? <a href="/login">Log in</a>
-</div>
-</form>
+        <button type="submit" class="btn btn-primary btn-full">Continue to workflow setup</button>
+
+        <div class="signup-login-note">
+          Already have an account? <a href="/login">Log in</a>
+        </div>
+      </form>
     </section>
 
     <!-- RIGHT: CONTEXT PANEL -->
@@ -200,37 +214,39 @@
         </p>
       </div>
 
-     <div class="signup-side-section">
-  <div class="side-section-title">Included in this plan</div>
+      <div class="signup-side-section">
+        <div class="side-section-title">Included in this plan</div>
 
-  <div class="included-plan-card">
-    {% if selected_plan == 'growth' %}
-      <ul class="included-plan-list">
-        <li>Up to 3 phone numbers / service areas</li>
-        <li>Full lead qualification workflow</li>
-        <li>Routing and team handoff</li>
-        <li>Shared inbox + pipeline + reporting</li>
-        <li>Up to 250 recovered leads / month</li>
-        <li>Phone and texting included</li>
-      </ul>
-    {% else %}
-      <ul class="included-plan-list">
-        <li>1 phone number / service area</li>
-        <li>Missed-call text-back</li>
-        <li>Basic lead capture</li>
-        <li>Simple inbox view</li>
-        <li>Up to 30 recovered leads / month</li>
-        <li>Phone and texting included</li>
-      </ul>
-    {% endif %}
-  </div>
-</div>
+        <div class="included-plan-card">
+          {% if selected_plan == 'growth' %}
+            <ul class="included-plan-list">
+              <li>Up to 3 phone numbers / service areas</li>
+              <li>Full lead qualification workflow</li>
+              <li>Routing and team handoff</li>
+              <li>Shared inbox + pipeline + reporting</li>
+              <li>Up to 250 recovered leads / month</li>
+              <li>Phone and texting included</li>
+            </ul>
+          {% else %}
+            <ul class="included-plan-list">
+              <li>1 phone number / service area</li>
+              <li>Missed-call text-back</li>
+              <li>Basic lead capture</li>
+              <li>Simple inbox view</li>
+              <li>Up to 30 recovered leads / month</li>
+              <li>Phone and texting included</li>
+            </ul>
+          {% endif %}
+        </div>
+      </div>
     </aside>
   </div>
 </div>
+
 <script>
   const signupForm = document.querySelector(".signup-form");
 
+  const companyNameInput = document.getElementById("company_name");
   const firstNameInput = document.getElementById("first_name");
   const lastNameInput = document.getElementById("last_name");
   const emailInput = document.getElementById("email");
@@ -408,6 +424,10 @@
     return true;
   }
 
+  companyNameInput.addEventListener("input", () => {
+    if (companyNameInput.value.trim()) setFieldNeutral(companyNameInput);
+  });
+
   firstNameInput.addEventListener("input", () => {
     if (firstNameInput.value.trim()) setFieldNeutral(firstNameInput);
   });
@@ -431,6 +451,7 @@
   signupForm.addEventListener("submit", function (event) {
     let hasError = false;
 
+    if (!validateRequiredField(companyNameInput)) hasError = true;
     if (!validateRequiredField(firstNameInput)) hasError = true;
     if (!validateRequiredField(lastNameInput)) hasError = true;
     if (!validateRequiredField(emailInput)) hasError = true;
@@ -485,7 +506,7 @@
   });
 
   document.addEventListener("DOMContentLoaded", function () {
-    const hasProvinceFromServer = "{{ form_data.province | default('') }}".trim() !== "";
+    const hasProvinceFromServer = "{{ form_data.province | default('') if form_data else '' }}".trim() !== "";
 
     if (provinceInput && !hasProvinceFromServer) {
       provinceInput.selectedIndex = 0;
