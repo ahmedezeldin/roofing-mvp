@@ -868,12 +868,11 @@ def signup_submit(
     },
 )
 
-response = RedirectResponse(
-    url=f"/onboarding/workflow?plan={normalized_plan}",
-    status_code=303,
-)
-
-set_auth_cookie(response, token, expires_at)
+    response = RedirectResponse(
+        url=f"/onboarding/workflow?plan={normalized_plan}",
+        status_code=303,
+    )
+    set_auth_cookie(response, token, expires_at)
     return response
 
 
