@@ -669,13 +669,13 @@ def signup_page(
             "page_title": "Start Setup",
             "plan": plan.lower(),
             "error_message": None,
-            "form_data": {
-                "company_name": "",
-                "first_name": "",
-                "last_name": "",
-                "email": "",
-                "city": "",
-                "province": "",
+            form_data = {
+                "company_name": company_name,
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": normalized_email,
+                "city": city,
+                "province": province,
             },
         },
     )
