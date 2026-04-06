@@ -670,6 +670,7 @@ def signup_page(
             "plan": plan.lower(),
             "error_message": None,
             "form_data": {
+                "company_name": "",
                 "first_name": "",
                 "last_name": "",
                 "email": "",
@@ -683,6 +684,7 @@ def signup_page(
 @app.post("/signup", response_class=HTMLResponse)
 def signup_submit(
     request: Request,
+    company_name: str = Form(...),
     first_name: str = Form(...),
     last_name: str = Form(...),
     email: str = Form(...),
@@ -698,13 +700,27 @@ def signup_submit(
     normalized_plan = (plan or "pilot").strip().lower()
 
     form_data = {
+        "company_name": company_name,
         "first_name": first_name,
         "last_name": last_name,
         "email": normalized_email,
         "city": city,
         "province": province,
     }
-    
+
+    if not company_name.strip():
+        return templates.TemplateResponse(
+            request,
+            "signup.html",
+            {
+                "page_title": "Start Setup",
+                "plan": normalized_plan,
+                "error_message": "Business name is required.",
+                "form_data": form_data,
+            },
+            status_code=400,
+        )
+
     if not province.strip():
         return templates.TemplateResponse(
             request,
@@ -717,7 +733,7 @@ def signup_submit(
             },
             status_code=400,
         )
-    
+
     if not agree_terms:
         return templates.TemplateResponse(
             request,
@@ -838,7 +854,7 @@ def signup_submit(
     user = models.AppUser(
         full_name=full_name,
         email=normalized_email,
-        company_name="",
+        company_name=company_name.strip(),
         password_hash=hash_password(password),
     )
     db.add(user)
@@ -848,25 +864,25 @@ def signup_submit(
         db=db,
         user=user,
         plan=normalized_plan,
-        company_name="",
+        company_name=company_name.strip(),
         business_phone="",
-        primary_service_area=f"{city.strip()}, {province}",
+        primary_service_area=f"{city.strip()}, {province.strip()}",
     )
 
     token, expires_at = create_user_session(db, user.id, remember_me=True)
 
     save_business_step(
-    db,
-    user.id,
-    {
-        "first_name": first_name.strip(),
-        "last_name": last_name.strip(),
-        "email": normalized_email,
-        "city": city.strip(),
-        "province": province.strip(),
-        "company_name": "",
-    },
-)
+        db,
+        user.id,
+        {
+            "company_name": company_name.strip(),
+            "first_name": first_name.strip(),
+            "last_name": last_name.strip(),
+            "email": normalized_email,
+            "city": city.strip(),
+            "province": province.strip(),
+        },
+    )
 
     response = RedirectResponse(
         url=f"/onboarding/workflow?plan={normalized_plan}",
