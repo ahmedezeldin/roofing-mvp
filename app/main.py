@@ -873,8 +873,8 @@ response = RedirectResponse(
     status_code=303,
 )
 
-    set_auth_cookie(response, token, expires_at)
-    return response
+set_auth_cookie(response, token, expires_at)
+return response
 
 
 @app.get("/onboarding/company")
