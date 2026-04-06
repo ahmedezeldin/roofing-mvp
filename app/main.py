@@ -669,13 +669,13 @@ def signup_page(
             "page_title": "Start Setup",
             "plan": plan.lower(),
             "error_message": None,
-            form_data = {
-                "company_name": company_name,
-                "first_name": first_name,
-                "last_name": last_name,
-                "email": normalized_email,
-                "city": city,
-                "province": province,
+            "form_data": {
+                "company_name": "",
+                "first_name": "",
+                "last_name": "",
+                "email": "",
+                "city": "",
+                "province": "",
             },
         },
     )
@@ -700,12 +700,12 @@ def signup_submit(
     normalized_plan = (plan or "pilot").strip().lower()
 
     form_data = {
-        "company_name": company_name,
-        "first_name": first_name,
-        "last_name": last_name,
+        "company_name": company_name.strip(),
+        "first_name": first_name.strip(),
+        "last_name": last_name.strip(),
         "email": normalized_email,
-        "city": city,
-        "province": province,
+        "city": city.strip(),
+        "province": province.strip(),
     }
 
     if not company_name.strip():
