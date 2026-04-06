@@ -874,7 +874,7 @@ response = RedirectResponse(
 )
 
 set_auth_cookie(response, token, expires_at)
-return response
+    return response
 
 
 @app.get("/onboarding/company")
