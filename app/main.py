@@ -855,10 +855,24 @@ def signup_submit(
 
     token, expires_at = create_user_session(db, user.id, remember_me=True)
 
-    response = RedirectResponse(
-        url=f"/onboarding/business?plan={normalized_plan}",
-        status_code=303,
-    )
+    save_business_step(
+    db,
+    user.id,
+    {
+        "first_name": first_name.strip(),
+        "last_name": last_name.strip(),
+        "email": normalized_email,
+        "city": city.strip(),
+        "province": province.strip(),
+        "company_name": "",
+    },
+)
+
+response = RedirectResponse(
+    url=f"/onboarding/workflow?plan={normalized_plan}",
+    status_code=303,
+)
+
     set_auth_cookie(response, token, expires_at)
     return response
 
@@ -1919,27 +1933,9 @@ def try_twilio_local_search(client: Client, **kwargs) -> List[str]:
     except Exception:
         return []
 
-@app.get("/onboarding/business", response_class=HTMLResponse)
-def onboarding_business_page(
-    request: Request,
-    plan: str = Query("pilot"),
-    db: Session = Depends(get_db),
-):
-    user = require_current_user(request, db)
-    if not user:
-        return RedirectResponse(url="/login", status_code=303)
-
-    progress = get_or_create_onboarding_progress(db, user.id)
-
-    return templates.TemplateResponse(
-        request,
-        "onboarding/company.html",
-        {
-            "page_title": "Company Details",
-            "plan": plan.lower(),
-            "signup_data": progress.business_data or {},
-        },
-    )
+@app.get("/onboarding/business")
+def onboarding_business_page(plan: str = Query("pilot")):
+    return RedirectResponse(url=f"/onboarding/workflow?plan={plan}", status_code=303)
 
 
 @app.post("/onboarding/business")
