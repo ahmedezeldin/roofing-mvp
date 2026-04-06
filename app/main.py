@@ -2000,6 +2000,9 @@ def onboarding_phone_setup_page(
     db: Session = Depends(get_db),
 ):
     user = require_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
     progress = get_or_create_onboarding_progress(db, user.id)
 
     if not progress.business_data:
