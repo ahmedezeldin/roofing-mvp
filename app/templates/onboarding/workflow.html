@@ -215,12 +215,6 @@
     steps.forEach((step, index) => {
       const card = document.createElement("div");
       card.className = "workflow-step-card";
-
-      if (index === 0) {
-        card.classList.add("workflow-step-card-hero");
-      } else {
-        card.classList.add("workflow-step-card-half");
-      }
       card.draggable = true;
       card.dataset.stepId = step.id;
 
