@@ -147,6 +147,26 @@ def get_current_user_from_cookie(request: Request, db: Session) -> Optional[mode
         return None
 
     return session.user
+
+def refresh_user_session(
+    request: Request,
+    response: Response,
+    db: Session,
+    remember_me: bool = True,
+) -> Optional[models.AppUser]:
+    session = get_current_session_from_cookie(request, db)
+    if not session:
+        return None
+
+    new_expiry = datetime.utcnow() + timedelta(
+        days=REMEMBER_ME_DAYS if remember_me else SHORT_SESSION_DAYS
+    )
+    session.expires_at = new_expiry
+    db.commit()
+
+    set_auth_cookie(response, session.token, new_expiry)
+    return session.user
+    
 # --------------------------------------------------
 # GENERIC HELPERS
 # --------------------------------------------------
