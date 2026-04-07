@@ -76,7 +76,7 @@
 
         <div class="review-row">
           <span>Province</span>
-          <strong>{{ signup_data.get("province_name", "Not set") if signup_data else "Not set" }}</strong>
+          <strong>{{ signup_data.get("province", "").strip() or "Not set" }}</strong>
         </div>
 
         <div class="review-row">
