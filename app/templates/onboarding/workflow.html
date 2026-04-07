@@ -33,19 +33,26 @@
         <div class="setup-step-number">4</div>
         <div class="setup-step-label">Review</div>
       </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">5</div>
+        <div class="setup-step-label">Payment</div>
+      </div>
     </div>
   </section>
 
   <section class="workflow-main-card">
-    <div class="workflow-kicker">Step 2 of 4</div>
+    <div class="workflow-kicker">Step 2 of 5</div>
     <h1 class="workflow-title">Set up how we text missed callers</h1>
     <p class="workflow-subtitle">
       We’ll automatically text missed callers, qualify the lead, and help your team know when to step in.
     </p>
 
-<form id="workflow-form" action="/onboarding/workflow" method="post">
-  <input type="hidden" name="plan" value="{{ plan }}">
-  <input type="hidden" name="steps_json" id="steps_json">
+    <form id="workflow-form" action="/onboarding/workflow" method="post">
+      <input type="hidden" name="plan" value="{{ plan }}">
+      <input type="hidden" name="steps_json" id="steps_json">
       
       <div class="workflow-toolbar">
         <button type="button" class="btn btn-primary" id="add-step-btn">+ Add Step</button>
@@ -53,7 +60,7 @@
       </div>
 
       <div class="workflow-helper-text">
-        Drag steps to reorder, or use the arrow buttons.
+        Drag to reorder or use the arrow buttons.
       </div>
 
       <div id="workflow-steps" class="workflow-steps"></div>
@@ -127,11 +134,6 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
-  }
-
-  function getTriggerLabel(trigger) {
-    if (trigger === "missed_call") return "Immediately after missed call";
-    return "After customer replies";
   }
 
   function getDelayLabel(delayMinutes) {
@@ -208,168 +210,168 @@
   }
 
   function renderSteps() {
-  stepsContainer.innerHTML = "";
+    stepsContainer.innerHTML = "";
 
-  steps.forEach((step, index) => {
-    const card = document.createElement("div");
-    card.className = "workflow-step-card";
-    card.draggable = true;
-    card.dataset.stepId = step.id;
+    steps.forEach((step, index) => {
+      const card = document.createElement("div");
+      card.className = "workflow-step-card";
+      card.draggable = true;
+      card.dataset.stepId = step.id;
 
-    card.innerHTML = `
-      <div class="workflow-step-header">
-        <div class="workflow-step-left">
-          <div class="workflow-step-badge">Step ${index + 1}</div>
-          <div>
-            <div class="workflow-step-title-row">
-              <button type="button" class="drag-handle" title="Drag to reorder">⋮⋮</button>
-              <h3 class="workflow-step-title">${escapeHtml(step.title)}</h3>
+      card.innerHTML = `
+        <div class="workflow-step-header">
+          <div class="workflow-step-left">
+            <div class="workflow-step-badge">Step ${index + 1}</div>
+            <div>
+              <div class="workflow-step-title-row">
+                <button type="button" class="drag-handle" title="Drag to reorder">⋮⋮</button>
+                <h3 class="workflow-step-title">${escapeHtml(step.title)}</h3>
+              </div>
+              <p class="workflow-step-description">${escapeHtml(step.description)}</p>
             </div>
-            <p class="workflow-step-description">${escapeHtml(step.description)}</p>
+          </div>
+
+          <div class="workflow-step-actions">
+            <button type="button" class="icon-btn move-up-btn" title="Move up">↑</button>
+            <button type="button" class="icon-btn move-down-btn" title="Move down">↓</button>
+            <button type="button" class="delete-btn">Delete</button>
           </div>
         </div>
 
-        <div class="workflow-step-actions">
-          <button type="button" class="icon-btn move-up-btn" title="Move up">↑</button>
-          <button type="button" class="icon-btn move-down-btn" title="Move down">↓</button>
-          <button type="button" class="delete-btn">Delete</button>
+        <div class="workflow-field-group">
+          <label>When should this send?</label>
+          <select class="trigger-select">
+            <option value="missed_call" ${step.trigger === "missed_call" ? "selected" : ""}>Immediately after missed call</option>
+            <option value="after_reply" ${step.trigger === "after_reply" ? "selected" : ""}>After customer replies</option>
+          </select>
         </div>
-      </div>
 
-      <div class="workflow-field-group">
-        <label>When should this send?</label>
-        <select class="trigger-select">
-          <option value="missed_call" ${step.trigger === "missed_call" ? "selected" : ""}>Immediately after missed call</option>
-          <option value="after_reply" ${step.trigger === "after_reply" ? "selected" : ""}>After customer replies</option>
-        </select>
-      </div>
+        <div class="advanced-timing-wrap">
+          <button type="button" class="advanced-toggle subtle-toggle">
+            <span>Advanced timing</span>
+            <span class="advanced-summary">${getDelayLabel(step.delayMinutes)}</span>
+          </button>
 
-      <div class="advanced-timing-wrap">
-        <button type="button" class="advanced-toggle subtle-toggle">
-          <span>Advanced timing</span>
-          <span class="advanced-summary">${getDelayLabel(step.delayMinutes)}</span>
-        </button>
-
-        <div class="advanced-panel ${step.delayMinutes > 0 ? "open" : ""}">
-          <div class="advanced-panel-inner">
-            <div class="workflow-field-group compact-field-group">
-              <label>When should this text send?</label>
-              <select class="delay-select">
-                <option value="0" ${step.delayMinutes === 0 ? "selected" : ""}>Immediately (recommended)</option>
-                <option value="1" ${step.delayMinutes === 1 ? "selected" : ""}>1 minute later</option>
-                <option value="5" ${step.delayMinutes === 5 ? "selected" : ""}>5 minutes later</option>
-                <option value="10" ${step.delayMinutes === 10 ? "selected" : ""}>10 minutes later</option>
-              </select>
+          <div class="advanced-panel ${step.delayMinutes > 0 ? "open" : ""}">
+            <div class="advanced-panel-inner">
+              <div class="workflow-field-group compact-field-group">
+                <label>When should this text send?</label>
+                <select class="delay-select">
+                  <option value="0" ${step.delayMinutes === 0 ? "selected" : ""}>Immediately (recommended)</option>
+                  <option value="1" ${step.delayMinutes === 1 ? "selected" : ""}>1 minute later</option>
+                  <option value="5" ${step.delayMinutes === 5 ? "selected" : ""}>5 minutes later</option>
+                  <option value="10" ${step.delayMinutes === 10 ? "selected" : ""}>10 minutes later</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="workflow-field-group">
-        <label>Text message</label>
-        <div class="field-helper">
-          Auto-filled details like <span class="token-chip-inline">{business_name}</span> will be replaced automatically.
+        <div class="workflow-field-group">
+          <label>Text message</label>
+          <div class="field-helper">
+            Auto-filled details like <span class="token-chip-inline">{business_name}</span> will be replaced automatically.
+          </div>
+          <textarea class="message-textarea" rows="3" placeholder="Type your follow-up message here.">${escapeHtml(step.message)}</textarea>
         </div>
-        <textarea class="message-textarea" rows="4" placeholder="Type your follow-up message here.">${escapeHtml(step.message)}</textarea>
-      </div>
 
-      <div class="step-variable-box">
-        <div class="step-variable-title">Auto-filled details</div>
-        <div class="step-variable-row">
-          <button type="button" class="variable-chip" data-token="{business_name}">Business Name</button>
-          <button type="button" class="variable-chip" data-token="{customer_name}">Customer Name</button>
-          <button type="button" class="variable-chip" data-token="{job_type}">Job Type</button>
-          <button type="button" class="variable-chip" data-token="{postal_code}">Postal Code</button>
-          <button type="button" class="variable-chip" data-token="{urgency}">Urgency</button>
+        <div class="step-variable-box">
+          <div class="step-variable-title">Auto-filled details</div>
+          <div class="step-variable-row">
+            <button type="button" class="variable-chip" data-token="{business_name}">Business Name</button>
+            <button type="button" class="variable-chip" data-token="{customer_name}">Customer Name</button>
+            <button type="button" class="variable-chip" data-token="{job_type}">Job Type</button>
+            <button type="button" class="variable-chip" data-token="{postal_code}">Postal Code</button>
+            <button type="button" class="variable-chip" data-token="{urgency}">Urgency</button>
+          </div>
         </div>
-      </div>
-    `;
+      `;
 
-    const moveUpBtn = card.querySelector(".move-up-btn");
-    const moveDownBtn = card.querySelector(".move-down-btn");
-    const deleteBtn = card.querySelector(".delete-btn");
-    const triggerSelect = card.querySelector(".trigger-select");
-    const delaySelect = card.querySelector(".delay-select");
-    const textarea = card.querySelector(".message-textarea");
-    const advancedToggle = card.querySelector(".advanced-toggle");
-    const advancedPanel = card.querySelector(".advanced-panel");
+      const moveUpBtn = card.querySelector(".move-up-btn");
+      const moveDownBtn = card.querySelector(".move-down-btn");
+      const deleteBtn = card.querySelector(".delete-btn");
+      const triggerSelect = card.querySelector(".trigger-select");
+      const delaySelect = card.querySelector(".delay-select");
+      const textarea = card.querySelector(".message-textarea");
+      const advancedToggle = card.querySelector(".advanced-toggle");
+      const advancedPanel = card.querySelector(".advanced-panel");
 
-    moveUpBtn.addEventListener("click", () => moveStep(index, -1));
-    moveDownBtn.addEventListener("click", () => moveStep(index, 1));
-    deleteBtn.addEventListener("click", () => deleteStep(step.id));
+      moveUpBtn.addEventListener("click", () => moveStep(index, -1));
+      moveDownBtn.addEventListener("click", () => moveStep(index, 1));
+      deleteBtn.addEventListener("click", () => deleteStep(step.id));
 
-    triggerSelect.addEventListener("change", (e) => {
-      steps[index].trigger = e.target.value;
-      updateHiddenInput();
+      triggerSelect.addEventListener("change", (e) => {
+        steps[index].trigger = e.target.value;
+        updateHiddenInput();
+      });
+
+      delaySelect.addEventListener("change", (e) => {
+        steps[index].delayMinutes = Number(e.target.value);
+        renderSteps();
+      });
+
+      textarea.addEventListener("focus", () => {
+        activeTextarea = textarea;
+      });
+
+      textarea.addEventListener("click", () => {
+        activeTextarea = textarea;
+      });
+
+      textarea.addEventListener("input", (e) => {
+        steps[index].message = e.target.value;
+        updateHiddenInput();
+      });
+
+      advancedToggle.addEventListener("click", () => {
+        advancedPanel.classList.toggle("open");
+      });
+
+      card.addEventListener("dragstart", () => {
+        draggedId = step.id;
+        card.classList.add("dragging");
+      });
+
+      card.addEventListener("dragend", () => {
+        draggedId = null;
+        card.classList.remove("dragging");
+      });
+
+      card.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        card.classList.add("drag-over");
+      });
+
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("drag-over");
+      });
+
+      card.addEventListener("drop", (e) => {
+        e.preventDefault();
+        card.classList.remove("drag-over");
+
+        if (!draggedId || draggedId === step.id) return;
+
+        const fromIndex = steps.findIndex(s => s.id === draggedId);
+        const toIndex = steps.findIndex(s => s.id === step.id);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const [moved] = steps.splice(fromIndex, 1);
+        steps.splice(toIndex, 0, moved);
+        renderSteps();
+      });
+
+      stepsContainer.appendChild(card);
     });
 
-    delaySelect.addEventListener("change", (e) => {
-      steps[index].delayMinutes = Number(e.target.value);
-      renderSteps();
+    stepsContainer.querySelectorAll(".variable-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        insertTokenIntoActiveTextarea(chip.dataset.token);
+      });
     });
 
-    textarea.addEventListener("focus", () => {
-      activeTextarea = textarea;
-    });
-
-    textarea.addEventListener("click", () => {
-      activeTextarea = textarea;
-    });
-
-    textarea.addEventListener("input", (e) => {
-      steps[index].message = e.target.value;
-      updateHiddenInput();
-    });
-
-    advancedToggle.addEventListener("click", () => {
-      advancedPanel.classList.toggle("open");
-    });
-
-    card.addEventListener("dragstart", () => {
-      draggedId = step.id;
-      card.classList.add("dragging");
-    });
-
-    card.addEventListener("dragend", () => {
-      draggedId = null;
-      card.classList.remove("dragging");
-    });
-
-    card.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      card.classList.add("drag-over");
-    });
-
-    card.addEventListener("dragleave", () => {
-      card.classList.remove("drag-over");
-    });
-
-    card.addEventListener("drop", (e) => {
-      e.preventDefault();
-      card.classList.remove("drag-over");
-
-      if (!draggedId || draggedId === step.id) return;
-
-      const fromIndex = steps.findIndex(s => s.id === draggedId);
-      const toIndex = steps.findIndex(s => s.id === step.id);
-      if (fromIndex === -1 || toIndex === -1) return;
-
-      const [moved] = steps.splice(fromIndex, 1);
-      steps.splice(toIndex, 0, moved);
-      renderSteps();
-    });
-
-    stepsContainer.appendChild(card);
-  });
-
-  stepsContainer.querySelectorAll(".variable-chip").forEach(chip => {
-    chip.addEventListener("click", () => {
-      insertTokenIntoActiveTextarea(chip.dataset.token);
-    });
-  });
-
-  updateHiddenInput();
-}
+    updateHiddenInput();
+  }
 
   addStepBtn.addEventListener("click", addCustomStep);
   resetStepsBtn.addEventListener("click", resetRecommended);
