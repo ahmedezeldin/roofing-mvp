@@ -124,8 +124,8 @@
 
 .workflow-step-card {
   border: 1px solid #d9e1ef;
-  border-radius: 28px;
-  padding: 22px;
+  border-radius: 24px;
+  padding: 20px;
   background: #ffffff;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -473,4 +473,28 @@
 
 .compact-field-group select {
   min-height: 48px;
+}
+.autofill-token-row {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.autofill-token {
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 999px;
+}
+.workflow-step-card .section-label {
+  margin-bottom: 8px;
+}
+
+.workflow-step-card .field-block {
+  margin-bottom: 14px;
+}
+.advanced-timing-row {
+  min-height: 44px;
+  padding: 10px 14px;
+}
+.workflow-steps-list {
+  gap: 18px;
 }
