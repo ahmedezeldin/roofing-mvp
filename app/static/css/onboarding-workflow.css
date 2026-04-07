@@ -121,7 +121,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .workflow-step-card {
@@ -148,9 +148,44 @@
 
 .workflow-step-header {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.workflow-step-header-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.step-title-wrap {
+  min-width: 0;
+}
+
+.step-title-wrap h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.step-title-wrap p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.workflow-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .workflow-step-left {
@@ -506,14 +541,6 @@
   }
 }
 
-.workflow-step-card-hero {
-  grid-column: 1 / -1;
-}
-
-.workflow-step-card-half {
-  grid-column: span 1;
-}
-
 .workflow-step-card {
   border: 1px solid #d9e1ef;
   border-radius: 22px;
@@ -547,4 +574,14 @@
   .workflow-step-meta-grid {
     grid-template-columns: 1fr;
   }
+}
+.workflow-step-card {
+  border: 1px solid #d9e1ef;
+  border-radius: 22px;
+  padding: 18px;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
