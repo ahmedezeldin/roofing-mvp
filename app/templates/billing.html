@@ -3,100 +3,85 @@
 {% block extra_css %}
 <link rel="stylesheet" href="/static/css/auth.css">
 <link rel="stylesheet" href="/static/css/onboarding.css">
+<link rel="stylesheet" href="/static/css/billing.css">
 {% endblock %}
 
 {% block content %}
-<div class="onboarding-shell">
-  <aside class="onboarding-sidebar">
-    <div class="onboarding-sidebar-badge">Billing</div>
-    <h1 class="onboarding-sidebar-title">Activate your workspace</h1>
-    <p class="onboarding-sidebar-text">
-      You’ve already completed setup. The last step is adding billing so your Roofing Front Desk workspace can be activated.
+<div class="billing-page-shell">
+  <section class="setup-progress-shell">
+    <div class="setup-progress-bar">
+      <div class="setup-step">
+        <div class="setup-step-number">1</div>
+        <div class="setup-step-label">Business</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">2</div>
+        <div class="setup-step-label">Workflow</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">3</div>
+        <div class="setup-step-label">Phone Setup</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step">
+        <div class="setup-step-number">4</div>
+        <div class="setup-step-label">Review</div>
+      </div>
+
+      <div class="setup-step-line"></div>
+
+      <div class="setup-step setup-step-active">
+        <div class="setup-step-number">5</div>
+        <div class="setup-step-label">Payment</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="billing-main-card">
+    <div class="billing-kicker">Step 5 of 5</div>
+    <h1 class="billing-title">Review plan and continue to secure checkout</h1>
+    <p class="billing-subtitle">
+      You’re one step away from activating your Roofing Front Desk workspace.
+      Billing is handled securely through Stripe.
     </p>
 
-    <div class="onboarding-steps">
-      <div class="onboarding-step complete">
-        <span>✓</span>
-        <div>
-          <strong>Company details</strong>
-          <small>Business identity and service area</small>
-        </div>
-      </div>
-
-      <div class="onboarding-step complete">
-        <span>✓</span>
-        <div>
-          <strong>Workflow preferences</strong>
-          <small>Lead qualification and handoff flow</small>
-        </div>
-      </div>
-
-      <div class="onboarding-step complete">
-        <span>✓</span>
-        <div>
-          <strong>Phone setup</strong>
-          <small>Connect your texting/call flow</small>
-        </div>
-      </div>
-
-      <div class="onboarding-step active">
-        <span>$</span>
-        <div>
-          <strong>Billing</strong>
-          <small>Activate your subscription</small>
-        </div>
-      </div>
+    {% if canceled %}
+    <div class="billing-alert">
+      <strong>Checkout canceled.</strong> No payment was processed. You can continue whenever you're ready.
     </div>
-  </aside>
+    {% endif %}
 
-  <section class="onboarding-card">
-    <div class="onboarding-top-row">
-      <div>
-        <div class="onboarding-kicker">Billing</div>
-        <h2 class="onboarding-title">Review plan and continue to secure checkout</h2>
-        <p class="onboarding-subtitle">
-          Billing is handled securely through Stripe. Review your plan below, then continue to checkout to activate your workspace.
-        </p>
-      </div>
-    </div>
-
-    <div class="billing-layout">
-      <div class="onboarding-form billing-form">
-        <div class="billing-note-card">
-          <div class="onboarding-info-title">Secure checkout</div>
-          <div class="onboarding-info-text">
-            Your payment details are not entered directly on this page. When you continue, you’ll be redirected to Stripe’s secure hosted checkout to complete your subscription.
-          </div>
+    <div class="billing-content-grid">
+      <div class="billing-copy-column">
+        <div class="billing-note">
+          <h3>Secure checkout</h3>
+          <p>
+            When you continue, you’ll be redirected to Stripe’s secure hosted checkout
+            to complete your subscription.
+          </p>
         </div>
 
-        {% if canceled %}
-        <div class="billing-note-card" style="border-color: rgba(220, 38, 38, 0.2); background: rgba(220, 38, 38, 0.04);">
-          <div class="onboarding-info-title">Checkout canceled</div>
-          <div class="onboarding-info-text">
-            No payment was processed. You can review the plan and try again whenever you're ready.
-          </div>
-        </div>
-        {% endif %}
-
-        <div class="billing-note-card">
-          <div class="onboarding-info-title">What happens after payment</div>
-          <div class="onboarding-info-text">
-            Once checkout is completed, your subscription is activated and your Roofing Front Desk workspace is ready for launch.
-          </div>
+        <div class="billing-note">
+          <h3>After payment</h3>
+          <p>
+            Once checkout is completed, your subscription is activated and your Roofing
+            Front Desk workspace is ready for launch.
+          </p>
         </div>
 
-        <div class="billing-note-card">
-          <div class="onboarding-info-title">What you’re paying for</div>
-          <div class="onboarding-info-text">
-            Your subscription covers the software workspace, workflow logic, and rollout support included in your selected plan. Twilio phone and messaging usage may be billed separately depending on configuration.
-          </div>
-        </div>
+        <div class="billing-actions">
+          <a href="/onboarding/review?plan={{ selected_plan_slug }}" class="btn btn-secondary">Back</a>
 
-        <div class="onboarding-actions">
-          <a href="/onboarding/twilio" class="btn btn-secondary">Back</a>
-
-          <form action="/stripe/create-checkout-session" method="post" style="margin: 0;">
-            <input type="hidden" name="plan" value="{{ selected_plan_slug|default('growth') }}">
+          <form action="/stripe/create-checkout-session" method="post" class="billing-checkout-form">
+            <input type="hidden" name="plan" value="{{ selected_plan_slug }}">
             <button type="submit" class="btn btn-primary">Continue to secure checkout</button>
           </form>
         </div>
@@ -104,27 +89,31 @@
 
       <aside class="billing-summary-card">
         <div class="billing-summary-kicker">Order Summary</div>
-        <h3 class="billing-summary-title">{{ selected_plan|default("Growth") }}</h3>
+        <h2 class="billing-summary-title">{{ selected_plan }}</h2>
 
         {% if selected_plan_slug == "pilot" %}
         <p class="billing-summary-text">
-          A proof-of-value rollout for roofing companies that want to test missed-call recovery before a full operational rollout.
+          A proof-of-value rollout for roofing companies that want to test missed-call
+          recovery before a full operational rollout.
         </p>
         {% else %}
         <p class="billing-summary-text">
-          A real operating rollout for roofing companies ready to run missed-call recovery live.
+          A real operating rollout for roofing companies ready to run missed-call
+          recovery live.
         </p>
         {% endif %}
 
         <div class="billing-summary-lines">
           <div class="billing-summary-line">
             <span>Monthly subscription</span>
-            <strong>{{ monthly_price|default("$999") }}/month</strong>
+            <strong>{{ monthly_price }}</strong>
           </div>
+
           <div class="billing-summary-line">
             <span>One-time setup</span>
-            <strong>{{ setup_fee|default("$1,500") }}</strong>
+            <strong>{{ setup_fee }}</strong>
           </div>
+
           <div class="billing-summary-line">
             <span>Twilio usage</span>
             <strong>Separate</strong>
@@ -135,7 +124,7 @@
 
         <div class="billing-summary-total">
           <span>Due today</span>
-          <strong>{{ due_today|default("$1,500") }}</strong>
+          <strong>{{ due_today }}</strong>
         </div>
 
         <div class="billing-feature-box">
