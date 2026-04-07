@@ -1992,10 +1992,13 @@ def onboarding_workflow_page(
     db: Session = Depends(get_db),
 ):
     user = require_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
     progress = get_or_create_onboarding_progress(db, user.id)
 
     if not progress.business_data:
-        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
+        return RedirectResponse(url=f"/signup?plan={plan}", status_code=303)
 
     return templates.TemplateResponse(
         request,
@@ -2200,7 +2203,7 @@ def onboarding_workflow_submit(
     progress = get_or_create_onboarding_progress(db, user.id)
 
     if not progress.business_data:
-        return RedirectResponse(url=f"/onboarding/business?plan={plan}", status_code=303)
+        return RedirectResponse(url=f"/signup?plan={plan}", status_code=303)
 
     workflow_data = {
         "steps_json": steps_json,
