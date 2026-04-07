@@ -219,24 +219,21 @@
       card.dataset.stepId = step.id;
 
       card.innerHTML = `
-        <div class="workflow-step-header">
-          <div class="workflow-step-left">
-            <div class="workflow-step-badge">Step ${index + 1}</div>
-            <div>
-              <div class="workflow-step-title-row">
-                <button type="button" class="drag-handle" title="Drag to reorder">⋮⋮</button>
-                <h3 class="workflow-step-title">${escapeHtml(step.title)}</h3>
-              </div>
-              <p class="workflow-step-description">${escapeHtml(step.description)}</p>
-            </div>
-          </div>
-
-          <div class="workflow-step-actions">
-            <button type="button" class="icon-btn move-up-btn" title="Move up">↑</button>
-            <button type="button" class="icon-btn move-down-btn" title="Move down">↓</button>
-            <button type="button" class="delete-btn">Delete</button>
+      <div class="workflow-step-header">
+        <div class="workflow-step-header-main">
+          <div class="step-badge">STEP ${index + 1}</div>
+          <div class="step-title-wrap">
+            <h3>${step.name}</h3>
+            <p>${step.description}</p>
           </div>
         </div>
+
+        <div class="workflow-step-actions">
+          <button type="button" class="icon-btn move-up" ${index === 0 ? "disabled" : ""} aria-label="Move step up">↑</button>
+          <button type="button" class="icon-btn move-down" ${index === steps.length - 1 ? "disabled" : ""} aria-label="Move step down">↓</button>
+          <button type="button" class="delete-step-btn">Delete</button>
+        </div>
+      </div>
 
         <div class="workflow-step-meta-grid">
           <div class="workflow-field-group">
