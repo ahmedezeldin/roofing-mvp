@@ -3,120 +3,118 @@
 {% block extra_css %}
 <link rel="stylesheet" href="/static/css/auth.css">
 <link rel="stylesheet" href="/static/css/onboarding.css">
-<link rel="stylesheet" href="/static/css/billing.css">
 {% endblock %}
 
 {% block content %}
-<div class="billing-page-shell">
-  <section class="setup-progress-shell">
-    <div class="setup-progress-bar">
-      <div class="setup-step">
-        <div class="setup-step-number">1</div>
-        <div class="setup-step-label">Business</div>
+<div class="onboarding-shell">
+  <section class="onboarding-card onboarding-card-wide">
+
+    <!-- Top progress bar -->
+    <div class="onboarding-progress">
+      <div class="progress-step complete">
+        <span class="progress-step-number">1</span>
+        <span class="progress-step-label">Business</span>
       </div>
+      <div class="progress-line"></div>
 
-      <div class="setup-step-line"></div>
-
-      <div class="setup-step">
-        <div class="setup-step-number">2</div>
-        <div class="setup-step-label">Workflow</div>
+      <div class="progress-step complete">
+        <span class="progress-step-number">2</span>
+        <span class="progress-step-label">Workflow</span>
       </div>
+      <div class="progress-line"></div>
 
-      <div class="setup-step-line"></div>
-
-      <div class="setup-step">
-        <div class="setup-step-number">3</div>
-        <div class="setup-step-label">Phone Setup</div>
+      <div class="progress-step complete">
+        <span class="progress-step-number">3</span>
+        <span class="progress-step-label">Phone Setup</span>
       </div>
+      <div class="progress-line"></div>
 
-      <div class="setup-step-line"></div>
-
-      <div class="setup-step">
-        <div class="setup-step-number">4</div>
-        <div class="setup-step-label">Review</div>
+      <div class="progress-step complete">
+        <span class="progress-step-number">4</span>
+        <span class="progress-step-label">Review</span>
       </div>
+      <div class="progress-line"></div>
 
-      <div class="setup-step-line"></div>
-
-      <div class="setup-step setup-step-active">
-        <div class="setup-step-number">5</div>
-        <div class="setup-step-label">Payment</div>
+      <div class="progress-step active">
+        <span class="progress-step-number">5</span>
+        <span class="progress-step-label">Payment</span>
       </div>
     </div>
-  </section>
 
-  <section class="billing-main-card">
-    <div class="billing-kicker">Step 5 of 5</div>
-    <h1 class="billing-title">Review plan and continue to secure checkout</h1>
-    <p class="billing-subtitle">
-      You’re one step away from activating your Roofing Front Desk workspace.
-      Billing is handled securely through Stripe.
-    </p>
+    <div class="onboarding-top-row" style="margin-top: 24px;">
+      <div>
+        <div class="onboarding-kicker">Step 5 of 5</div>
+        <h2 class="onboarding-title">Activate your workspace</h2>
+        <p class="onboarding-subtitle">
+          You're one step away from launching Roofing Front Desk. Billing is handled securely through Stripe.
+        </p>
+      </div>
+    </div>
 
     {% if canceled %}
-    <div class="billing-alert">
-      <strong>Checkout canceled.</strong> No payment was processed. You can continue whenever you're ready.
+    <div class="billing-note-card" style="border-color: rgba(220, 38, 38, 0.2); background: rgba(220, 38, 38, 0.04); margin-top: 20px;">
+      <div class="onboarding-info-title">Checkout canceled</div>
+      <div class="onboarding-info-text">
+        No payment was processed. You can continue whenever you're ready.
+      </div>
     </div>
     {% endif %}
 
-    <div class="billing-content-grid">
-      <div class="billing-copy-column">
-        <div class="billing-note">
-          <h3>Secure checkout</h3>
-          <p>
-            When you continue, you’ll be redirected to Stripe’s secure hosted checkout
-            to complete your subscription.
-          </p>
+    <div class="billing-simple-layout">
+      <div class="billing-simple-main">
+        <div class="billing-note-card">
+          <div class="onboarding-info-title">Secure checkout</div>
+          <div class="onboarding-info-text">
+            When you continue, you’ll be redirected to Stripe’s secure hosted checkout to complete your subscription.
+          </div>
         </div>
 
-        <div class="billing-note">
-          <h3>After payment</h3>
-          <p>
-            Once checkout is completed, your subscription is activated and your Roofing
-            Front Desk workspace is ready for launch.
-          </p>
-        </div>
+        <div class="onboarding-actions" style="margin-top: 24px;">
+          <a href="/onboarding/review" class="btn btn-secondary">Back</a>
 
-        <div class="billing-actions">
-          <a href="/onboarding/review?plan={{ selected_plan_slug }}" class="btn btn-secondary">Back</a>
-
-          <form action="/stripe/create-checkout-session" method="post" class="billing-checkout-form">
-            <input type="hidden" name="plan" value="{{ selected_plan_slug }}">
+          <form action="/stripe/create-checkout-session" method="post" style="margin: 0;">
+            <input type="hidden" name="plan" value="{{ selected_plan_slug|default('pilot') }}">
             <button type="submit" class="btn btn-primary">Continue to secure checkout</button>
           </form>
         </div>
       </div>
 
-      <aside class="billing-summary-card">
+      <aside class="billing-summary-card compact">
         <div class="billing-summary-kicker">Order Summary</div>
-        <h2 class="billing-summary-title">{{ selected_plan }}</h2>
+        <h3 class="billing-summary-title">
+          {{ selected_plan|default("Pilot") }}
+        </h3>
 
         {% if selected_plan_slug == "pilot" %}
         <p class="billing-summary-text">
-          A proof-of-value rollout for roofing companies that want to test missed-call
-          recovery before a full operational rollout.
+          Pilot plan for missed-call recovery.
         </p>
         {% else %}
         <p class="billing-summary-text">
-          A real operating rollout for roofing companies ready to run missed-call
-          recovery live.
+          Growth plan for full operating rollout.
         </p>
         {% endif %}
 
         <div class="billing-summary-lines">
           <div class="billing-summary-line">
             <span>Monthly subscription</span>
-            <strong>{{ monthly_price }}</strong>
+            <strong>
+              {% if selected_plan_slug == "pilot" %}
+                $499/month
+              {% else %}
+                $999/month
+              {% endif %}
+            </strong>
           </div>
 
           <div class="billing-summary-line">
-            <span>One-time setup</span>
-            <strong>{{ setup_fee }}</strong>
+            <span>Setup fee</span>
+            <strong>$0</strong>
           </div>
 
           <div class="billing-summary-line">
             <span>Twilio usage</span>
-            <strong>Separate</strong>
+            <strong>Included</strong>
           </div>
         </div>
 
@@ -124,30 +122,17 @@
 
         <div class="billing-summary-total">
           <span>Due today</span>
-          <strong>{{ due_today }}</strong>
-        </div>
-
-        <div class="billing-feature-box">
-          <div class="billing-feature-title">Included in this plan</div>
-
-          {% if selected_plan_slug == "pilot" %}
-          <ul class="pricing-side-list">
-            <li>1 qualification workflow</li>
-            <li>Missed-call text-back</li>
-            <li>Inbox + dashboard access</li>
-            <li>Standard onboarding support</li>
-          </ul>
-          {% else %}
-          <ul class="pricing-side-list">
-            <li>Multiple workflows by job type</li>
-            <li>Branching logic and qualification</li>
-            <li>Inbox + pipeline + reporting</li>
-            <li>Guided launch support</li>
-          </ul>
-          {% endif %}
+          <strong>
+            {% if selected_plan_slug == "pilot" %}
+              $499
+            {% else %}
+              $999
+            {% endif %}
+          </strong>
         </div>
       </aside>
     </div>
+
   </section>
 </div>
 {% endblock %}
