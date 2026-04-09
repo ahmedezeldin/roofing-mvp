@@ -938,21 +938,19 @@ def onboarding_complete_page(request: Request):
 @app.get("/billing", response_class=HTMLResponse)
 def billing_page(
     request: Request,
-    plan: str = Query("growth"),
+    plan: str = Query("pilot"),
     canceled: int = Query(0),
 ):
-    normalized_plan = (plan or "growth").lower()
+    selected_plan_slug = (plan or "pilot").lower()
 
-    if normalized_plan == "pilot":
-        selected_plan = "Pilot"
-        monthly_price = "$499"
-        setup_fee = "$750"
-        due_today = "$750"
-    else:
+    if selected_plan_slug == "growth":
         selected_plan = "Growth"
         monthly_price = "$999"
-        setup_fee = "$1,500"
-        due_today = "$1,500"
+        due_today = "$999"
+    else:
+        selected_plan = "Pilot"
+        monthly_price = "$499"
+        due_today = "$499"
 
     return templates.TemplateResponse(
         request,
@@ -960,9 +958,8 @@ def billing_page(
         {
             "page_title": "Billing",
             "selected_plan": selected_plan,
-            "selected_plan_slug": normalized_plan,
+            "selected_plan_slug": selected_plan_slug,
             "monthly_price": monthly_price,
-            "setup_fee": setup_fee,
             "due_today": due_today,
             "canceled": bool(canceled),
         },
