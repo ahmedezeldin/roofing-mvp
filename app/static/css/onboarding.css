@@ -677,3 +677,103 @@
     grid-template-columns: 1fr;
   }
 }
+
+.onboarding-card-wide {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.onboarding-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #dbe3f0;
+  border-radius: 20px;
+  padding: 16px 20px;
+  margin-bottom: 8px;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.progress-step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2f8;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.progress-step-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.progress-step.complete .progress-step-number {
+  background: #e8f0ff;
+  color: #2563eb;
+}
+
+.progress-step.complete .progress-step-label {
+  color: #0f172a;
+}
+
+.progress-step.active .progress-step-number {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.progress-step.active .progress-step-label {
+  color: #0f172a;
+}
+
+.progress-line {
+  flex: 1;
+  height: 1px;
+  background: #dbe3f0;
+  min-width: 20px;
+}
+
+.billing-simple-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 24px;
+  margin-top: 24px;
+  align-items: start;
+}
+
+.billing-simple-main {
+  min-width: 0;
+}
+
+.billing-summary-card.compact {
+  position: sticky;
+  top: 24px;
+}
+
+@media (max-width: 900px) {
+  .onboarding-progress {
+    overflow-x: auto;
+    gap: 10px;
+  }
+
+  .billing-simple-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-summary-card.compact {
+    position: static;
+  }
+}
