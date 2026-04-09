@@ -1,4 +1,69 @@
-.billing-page-shell {
+
+.setup-progress-shell {
+  margin-bottom: 24px;
+}
+
+.setup-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #d9e1ef;
+  border-radius: 24px;
+  padding: 16px 20px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+}
+
+.setup-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.setup-step-complete,
+.setup-step-active {
+  opacity: 1;
+}
+
+.setup-step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.setup-step-complete .setup-step-number {
+  background: #eef2f7;
+  color: #0f172a;
+}
+
+.setup-step-active .setup-step-number {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.setup-step-label {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.setup-step-line {
+  height: 2px;
+  flex: 1;
+  min-width: 28px;
+  background: #e2e8f0;
+  border-radius: 999px;
+}.billing-page-shell {
   max-width: 1180px;
   margin: 0 auto;
   padding: 28px 24px 80px;
