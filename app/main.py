@@ -222,13 +222,17 @@ def send_password_reset_code(email: str, code: str) -> bool:
         f"This code expires in {PASSWORD_RESET_CODE_MINUTES} minutes."
     )
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-        if smtp_tls:
-            smtp.starttls()
-        if smtp_user:
-            smtp.login(smtp_user, smtp_password)
-        smtp.send_message(message)
-    return True
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+            if smtp_tls:
+                smtp.starttls()
+            if smtp_user:
+                smtp.login(smtp_user, smtp_password)
+            smtp.send_message(message)
+        return True
+    except Exception as exc:
+        print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
+        return False
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -743,36 +747,44 @@ def forgot_password_submit(
         .first()
     )
 
-    sent_to_email = False
-    preview_code = None
-
-    if user:
-        db.query(models.PasswordResetCode).filter(
-            models.PasswordResetCode.user_id == user.id,
-            models.PasswordResetCode.used_at.is_(None),
-        ).update({models.PasswordResetCode.used_at: datetime.utcnow()})
-
-        code = generate_reset_code()
-        reset_record = models.PasswordResetCode(
-            user_id=user.id,
-            email=normalized_email,
-            code_hash=hash_reset_code(code),
-            expires_at=datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_CODE_MINUTES),
+    if not user:
+        return templates.TemplateResponse(
+            request,
+            "forgot_password.html",
+            {
+                "page_title": "Forgot Password",
+                "error_message": "No account found for that email. Please sign up first.",
+                "info_message": None,
+                "form_data": {"email": normalized_email},
+            },
+            status_code=404,
         )
-        db.add(reset_record)
-        db.commit()
 
-        sent_to_email = send_password_reset_code(normalized_email, code)
-        if not sent_to_email:
-            preview_code = code
+    db.query(models.PasswordResetCode).filter(
+        models.PasswordResetCode.user_id == user.id,
+        models.PasswordResetCode.used_at.is_(None),
+    ).update({models.PasswordResetCode.used_at: datetime.utcnow()})
+
+    code = generate_reset_code()
+    reset_record = models.PasswordResetCode(
+        user_id=user.id,
+        email=normalized_email,
+        code_hash=hash_reset_code(code),
+        expires_at=datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_CODE_MINUTES),
+    )
+    db.add(reset_record)
+    db.commit()
+
+    sent_to_email = send_password_reset_code(normalized_email, code)
+    preview_code = None if sent_to_email else code
 
     return templates.TemplateResponse(
         request,
         "forgot_password_verify.html",
         {
             "page_title": "Verify Reset Code",
-            "error_message": None,
-            "info_message": "If an account exists for that email, we sent a one-time code.",
+            "error_message": None if sent_to_email else "Email delivery is not configured yet. Use the dev code below.",
+            "info_message": "We sent a one-time code to your email." if sent_to_email else "Use the temporary code below to continue.",
             "form_data": {"email": normalized_email, "code": ""},
             "dev_code": preview_code,
             "email_sent": sent_to_email,
@@ -1293,9 +1305,10 @@ def billing_success_page(
                         receipt_url = getattr(latest_invoice, "invoice_pdf", None)
 
             metadata = stripe_attr(session_data, "metadata", {}) or {}
-            selected_plan = "Growth" if metadata.get("plan") == "growth" else "Pilot"
+            plan_key = stripe_attr(metadata, "plan")
+            selected_plan = "Growth" if plan_key == "growth" else "Pilot"
 
-            workspace_id = metadata.get("workspace_id")
+            workspace_id = stripe_attr(metadata, "workspace_id")
             if workspace_id:
                 workspace = (
                     db.query(models.Workspace)
@@ -1407,8 +1420,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         customer_id = stripe_attr(obj, "customer")
         subscription_id = stripe_attr(obj, "subscription")
         metadata = stripe_attr(obj, "metadata", {}) or {}
-
-        workspace_id = metadata.get("workspace_id")
+        workspace_id = stripe_attr(metadata, "workspace_id")
         if workspace_id:
             workspace = (
                 db.query(models.Workspace)
