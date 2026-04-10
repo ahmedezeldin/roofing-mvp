@@ -325,7 +325,7 @@
         </div>
         <div class="activity-row block">
           <span>First Message</span>
-          <strong>{{ settings.first_message_template.format(business_name=settings.business_name) }}</strong>
+          <strong>{{ (settings.first_message or "Hey, thanks for calling {business_name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?").format(business_name=settings.business_name) }}</strong>
         </div>
       </div>
     </section>

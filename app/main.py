@@ -57,8 +57,8 @@ pwd_context = CryptContext(
 )
 
 AUTH_COOKIE_NAME = "rfd_session"
-AUTH_COOKIE_SECURE = True
 AUTH_COOKIE_SAMESITE = "lax"
+AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "").strip().lower() in {"1", "true", "yes"}
 
 SHORT_SESSION_DAYS = 1
 REMEMBER_ME_DAYS = 30
@@ -147,6 +147,25 @@ def get_current_user_from_cookie(request: Request, db: Session) -> Optional[mode
         return None
 
     return session.user
+
+
+def get_current_session_from_cookie(request: Request, db: Session) -> Optional[models.UserSession]:
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token:
+        return None
+
+    session = (
+        db.query(models.UserSession)
+        .filter(models.UserSession.token == token)
+        .first()
+    )
+    if not session:
+        return None
+    if session.expires_at < datetime.utcnow():
+        db.delete(session)
+        db.commit()
+        return None
+    return session
 
 def refresh_user_session(
     request: Request,
@@ -645,25 +664,40 @@ def login_page(request: Request):
     return templates.TemplateResponse(
         request,
         "login.html",
-        {"page_title": "Login"},
+        {
+            "page_title": "Login",
+            "error_message": None,
+            "form_data": {"email": ""},
+        },
     )
 
 
 @app.post("/login")
 def login_submit(
+    request: Request,
     email: str = Form(...),
     password: str = Form(...),
     remember_me: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
+    normalized_email = email.strip().lower()
     user = (
         db.query(models.AppUser)
-        .filter(models.AppUser.email == email.strip().lower())
+        .filter(models.AppUser.email == normalized_email)
         .first()
     )
 
     if not user or not verify_password(password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {
+                "page_title": "Login",
+                "error_message": "Invalid email or password.",
+                "form_data": {"email": normalized_email},
+            },
+            status_code=401,
+        )
 
     remember = remember_me == "1"
     token, expires_at = create_user_session(db, user.id, remember)
