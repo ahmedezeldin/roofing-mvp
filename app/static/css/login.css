@@ -50,6 +50,17 @@
   margin-top: 28px;
 }
 
+.form-error {
+  margin-bottom: 14px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .form-group {
   margin-bottom: 16px;
 }
