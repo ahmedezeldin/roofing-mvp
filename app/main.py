@@ -267,12 +267,34 @@ def get_current_workspace(request: Request, db: Session) -> Optional[models.Work
     )
 
 
-def get_workspace_settings(db: Session, workspace_id: int) -> Optional[models.BusinessSettings]:
-    return (
+def get_workspace_settings(db: Session, workspace_id: int) -> models.BusinessSettings:
+    settings = (
         db.query(models.BusinessSettings)
         .filter(models.BusinessSettings.workspace_id == workspace_id)
         .first()
     )
+
+    if settings:
+        return settings
+
+    workspace = (
+        db.query(models.Workspace)
+        .filter(models.Workspace.id == workspace_id)
+        .first()
+    )
+
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    settings = models.BusinessSettings(
+        workspace_id=workspace.id,
+        business_name=workspace.company_name or "Roofing Front Desk",
+        first_message="Hey, thanks for calling. We missed you — are you looking for a repair, replacement, or inspection?",
+    )
+    db.add(settings)
+    db.commit()
+    db.refresh(settings)
+    return settings
 
 
 # --------------------------------------------------
@@ -1361,7 +1383,6 @@ def app_dashboard(request: Request, db: Session = Depends(get_db)):
     settings = get_workspace_settings(db, workspace.id)
     stats = get_dashboard_stats_for_workspace(db, workspace.id)
 
-    # Reusing demo template for now
     return templates.TemplateResponse(
         request,
         "demo/dashboard.html",
