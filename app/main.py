@@ -1,8 +1,11 @@
 import os
 import secrets
+import hashlib
+import smtplib
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
+from email.message import EmailMessage
 
 import stripe
 from passlib.context import CryptContext
@@ -57,11 +60,13 @@ pwd_context = CryptContext(
 )
 
 AUTH_COOKIE_NAME = "rfd_session"
-AUTH_COOKIE_SECURE = True
 AUTH_COOKIE_SAMESITE = "lax"
+AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "").strip().lower() in {"1", "true", "yes"}
 
 SHORT_SESSION_DAYS = 1
 REMEMBER_ME_DAYS = 30
+PASSWORD_RESET_CODE_MINUTES = 10
+PASSWORD_RESET_VERIFY_MINUTES = 15
 
 # --------------------------------------------------
 # TEMPLATE HELPERS
@@ -148,6 +153,25 @@ def get_current_user_from_cookie(request: Request, db: Session) -> Optional[mode
 
     return session.user
 
+
+def get_current_session_from_cookie(request: Request, db: Session) -> Optional[models.UserSession]:
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token:
+        return None
+
+    session = (
+        db.query(models.UserSession)
+        .filter(models.UserSession.token == token)
+        .first()
+    )
+    if not session:
+        return None
+    if session.expires_at < datetime.utcnow():
+        db.delete(session)
+        db.commit()
+        return None
+    return session
+
 def refresh_user_session(
     request: Request,
     response: Response,
@@ -166,6 +190,45 @@ def refresh_user_session(
 
     set_auth_cookie(response, session.token, new_expiry)
     return session.user
+
+
+def generate_reset_code() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def hash_reset_code(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def send_password_reset_code(email: str, code: str) -> bool:
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
+    smtp_from = os.getenv("SMTP_FROM", "").strip() or smtp_user
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() in {"1", "true", "yes"}
+
+    if not smtp_host or not smtp_from:
+        print(f"[PASSWORD RESET] No SMTP configured. Email={email}, code={code}")
+        return False
+
+    message = EmailMessage()
+    message["Subject"] = "Your Roofing Front Desk password reset code"
+    message["From"] = smtp_from
+    message["To"] = email
+    message.set_content(
+        "Use this one-time code to reset your password:\n\n"
+        f"{code}\n\n"
+        f"This code expires in {PASSWORD_RESET_CODE_MINUTES} minutes."
+    )
+
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+        if smtp_tls:
+            smtp.starttls()
+        if smtp_user:
+            smtp.login(smtp_user, smtp_password)
+        smtp.send_message(message)
+    return True
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -645,25 +708,234 @@ def login_page(request: Request):
     return templates.TemplateResponse(
         request,
         "login.html",
-        {"page_title": "Login"},
+        {
+            "page_title": "Login",
+            "error_message": None,
+            "form_data": {"email": ""},
+        },
+    )
+
+
+@app.get("/forgot-password", response_class=HTMLResponse)
+def forgot_password_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "forgot_password.html",
+        {
+            "page_title": "Forgot Password",
+            "error_message": None,
+            "info_message": None,
+            "form_data": {"email": ""},
+        },
+    )
+
+
+@app.post("/forgot-password", response_class=HTMLResponse)
+def forgot_password_submit(
+    request: Request,
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    normalized_email = email.strip().lower()
+    user = (
+        db.query(models.AppUser)
+        .filter(models.AppUser.email == normalized_email)
+        .first()
+    )
+
+    if not user:
+        return templates.TemplateResponse(
+            request,
+            "forgot_password.html",
+            {
+                "page_title": "Forgot Password",
+                "error_message": "No account found for that email. Please sign up first.",
+                "info_message": None,
+                "form_data": {"email": normalized_email},
+            },
+            status_code=404,
+        )
+
+    db.query(models.PasswordResetCode).filter(
+        models.PasswordResetCode.user_id == user.id,
+        models.PasswordResetCode.used_at.is_(None),
+    ).update({models.PasswordResetCode.used_at: datetime.utcnow()})
+
+    code = generate_reset_code()
+    reset_record = models.PasswordResetCode(
+        user_id=user.id,
+        email=normalized_email,
+        code_hash=hash_reset_code(code),
+        expires_at=datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_CODE_MINUTES),
+    )
+    db.add(reset_record)
+    db.commit()
+
+    sent_to_email = send_password_reset_code(normalized_email, code)
+    preview_code = None if sent_to_email else code
+
+    return templates.TemplateResponse(
+        request,
+        "forgot_password_verify.html",
+        {
+            "page_title": "Verify Reset Code",
+            "error_message": None if sent_to_email else "Email delivery is not configured yet. Use the dev code below.",
+            "info_message": "We sent a one-time code to your email." if sent_to_email else "Use the temporary code below to continue.",
+            "form_data": {"email": normalized_email, "code": ""},
+            "dev_code": preview_code,
+            "email_sent": sent_to_email,
+        },
+    )
+
+
+@app.post("/forgot-password/verify", response_class=HTMLResponse)
+def forgot_password_verify_submit(
+    request: Request,
+    email: str = Form(...),
+    code: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    normalized_email = email.strip().lower()
+    normalized_code = code.strip()
+    record = (
+        db.query(models.PasswordResetCode)
+        .filter(models.PasswordResetCode.email == normalized_email)
+        .filter(models.PasswordResetCode.used_at.is_(None))
+        .order_by(models.PasswordResetCode.created_at.desc())
+        .first()
+    )
+
+    if (
+        not record
+        or record.expires_at < datetime.utcnow()
+        or record.code_hash != hash_reset_code(normalized_code)
+    ):
+        return templates.TemplateResponse(
+            request,
+            "forgot_password_verify.html",
+            {
+                "page_title": "Verify Reset Code",
+                "error_message": "Invalid or expired code. Please request a new one.",
+                "info_message": None,
+                "form_data": {"email": normalized_email, "code": normalized_code},
+                "dev_code": None,
+                "email_sent": True,
+            },
+            status_code=400,
+        )
+
+    verify_token = secrets.token_urlsafe(32)
+    record.verification_token = verify_token
+    record.verification_expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_VERIFY_MINUTES)
+    db.commit()
+
+    return RedirectResponse(url=f"/reset-password?token={verify_token}", status_code=303)
+
+
+@app.get("/reset-password", response_class=HTMLResponse)
+def reset_password_page(request: Request, token: str = Query(...), db: Session = Depends(get_db)):
+    record = (
+        db.query(models.PasswordResetCode)
+        .filter(models.PasswordResetCode.verification_token == token)
+        .filter(models.PasswordResetCode.used_at.is_(None))
+        .first()
+    )
+    if not record or not record.verification_expires_at or record.verification_expires_at < datetime.utcnow():
+        return RedirectResponse(url="/forgot-password", status_code=303)
+
+    return templates.TemplateResponse(
+        request,
+        "reset_password.html",
+        {
+            "page_title": "Reset Password",
+            "error_message": None,
+            "token": token,
+        },
+    )
+
+
+@app.post("/reset-password", response_class=HTMLResponse)
+def reset_password_submit(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    record = (
+        db.query(models.PasswordResetCode)
+        .filter(models.PasswordResetCode.verification_token == token)
+        .filter(models.PasswordResetCode.used_at.is_(None))
+        .first()
+    )
+    if not record or not record.verification_expires_at or record.verification_expires_at < datetime.utcnow():
+        return RedirectResponse(url="/forgot-password", status_code=303)
+
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            request,
+            "reset_password.html",
+            {"page_title": "Reset Password", "error_message": "Passwords do not match.", "token": token},
+            status_code=400,
+        )
+
+    password_error = validate_password_rules(password)
+    if password_error:
+        return templates.TemplateResponse(
+            request,
+            "reset_password.html",
+            {"page_title": "Reset Password", "error_message": password_error, "token": token},
+            status_code=400,
+        )
+
+    user = db.query(models.AppUser).filter(models.AppUser.id == record.user_id).first()
+    if not user:
+        return RedirectResponse(url="/forgot-password", status_code=303)
+
+    user.password_hash = hash_password(password)
+    record.used_at = datetime.utcnow()
+    record.verification_token = None
+    record.verification_expires_at = None
+    db.commit()
+
+    return RedirectResponse(url="/reset-password/success", status_code=303)
+
+
+@app.get("/reset-password/success", response_class=HTMLResponse)
+def reset_password_success_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "reset_password_success.html",
+        {"page_title": "Password Updated"},
     )
 
 
 @app.post("/login")
 def login_submit(
+    request: Request,
     email: str = Form(...),
     password: str = Form(...),
     remember_me: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
+    normalized_email = email.strip().lower()
     user = (
         db.query(models.AppUser)
-        .filter(models.AppUser.email == email.strip().lower())
+        .filter(models.AppUser.email == normalized_email)
         .first()
     )
 
     if not user or not verify_password(password, user.password_hash):
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {
+                "page_title": "Login",
+                "error_message": "Invalid email or password.",
+                "form_data": {"email": normalized_email},
+            },
+            status_code=401,
+        )
 
     remember = remember_me == "1"
     token, expires_at = create_user_session(db, user.id, remember)
