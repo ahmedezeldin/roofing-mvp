@@ -148,6 +148,25 @@ def get_current_user_from_cookie(request: Request, db: Session) -> Optional[mode
 
     return session.user
 
+
+def get_current_session_from_cookie(request: Request, db: Session) -> Optional[models.UserSession]:
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    if not token:
+        return None
+
+    session = (
+        db.query(models.UserSession)
+        .filter(models.UserSession.token == token)
+        .first()
+    )
+    if not session:
+        return None
+    if session.expires_at < datetime.utcnow():
+        db.delete(session)
+        db.commit()
+        return None
+    return session
+
 def refresh_user_session(
     request: Request,
     response: Response,

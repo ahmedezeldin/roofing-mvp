@@ -50,6 +50,6 @@ class LeadOut(BaseModel):
 class BusinessSettingsOut(BaseModel):
     id: int
     business_name: str
-    first_message_template: str
+    first_message: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
