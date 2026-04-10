@@ -222,17 +222,13 @@ def send_password_reset_code(email: str, code: str) -> bool:
         f"This code expires in {PASSWORD_RESET_CODE_MINUTES} minutes."
     )
 
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-            if smtp_tls:
-                smtp.starttls()
-            if smtp_user:
-                smtp.login(smtp_user, smtp_password)
-            smtp.send_message(message)
-        return True
-    except Exception as exc:
-        print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
-        return False
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
+        if smtp_tls:
+            smtp.starttls()
+        if smtp_user:
+            smtp.login(smtp_user, smtp_password)
+        smtp.send_message(message)
+    return True
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -747,44 +743,36 @@ def forgot_password_submit(
         .first()
     )
 
-    if not user:
-        return templates.TemplateResponse(
-            request,
-            "forgot_password.html",
-            {
-                "page_title": "Forgot Password",
-                "error_message": "No account found for that email. Please sign up first.",
-                "info_message": None,
-                "form_data": {"email": normalized_email},
-            },
-            status_code=404,
+    sent_to_email = False
+    preview_code = None
+
+    if user:
+        db.query(models.PasswordResetCode).filter(
+            models.PasswordResetCode.user_id == user.id,
+            models.PasswordResetCode.used_at.is_(None),
+        ).update({models.PasswordResetCode.used_at: datetime.utcnow()})
+
+        code = generate_reset_code()
+        reset_record = models.PasswordResetCode(
+            user_id=user.id,
+            email=normalized_email,
+            code_hash=hash_reset_code(code),
+            expires_at=datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_CODE_MINUTES),
         )
+        db.add(reset_record)
+        db.commit()
 
-    db.query(models.PasswordResetCode).filter(
-        models.PasswordResetCode.user_id == user.id,
-        models.PasswordResetCode.used_at.is_(None),
-    ).update({models.PasswordResetCode.used_at: datetime.utcnow()})
-
-    code = generate_reset_code()
-    reset_record = models.PasswordResetCode(
-        user_id=user.id,
-        email=normalized_email,
-        code_hash=hash_reset_code(code),
-        expires_at=datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_CODE_MINUTES),
-    )
-    db.add(reset_record)
-    db.commit()
-
-    sent_to_email = send_password_reset_code(normalized_email, code)
-    preview_code = None if sent_to_email else code
+        sent_to_email = send_password_reset_code(normalized_email, code)
+        if not sent_to_email:
+            preview_code = code
 
     return templates.TemplateResponse(
         request,
         "forgot_password_verify.html",
         {
             "page_title": "Verify Reset Code",
-            "error_message": None if sent_to_email else "Email delivery is not configured yet. Use the dev code below.",
-            "info_message": "We sent a one-time code to your email." if sent_to_email else "Use the temporary code below to continue.",
+            "error_message": None,
+            "info_message": "If an account exists for that email, we sent a one-time code.",
             "form_data": {"email": normalized_email, "code": ""},
             "dev_code": preview_code,
             "email_sent": sent_to_email,
