@@ -980,6 +980,9 @@ def billing_success_page(
     business_name = None
     phone_number = None
 
+    current_user = get_current_user_from_cookie(request, db)
+    user_to_auth = current_user
+
     if session_id and stripe.api_key:
         try:
             session_data = stripe.checkout.Session.retrieve(
@@ -1017,10 +1020,17 @@ def billing_success_page(
                     business_name = workspace.company_name
                     phone_number = workspace.business_phone or workspace.pending_twilio_number
 
+            if not user_to_auth and customer_email:
+                user_to_auth = (
+                    db.query(models.AppUser)
+                    .filter(models.AppUser.email == customer_email.strip().lower())
+                    .first()
+                )
+
         except Exception:
             pass
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         "billing_success.html",
         {
@@ -1034,6 +1044,12 @@ def billing_success_page(
             "phone_number": phone_number,
         },
     )
+
+    if user_to_auth and not current_user:
+        token, expires_at = create_user_session(db, user_to_auth.id, remember_me=True)
+        set_auth_cookie(response, token, expires_at)
+
+    return response
     
 # --------------------------------------------------
 # STRIPE CHECKOUT
