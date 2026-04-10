@@ -68,20 +68,46 @@ def looks_like_name(text: str) -> bool:
     return bool(re.match(r"^[A-Za-z][A-Za-z\s'\-]+$", cleaned))
 
 
-def get_or_create_business_settings(db: Session) -> models.BusinessSetting:
-    settings = db.query(models.BusinessSetting).first()
+def get_or_create_business_settings(db: Session) -> models.BusinessSettings:
+    settings = db.query(models.BusinessSettings).first()
     if not settings:
-        settings = models.BusinessSetting()
+        default_workspace = db.query(models.Workspace).order_by(models.Workspace.id.asc()).first()
+        if not default_workspace:
+            default_user = db.query(models.AppUser).order_by(models.AppUser.id.asc()).first()
+            if not default_user:
+                default_user = models.AppUser(
+                    full_name="Demo User",
+                    email="demo@example.com",
+                    company_name="Roofing Front Desk",
+                    password_hash="demo",
+                )
+                db.add(default_user)
+                db.flush()
+
+            default_workspace = models.Workspace(
+                company_name="Roofing Front Desk",
+                plan="pilot",
+                owner_user_id=default_user.id,
+                status="pending",
+            )
+            db.add(default_workspace)
+            db.flush()
+
+        settings = models.BusinessSettings(
+            workspace_id=default_workspace.id,
+            business_name=default_workspace.company_name or "Roofing Front Desk",
+            first_message="Hey, thanks for calling {business_name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?",
+        )
         db.add(settings)
         db.commit()
         db.refresh(settings)
     return settings
 
 
-def update_business_name(db: Session, business_name: str) -> models.BusinessSetting:
+def update_business_name(db: Session, business_name: str) -> models.BusinessSettings:
     settings = get_or_create_business_settings(db)
     settings.business_name = business_name.strip()
-    settings.first_message_template = (
+    settings.first_message = (
         "Hey, thanks for calling {business_name}. Sorry we missed you — "
         "are you looking for a repair, replacement, or inspection?"
     )
@@ -92,7 +118,11 @@ def update_business_name(db: Session, business_name: str) -> models.BusinessSett
 
 def initial_missed_call_message(db: Session) -> str:
     settings = get_or_create_business_settings(db)
-    return settings.first_message_template.format(business_name=settings.business_name)
+    template = settings.first_message or (
+        "Hey, thanks for calling {business_name}. Sorry we missed you — "
+        "are you looking for a repair, replacement, or inspection?"
+    )
+    return template.format(business_name=settings.business_name)
 
 
 def compute_priority(urgency: Optional[str]) -> Optional[str]:
@@ -116,7 +146,11 @@ def recommended_response_time(priority: Optional[str]) -> str:
 
 
 def create_message(db: Session, lead_id: int, direction: str, body: str) -> models.Message:
+    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    if not lead:
+        raise ValueError(f"Lead {lead_id} not found")
     msg = models.Message(
+        workspace_id=lead.workspace_id,
         lead_id=lead_id,
         direction=direction,
         body=body,
@@ -210,7 +244,9 @@ def create_outbound_message(db: Session, lead_id: int, body: str, phone_number: 
 
 
 def create_missed_call_lead(db: Session, phone_number: str, source: str = "missed_call") -> models.Lead:
+    settings = get_or_create_business_settings(db)
     lead = models.Lead(
+        workspace_id=settings.workspace_id,
         phone_number=phone_number,
         source=source,
         conversation_state="awaiting_job_type",
