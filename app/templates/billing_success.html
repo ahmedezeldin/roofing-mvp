@@ -1,0 +1,89 @@
+{% extends "website.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/billing-success.css">
+{% endblock %}
+
+{% block content %}
+<div class="success-page-shell">
+  <section class="success-card">
+    <div class="success-badge">✓ Payment confirmed</div>
+
+    <h1 class="success-title">Your workspace is ready</h1>
+    <p class="success-subtitle">
+      Your subscription has been activated and your Roofing Front Desk workspace is now available.
+    </p>
+
+    <div class="success-summary-card">
+      <div class="success-summary-title">Workspace details</div>
+
+      <div class="success-summary-grid">
+        <div class="success-summary-row">
+          <span>Plan</span>
+          <strong>{{ selected_plan|default("Pilot") }}</strong>
+        </div>
+
+        <div class="success-summary-row">
+          <span>Status</span>
+          <strong>Active</strong>
+        </div>
+
+        {% if customer_email %}
+        <div class="success-summary-row">
+          <span>Billing email</span>
+          <strong>{{ customer_email }}</strong>
+        </div>
+        {% endif %}
+
+        {% if business_name %}
+        <div class="success-summary-row">
+          <span>Business</span>
+          <strong>{{ business_name }}</strong>
+        </div>
+        {% endif %}
+
+        {% if phone_number %}
+        <div class="success-summary-row">
+          <span>Phone number</span>
+          <strong>{{ phone_number }}</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="success-actions">
+      <a href="/app/dashboard" class="btn btn-primary">Go to dashboard</a>
+
+      {% if receipt_url %}
+      <a href="{{ receipt_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+        Download receipt
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="success-note">
+      {% if receipt_url %}
+      A receipt has also been sent to your billing email.
+      {% else %}
+      Your payment has been recorded successfully.
+      {% endif %}
+    </div>
+
+    <div class="success-meta">
+      {% if subscription_id %}
+      <div class="success-meta-row">
+        <span>Subscription ID:</span>
+        <code>{{ subscription_id }}</code>
+      </div>
+      {% endif %}
+
+      {% if session_id %}
+      <div class="success-meta-row">
+        <span>Session ID:</span>
+        <code>{{ session_id }}</code>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
