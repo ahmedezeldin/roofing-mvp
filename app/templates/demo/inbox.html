@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "demo/app_base.html" %}
 
 {% block content %}
 <div class="page-header">
@@ -49,7 +49,7 @@
         <span class="badge blue">{{ leads|length }} shown</span>
       </div>
 
-      <form method="get" action="/inbox" class="inbox-filter-form">
+      <form method="get" action="/demo/inbox" class="inbox-filter-form">
         <div class="inbox-search-row mb-12">
           <input
             type="text"
@@ -98,7 +98,7 @@
 
         <div style="display:flex; gap:10px; margin-bottom: 14px;">
           <button type="submit" class="btn btn-primary">Apply Filters</button>
-          <a href="/inbox" class="btn btn-secondary">Reset</a>
+          <a href="/demo/inbox" class="btn btn-secondary">Reset</a>
         </div>
       </form>
 
@@ -121,7 +121,7 @@
       {% if leads %}
         {% for lead in leads %}
         <a
-          href="/inbox?lead_id={{ lead.id }}&crm_status_filter={{ crm_status_filter }}&priority_filter={{ priority_filter }}&insurance_filter={{ insurance_filter }}&search={{ search }}"
+          href="/demo/inbox?lead_id={{ lead.id }}&crm_status_filter={{ crm_status_filter }}&priority_filter={{ priority_filter }}&insurance_filter={{ insurance_filter }}&search={{ search }}"
           class="inbox-item inbox-item-pro {% if selected and selected.id == lead.id %}active{% endif %}"
         >
           <div class="list-item-top">
@@ -388,7 +388,7 @@
               </div>
             </div>
 
-            <a href="/lead/{{ selected.id }}" class="btn btn-secondary" style="width:100%; margin-top:12px;">Open Full Lead Page</a>
+            <a href="/demo/lead/{{ selected.id }}" class="btn btn-secondary" style="width:100%; margin-top:12px;">Open Full Lead Page</a>
           </div>
         </div>
       </div>
