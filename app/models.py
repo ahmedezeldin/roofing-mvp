@@ -143,3 +143,17 @@ class OnboardingProgress(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class PasswordResetCode(Base):
+    __tablename__ = "password_reset_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("app_users.id"), nullable=False, index=True)
+    email = Column(String, nullable=False, index=True)
+    code_hash = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    used_at = Column(DateTime, nullable=True)
+    verification_token = Column(String, nullable=True, unique=True, index=True)
+    verification_expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

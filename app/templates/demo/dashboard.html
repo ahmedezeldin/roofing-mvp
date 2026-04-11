@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "demo/app_base.html" %}
 
 {% block content %}
 <div class="page-header">
@@ -127,13 +127,13 @@
           <div class="settings-card-title">Urgent Leads Queue</div>
           <div class="settings-card-subtitle">The highest-priority leads that should be reviewed first.</div>
         </div>
-        <a class="btn btn-secondary" href="/inbox">Open Inbox</a>
+        <a class="btn btn-secondary" href="/demo/inbox">Open Inbox</a>
       </div>
 
       {% if recent_hot_leads %}
       <div class="queue-list">
         {% for lead in recent_hot_leads %}
-        <a class="queue-item" href="/lead/{{ lead.id }}">
+        <a class="queue-item" href="/demo/lead/{{ lead.id }}">
           <div class="queue-item-main">
             <div class="queue-item-name">{{ lead.customer_name or lead.phone_number }}</div>
             <div class="queue-item-sub">
@@ -179,7 +179,7 @@
             <div class="settings-card-title">Pipeline Snapshot</div>
             <div class="settings-card-subtitle">Where active leads are currently sitting.</div>
           </div>
-          <a class="btn btn-secondary" href="/pipeline">View Pipeline</a>
+          <a class="btn btn-secondary" href="/demo/pipeline">View Pipeline</a>
         </div>
 
         <div class="mini-pipeline-grid">
@@ -325,7 +325,7 @@
         </div>
         <div class="activity-row block">
           <span>First Message</span>
-          <strong>{{ settings.first_message_template.format(business_name=settings.business_name) }}</strong>
+          <strong>{{ (settings.first_message or "Hey, thanks for calling {business_name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?").format(business_name=settings.business_name) }}</strong>
         </div>
       </div>
     </section>
@@ -339,17 +339,17 @@
       </div>
 
       <div class="action-stack">
-        <a href="/inbox" class="action-card">
+        <a href="/demo/inbox" class="action-card">
           <div class="action-card-title">Review active conversations</div>
           <div class="action-card-sub">Open the workspace and respond to leads quickly.</div>
         </a>
 
-        <a href="/pipeline" class="action-card">
+        <a href="/demo/pipeline" class="action-card">
           <div class="action-card-title">Move qualified leads forward</div>
           <div class="action-card-sub">Update pipeline stages and schedule estimates.</div>
         </a>
 
-        <a href="/settings" class="action-card">
+        <a href="/demo/settings" class="action-card">
           <div class="action-card-title">Check front-desk settings</div>
           <div class="action-card-sub">Review business name and outbound messaging setup.</div>
         </a>
