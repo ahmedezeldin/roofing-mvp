@@ -40,6 +40,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  margin-left: auto;
 }
 
 .landing-taskbar-link {
@@ -78,6 +79,53 @@
   gap: 28px;
   align-items: stretch;
   padding: 18px 0 26px;
+}
+
+.landing-quick-points {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.landing-quick-points li {
+  font-size: 15px;
+  line-height: 1.45;
+  color: #1f2e56;
+  background: rgba(238, 245, 255, 0.85);
+  border: 1px solid #d7e3f8;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.landing-sales-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.landing-sales-card {
+  background: linear-gradient(180deg, #122662 0%, #0d1d4f 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 18px;
+  box-shadow: 0 12px 28px rgba(10, 22, 58, 0.2);
+}
+
+.landing-sales-label {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.landing-sales-value {
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1.45;
+  font-weight: 700;
 }
 
 .landing-pro-copy,
