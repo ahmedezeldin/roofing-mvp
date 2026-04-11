@@ -22,16 +22,17 @@
   padding: 14px 18px;
   border-radius: 16px;
   margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(215, 225, 240, 0.95);
-  box-shadow: var(--shadow);
+  background: #0f1f54;
+  border: 1px solid rgba(10, 21, 56, 0.65);
+  box-shadow: 0 12px 28px rgba(10, 21, 56, 0.2);
 }
 
 .landing-taskbar-brand {
-  color: var(--navy);
+  color: #ffffff;
   text-decoration: none;
   font-weight: 900;
   letter-spacing: -0.01em;
+  font-size: 20px;
 }
 
 .landing-taskbar-nav {
@@ -41,19 +42,34 @@
   gap: 8px;
 }
 
-.landing-taskbar-nav a {
+.landing-taskbar-link {
   text-decoration: none;
-  color: var(--navy);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   font-weight: 700;
   padding: 8px 12px;
   border-radius: 999px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.landing-taskbar-nav a:hover {
-  background: rgba(37, 99, 235, 0.08);
-  border-color: rgba(37, 99, 235, 0.2);
+.landing-taskbar-link:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.36);
+  color: #ffffff;
+}
+
+.landing-taskbar-link-primary {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0f1f54;
+}
+
+.landing-taskbar-link-primary:hover {
+  background: #eaf0ff;
+  border-color: #eaf0ff;
+  color: #0b1946;
 }
 
 .landing-pro-hero {
@@ -454,6 +470,10 @@
     padding: 12px;
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .landing-taskbar-nav {
+    width: 100%;
   }
 
   .landing-pro-copy,
