@@ -22,9 +22,9 @@
   padding: 14px 18px;
   border-radius: 16px;
   margin-bottom: 20px;
-  background: #0f1f54;
-  border: 1px solid rgba(10, 21, 56, 0.65);
-  box-shadow: 0 12px 28px rgba(10, 21, 56, 0.2);
+  background: var(--blue);
+  border: 1px solid rgba(37, 99, 235, 0.55);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.25);
 }
 
 .landing-taskbar-brand {
@@ -105,15 +105,15 @@
 }
 
 .landing-sales-card {
-  background: linear-gradient(180deg, #122662 0%, #0d1d4f 100%);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
   padding: 18px;
-  box-shadow: 0 12px 28px rgba(10, 22, 58, 0.2);
+  box-shadow: var(--shadow);
 }
 
 .landing-sales-label {
-  color: rgba(255, 255, 255, 0.72);
+  color: #64748b;
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -122,7 +122,7 @@
 }
 
 .landing-sales-value {
-  color: #ffffff;
+  color: #0f172a;
   font-size: 18px;
   line-height: 1.45;
   font-weight: 700;
