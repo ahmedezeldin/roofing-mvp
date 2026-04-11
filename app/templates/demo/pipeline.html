@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "demo/app_base.html" %}
 
 {% block content %}
 <div class="page-shell">
@@ -9,8 +9,8 @@
       <p class="page-subtitle">Track every roofing lead from first contact to closed job.</p>
     </div>
     <div class="page-actions">
-      <a href="/inbox" class="btn btn-secondary">Open Inbox</a>
-      <a href="/settings" class="btn btn-primary">Settings</a>
+      <a href="/demo/inbox" class="btn btn-secondary">Open Inbox</a>
+      <a href="/demo/settings" class="btn btn-primary">Settings</a>
     </div>
   </div>
 
@@ -114,7 +114,7 @@
                 {% set next_action = "Archive / review" %}
               {% endif %}
 
-              <a href="/lead/{{ lead.id }}" class="pipeline-lead-card">
+              <a href="/demo/lead/{{ lead.id }}" class="pipeline-lead-card">
                 <div class="lead-card-top">
                   <div>
                     <div class="lead-name">
