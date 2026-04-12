@@ -128,9 +128,9 @@
             <div style="min-width:0;">
               <div class="list-item-title">{{ lead.customer_name or lead.phone_number }}</div>
               <div class="inbox-lead-line">
-                {{ lead.job_type or "unknown job" }}
+                {{ (lead.job_type or "unknown job")|replace('_', ' ')|title }}
                 {% if lead.postal_code %} • {{ lead.postal_code }}{% endif %}
-                {% if lead.urgency %} • {{ lead.urgency }}{% endif %}
+                {% if lead.urgency %} • {{ lead.urgency|replace('_', ' ')|title }}{% endif %}
               </div>
             </div>
 
@@ -211,9 +211,18 @@
 
         <div class="quick-actions-row" style="display:flex; gap:10px; flex-wrap:wrap;">
           <a href="tel:{{ selected.phone_number }}" class="btn btn-primary">Call</a>
-          <button type="button" class="btn btn-secondary">Text</button>
-          <button type="button" class="btn btn-secondary">Qualify</button>
-          <button type="button" class="btn btn-secondary">Book Estimate</button>
+          <form method="post" action="/ui/leads/update-stage">
+            <input type="hidden" name="lead_id" value="{{ selected.id }}" />
+            <input type="hidden" name="crm_status" value="qualified" />
+            <input type="hidden" name="return_to" value="inbox" />
+            <button type="submit" class="btn btn-secondary">Qualify</button>
+          </form>
+          <form method="post" action="/ui/leads/update-stage">
+            <input type="hidden" name="lead_id" value="{{ selected.id }}" />
+            <input type="hidden" name="crm_status" value="booked" />
+            <input type="hidden" name="return_to" value="inbox" />
+            <button type="submit" class="btn btn-secondary">Book Estimate</button>
+          </form>
         </div>
       </div>
 
@@ -233,12 +242,12 @@
 
         <div class="workspace-metric-card">
           <div class="workspace-metric-label">Lead Source</div>
-          <div class="workspace-metric-value">{{ selected.source or "unknown" }}</div>
+          <div class="workspace-metric-value">{{ (selected.source or "unknown")|replace('_', ' ')|title }}</div>
         </div>
 
         <div class="workspace-metric-card">
           <div class="workspace-metric-label">Conversation State</div>
-          <div class="workspace-metric-value">{{ selected.conversation_state or "active" }}</div>
+          <div class="workspace-metric-value">{{ (selected.conversation_state or "active")|replace('_', ' ')|title }}</div>
         </div>
       </div>
     </div>
@@ -304,7 +313,7 @@
             <div class="summary-list">
               <div class="summary-row">
                 <span>Job Type</span>
-                <strong>{{ selected.job_type or "—" }}</strong>
+                <strong>{{ (selected.job_type or "—")|replace('_', ' ')|title }}</strong>
               </div>
               <div class="summary-row">
                 <span>Postal</span>
@@ -312,7 +321,7 @@
               </div>
               <div class="summary-row">
                 <span>Urgency</span>
-                <strong>{{ selected.urgency or "—" }}</strong>
+                <strong>{{ (selected.urgency or "—")|replace('_', ' ')|title }}</strong>
               </div>
               <div class="summary-row">
                 <span>Insurance</span>
@@ -320,28 +329,9 @@
               </div>
               <div class="summary-row">
                 <span>Source</span>
-                <strong>{{ selected.source or "—" }}</strong>
+                <strong>{{ (selected.source or "—")|replace('_', ' ')|title }}</strong>
               </div>
             </div>
-          </div>
-
-          <div class="info-card">
-            <div class="info-label">Workflow</div>
-            <form method="post" action="/ui/leads/update-status">
-              <input type="hidden" name="lead_id" value="{{ selected.id }}" />
-              <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
-
-              <label class="form-label">CRM Status</label>
-              <select name="crm_status" class="select">
-                <option value="new" {% if selected.crm_status == "new" %}selected{% endif %}>New</option>
-                <option value="contacted" {% if selected.crm_status == "contacted" %}selected{% endif %}>Contacted</option>
-                <option value="booked" {% if selected.crm_status == "booked" %}selected{% endif %}>Booked</option>
-                <option value="closed" {% if selected.crm_status == "closed" %}selected{% endif %}>Closed</option>
-                <option value="lost" {% if selected.crm_status == "lost" %}selected{% endif %}>Lost</option>
-              </select>
-
-              <button type="submit" class="btn btn-primary" style="width:100%; margin-top:12px;">Save Status</button>
-            </form>
           </div>
 
           <div class="info-card">
@@ -354,42 +344,7 @@
             </form>
           </div>
 
-          <div class="info-card">
-            <div class="info-label">Operator Guidance</div>
-            <div class="guidance-stack">
-              <div class="guidance-item">
-                <strong>Best move now</strong>
-                <span>
-                  {% if selected.priority == "high" %}
-                    Confirm scope, verify urgency, and offer the fastest available inspection slot.
-                  {% elif selected.crm_status == "contacted" %}
-                    Follow up and push toward a scheduled estimate.
-                  {% elif selected.crm_status == "booked" %}
-                    Confirm appointment timing and prep notes.
-                  {% else %}
-                    Continue qualification and move the lead forward.
-                  {% endif %}
-                </span>
-              </div>
-
-              <div class="guidance-item">
-                <strong>Missing info</strong>
-                <span>
-                  {% if not selected.postal_code %}
-                    Postal code still missing.
-                  {% elif not selected.job_type %}
-                    Job type still missing.
-                  {% elif not selected.urgency %}
-                    Urgency still missing.
-                  {% else %}
-                    Core qualification information is complete.
-                  {% endif %}
-                </span>
-              </div>
-            </div>
-
-            <a href="/demo/lead/{{ selected.id }}" class="btn btn-secondary" style="width:100%; margin-top:12px;">Open Full Lead Page</a>
-          </div>
+          <a href="/demo/lead/{{ selected.id }}" class="btn btn-secondary" style="width:100%;">Open Full Lead Page</a>
         </div>
       </div>
     </div>
