@@ -1939,6 +1939,7 @@ def ui_update_lead_notes(
 def ui_update_lead_stage(
     lead_id: int = Form(...),
     crm_status: str = Form(...),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
@@ -1962,6 +1963,9 @@ def ui_update_lead_stage(
             lead.status = "qualified"
 
     db.commit()
+
+    if return_to == "inbox":
+        return RedirectResponse(url=f"/demo/inbox?lead_id={lead_id}", status_code=303)
 
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 

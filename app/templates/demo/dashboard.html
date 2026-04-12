@@ -132,9 +132,9 @@
           <div class="queue-item-main">
             <div class="queue-item-name">{{ lead.customer_name or lead.phone_number }}</div>
             <div class="queue-item-sub">
-              {{ lead.job_type or "unknown job" }}
+              {{ (lead.job_type or "unknown job")|replace('_', ' ')|title }}
               {% if lead.postal_code %} · {{ lead.postal_code }}{% endif %}
-              {% if lead.urgency %} · {{ lead.urgency|title }}{% endif %}
+              {% if lead.urgency %} · {{ lead.urgency|replace('_', ' ')|title }}{% endif %}
             </div>
           </div>
 
