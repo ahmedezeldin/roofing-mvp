@@ -79,8 +79,16 @@
 
 .page-actions {
   display: flex;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.pipeline-drag-note {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-right: 8px;
 }
 
 /* =========================================================
@@ -274,6 +282,11 @@
   scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
 }
 
+.pipeline-column-body.is-drop-target {
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 14px;
+}
+
 .pipeline-column-body::-webkit-scrollbar {
   width: 8px;
 }
@@ -331,6 +344,19 @@
   transform: translateY(-2px);
   border-color: rgba(37, 99, 235, 0.18);
   box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+
+.pipeline-lead-card[draggable="true"] {
+  cursor: grab;
+}
+
+.pipeline-lead-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.pipeline-lead-card.is-dragging {
+  opacity: 0.6;
+  transform: scale(0.98);
 }
 
 .lead-card-top {
