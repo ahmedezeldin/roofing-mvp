@@ -195,13 +195,24 @@
 
     const refreshColumnUI = (column) => {
       const countEl = column.closest(".pipeline-column")?.querySelector(".pipeline-count");
-      const cards = column.querySelectorAll(cardSelector);
+      const cards = column.querySelectorAll(":scope > .pipeline-lead-card");
       const empty = column.querySelector(".pipeline-empty");
 
       if (countEl) countEl.textContent = String(cards.length);
 
       if (cards.length > 0 && empty) {
         empty.remove();
+      }
+
+      if (cards.length === 0 && !empty) {
+        const emptyState = document.createElement("div");
+        emptyState.className = "pipeline-empty";
+        emptyState.innerHTML = `
+          <div class="pipeline-empty-icon">—</div>
+          <div class="pipeline-empty-title">No leads</div>
+          <div class="pipeline-empty-text">Nothing in this stage right now.</div>
+        `;
+        column.appendChild(emptyState);
       }
     };
 
@@ -238,6 +249,7 @@
         event.preventDefault();
         column.classList.remove("is-drop-target");
         if (!draggingCard) return;
+        column.querySelectorAll(".pipeline-empty").forEach((el) => el.remove());
         column.appendChild(draggingCard);
         refreshColumnUI(column);
         if (sourceColumn && sourceColumn !== column) {
