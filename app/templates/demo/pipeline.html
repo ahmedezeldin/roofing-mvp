@@ -216,6 +216,42 @@
       }
     };
 
+    const persistStage = (column, card) => {
+      const stage = column.dataset.stage;
+      const leadId = card.dataset.leadId;
+      if (!stage || !leadId) return;
+
+      const body = new URLSearchParams({
+        lead_id: leadId,
+        crm_status: stage,
+      });
+
+      fetch("/ui/leads/update-stage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body,
+      }).catch(() => {
+        // If save fails, leave the visual move in place for demo continuity.
+      });
+    };
+
+    const moveCardToColumn = (column, beforeCard = null) => {
+      if (!draggingCard) return;
+      column.querySelectorAll(".pipeline-empty").forEach((el) => el.remove());
+      if (beforeCard && beforeCard !== draggingCard) {
+        column.insertBefore(draggingCard, beforeCard);
+      } else {
+        column.appendChild(draggingCard);
+      }
+      refreshColumnUI(column);
+      if (sourceColumn && sourceColumn !== column) {
+        refreshColumnUI(sourceColumn);
+      }
+      persistStage(column, draggingCard);
+    };
+
     document.querySelectorAll(cardSelector).forEach((card) => {
       card.addEventListener("dragstart", (event) => {
         draggingCard = card;
@@ -233,6 +269,21 @@
           el.classList.remove("is-drop-target");
         });
       });
+
+      card.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        const parentColumn = card.closest(".pipeline-column-body");
+        parentColumn?.classList.add("is-drop-target");
+      });
+
+      card.addEventListener("drop", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const parentColumn = card.closest(".pipeline-column-body");
+        if (!parentColumn || !draggingCard) return;
+        parentColumn.classList.remove("is-drop-target");
+        moveCardToColumn(parentColumn, card);
+      });
     });
 
     columns.forEach((column) => {
@@ -248,32 +299,7 @@
       column.addEventListener("drop", (event) => {
         event.preventDefault();
         column.classList.remove("is-drop-target");
-        if (!draggingCard) return;
-        column.querySelectorAll(".pipeline-empty").forEach((el) => el.remove());
-        column.appendChild(draggingCard);
-        refreshColumnUI(column);
-        if (sourceColumn && sourceColumn !== column) {
-          refreshColumnUI(sourceColumn);
-        }
-
-        const stage = column.dataset.stage;
-        const leadId = draggingCard.dataset.leadId;
-        if (!stage || !leadId) return;
-
-        const body = new URLSearchParams({
-          lead_id: leadId,
-          crm_status: stage,
-        });
-
-        fetch("/ui/leads/update-stage", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          },
-          body,
-        }).catch(() => {
-          // If save fails, leave the visual move in place for demo continuity.
-        });
+        moveCardToColumn(column);
       });
     });
   })();
