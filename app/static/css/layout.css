@@ -4,7 +4,8 @@
   min-height: 100vh;
 }
 
-.sidebar {
+.sidebar,
+.app-sidebar {
   position: sticky;
   top: 0;
   height: 100vh;
@@ -14,7 +15,8 @@
   border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.brand {
+.brand,
+.sidebar-brand {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -22,7 +24,8 @@
   margin-bottom: 10px;
 }
 
-.brand-badge {
+.brand-badge,
+.sidebar-brand-mark {
   width: 42px;
   height: 42px;
   border-radius: 14px;
@@ -36,18 +39,21 @@
   font-weight: 900;
 }
 
-.brand-text {
+.brand-text,
+.sidebar-brand-copy {
   min-width: 0;
 }
 
-.brand-title {
+.brand-title,
+.sidebar-brand-title {
   font-size: 28px;
   line-height: 1;
   letter-spacing: -0.02em;
   font-weight: 800;
 }
 
-.brand-subtitle {
+.brand-subtitle,
+.sidebar-brand-subtitle {
   margin-top: 3px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.72);
@@ -60,7 +66,8 @@
   margin-top: 8px;
 }
 
-.nav-link {
+.nav-link,
+.sidebar-link {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -72,24 +79,29 @@
   transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
 
-.nav-link:hover {
+.nav-link:hover,
+.sidebar-link:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   transform: translateX(1px);
 }
 
-.nav-link.active {
+.nav-link.active,
+.sidebar-link.active {
   background: #fff;
   color: #0f172a;
   box-shadow: 0 8px 20px rgba(2, 6, 23, 0.2);
 }
 
-.sidebar-section {
+.sidebar-section,
+.sidebar-mode,
+.sidebar-footer {
   margin-top: 26px;
   padding: 0 8px;
 }
 
-.sidebar-label {
+.sidebar-label,
+.sidebar-mode-label {
   margin-bottom: 10px;
   font-size: 11px;
   font-weight: 800;
@@ -98,7 +110,8 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
-.mode-pill {
+.mode-pill,
+.sidebar-mode-pill {
   display: inline-flex;
   align-items: center;
   padding: 7px 12px;
@@ -107,7 +120,8 @@
   font-weight: 800;
 }
 
-.mode-pill {
+.mode-pill,
+.sidebar-mode-pill {
   background: #dcfce7;
   color: #166534;
 }
@@ -117,9 +131,57 @@
   color: #3730a3;
 }
 
-.main {
+.sidebar-mode-pill {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.sidebar-footer-link {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sidebar-footer-link:hover {
+  color: #ffffff;
+}
+
+.main,
+.app-main {
   min-width: 0;
   padding: 28px 28px 40px;
+}
+
+.demo-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  background: #ffffff;
+  border: 1px solid #d9e1ef;
+  border-radius: 20px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+}
+
+.demo-banner-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.demo-banner-text {
+  margin-top: 6px;
+  color: #475569;
+  font-size: 15px;
+}
+
+.demo-banner-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .page-header {
@@ -167,14 +229,21 @@
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
+  .sidebar,
+  .app-sidebar {
     position: relative;
     height: auto;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .main {
+  .main,
+  .app-main {
     padding: 18px;
+  }
+
+  .demo-banner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

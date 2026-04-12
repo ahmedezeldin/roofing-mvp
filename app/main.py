@@ -207,6 +207,7 @@ def send_password_reset_code(email: str, code: str) -> bool:
     smtp_from = os.getenv("SMTP_FROM", "").strip() or smtp_user
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() in {"1", "true", "yes"}
+    smtp_timeout_seconds = int(os.getenv("SMTP_TIMEOUT_SECONDS", "60"))
 
     if not smtp_host or not smtp_from:
         print(f"[PASSWORD RESET] No SMTP configured. Email={email}, code={code}")
@@ -222,17 +223,22 @@ def send_password_reset_code(email: str, code: str) -> bool:
         f"This code expires in {PASSWORD_RESET_CODE_MINUTES} minutes."
     )
 
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-            if smtp_tls:
-                smtp.starttls()
-            if smtp_user:
-                smtp.login(smtp_user, smtp_password)
-            smtp.send_message(message)
-        return True
-    except Exception as exc:
-        print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
-        return False
+    for attempt in range(1, 3):
+        try:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout_seconds) as smtp:
+                smtp.ehlo()
+                if smtp_tls:
+                    smtp.starttls()
+                    smtp.ehlo()
+                if smtp_user:
+                    smtp.login(smtp_user, smtp_password)
+                smtp.send_message(message)
+            return True
+        except Exception as exc:
+            if attempt == 2:
+                print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
+                return False
+            print(f"[PASSWORD RESET WARN] Attempt {attempt} failed for {email}: {exc}. Retrying...")
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -1933,6 +1939,7 @@ def ui_update_lead_notes(
 def ui_update_lead_stage(
     lead_id: int = Form(...),
     crm_status: str = Form(...),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
@@ -1940,15 +1947,25 @@ def ui_update_lead_stage(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    if crm_status == "qualified":
+    allowed_statuses = {"new", "qualified", "contacted", "booked", "closed", "lost"}
+    if crm_status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail="Invalid crm_status")
+
+    if crm_status == "new":
+        lead.status = "new"
+        lead.crm_status = "new"
+    elif crm_status == "qualified":
         lead.status = "qualified"
         lead.crm_status = "new"
     else:
         lead.crm_status = crm_status
-        if crm_status in ["contacted", "booked", "closed"]:
+        if crm_status in ["contacted", "booked", "closed", "lost"]:
             lead.status = "qualified"
 
     db.commit()
+
+    if return_to == "inbox":
+        return RedirectResponse(url=f"/demo/inbox?lead_id={lead_id}", status_code=303)
 
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 
