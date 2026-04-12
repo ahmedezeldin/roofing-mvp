@@ -1946,12 +1946,19 @@ def ui_update_lead_stage(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    if crm_status == "qualified":
+    allowed_statuses = {"new", "qualified", "contacted", "booked", "closed", "lost"}
+    if crm_status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail="Invalid crm_status")
+
+    if crm_status == "new":
+        lead.status = "new"
+        lead.crm_status = "new"
+    elif crm_status == "qualified":
         lead.status = "qualified"
         lead.crm_status = "new"
     else:
         lead.crm_status = crm_status
-        if crm_status in ["contacted", "booked", "closed"]:
+        if crm_status in ["contacted", "booked", "closed", "lost"]:
             lead.status = "qualified"
 
     db.commit()

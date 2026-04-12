@@ -191,10 +191,24 @@
     const cardSelector = ".pipeline-lead-card[draggable='true']";
     const columns = document.querySelectorAll(".pipeline-column-body[data-stage]");
     let draggingCard = null;
+    let sourceColumn = null;
+
+    const refreshColumnUI = (column) => {
+      const countEl = column.closest(".pipeline-column")?.querySelector(".pipeline-count");
+      const cards = column.querySelectorAll(cardSelector);
+      const empty = column.querySelector(".pipeline-empty");
+
+      if (countEl) countEl.textContent = String(cards.length);
+
+      if (cards.length > 0 && empty) {
+        empty.remove();
+      }
+    };
 
     document.querySelectorAll(cardSelector).forEach((card) => {
       card.addEventListener("dragstart", (event) => {
         draggingCard = card;
+        sourceColumn = card.closest(".pipeline-column-body");
         card.classList.add("is-dragging");
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", card.dataset.leadId || "");
@@ -203,6 +217,7 @@
       card.addEventListener("dragend", () => {
         card.classList.remove("is-dragging");
         draggingCard = null;
+        sourceColumn = null;
         document.querySelectorAll(".pipeline-column-body.is-drop-target").forEach((el) => {
           el.classList.remove("is-drop-target");
         });
@@ -224,6 +239,10 @@
         column.classList.remove("is-drop-target");
         if (!draggingCard) return;
         column.appendChild(draggingCard);
+        refreshColumnUI(column);
+        if (sourceColumn && sourceColumn !== column) {
+          refreshColumnUI(sourceColumn);
+        }
 
         const stage = column.dataset.stage;
         const leadId = draggingCard.dataset.leadId;
