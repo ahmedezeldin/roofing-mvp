@@ -266,8 +266,14 @@
                 {% for msg in selected.messages %}
                 <div class="message {{ msg.direction }}">
                   <div class="message-meta">
-                    <strong>{{ msg.direction|title }}</strong>
-                    <span>{{ format_dt(msg.created_at) }}</span>
+                    <strong>
+                      {% if msg.direction == "outbound" %}
+                        {{ settings.business_name or "Your Business" }}
+                      {% else %}
+                        {{ selected.customer_name or selected.phone_number }}
+                      {% endif %}
+                    </strong>
+                    <span class="message-time" data-timestamp="{{ msg.created_at.isoformat() if msg.created_at else '' }}">{{ format_dt(msg.created_at) }}</span>
                   </div>
                   <div>{{ msg.body }}</div>
                 </div>
@@ -280,11 +286,11 @@
             <div class="conversation-composer">
               <div class="form-label">Quick templates</div>
               <div class="template-chip-row mb-12">
-                <button type="button" class="template-chip">Ask for address</button>
-                <button type="button" class="template-chip">Request photos</button>
-                <button type="button" class="template-chip">Insurance claim?</button>
-                <button type="button" class="template-chip">Schedule callback</button>
-                <button type="button" class="template-chip">Confirm appointment</button>
+                <button type="button" class="template-chip" data-template="Thanks for reaching out — what is the service address?">Ask for address</button>
+                <button type="button" class="template-chip" data-template="If possible, can you send 2-3 photos so our team can review before we call?">Request photos</button>
+                <button type="button" class="template-chip" data-template="Is this related to an insurance claim?">Insurance claim?</button>
+                <button type="button" class="template-chip" data-template="What time today works best for a quick callback?">Schedule callback</button>
+                <button type="button" class="template-chip" data-template="Perfect — we can book your estimate. What day/time works best?">Confirm appointment</button>
               </div>
 
               <form method="post" action="/ui/messages/send" class="composer-row">
@@ -294,13 +300,13 @@
                 <input
                   type="text"
                   name="body"
+                  id="composer-body"
                   class="input"
                   placeholder="Type SMS reply..."
                   required
                 />
                 <div style="display:flex; gap:10px; margin-top:10px;">
-                  <button type="submit" class="btn btn-primary">Send SMS</button>
-                  <button type="button" class="btn btn-secondary">Use Template</button>
+                  <button type="submit" class="btn btn-primary">Send</button>
                 </div>
               </form>
             </div>
@@ -355,4 +361,34 @@
     {% endif %}
   </section>
 </div>
+<script>
+  (() => {
+    const input = document.getElementById("composer-body");
+    const chips = document.querySelectorAll(".template-chip[data-template]");
+
+    chips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        if (!input) return;
+        input.value = chip.dataset.template || "";
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      });
+    });
+
+    const timeNodes = document.querySelectorAll(".message-time[data-timestamp]");
+    timeNodes.forEach((node) => {
+      const raw = node.getAttribute("data-timestamp");
+      if (!raw) return;
+      const dt = new Date(raw);
+      if (Number.isNaN(dt.getTime())) return;
+
+      node.textContent = dt.toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    });
+  })();
+</script>
 {% endblock %}
