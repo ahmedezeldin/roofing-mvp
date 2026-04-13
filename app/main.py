@@ -1833,10 +1833,41 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/ui/settings/update")
 def ui_update_settings(
+    request: Request,
     business_name: str = Form(...),
+    first_message: str = Form(""),
+    notification_email: str = Form(""),
+    team_mobile: str = Form(""),
+    phone_mode: str = Form("existing"),
+    coverage_mode: str = Form("always"),
+    workday_start: str = Form(""),
+    workday_end: str = Form(""),
+    business_days: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    logic.update_business_name(db, business_name)
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    settings = get_workspace_settings(db, workspace.id)
+    settings.business_name = (business_name or "").strip() or settings.business_name
+    settings.first_message = (first_message or "").strip() or settings.first_message
+
+    workspace.notification_email = (notification_email or "").strip() or None
+    workspace.team_mobile = (team_mobile or "").strip() or None
+    workspace.phone_mode = (phone_mode or "existing").strip()
+    workspace.coverage_mode = (coverage_mode or "always").strip()
+
+    if workspace.coverage_mode == "after_hours":
+        workspace.workday_start = (workday_start or "").strip() or None
+        workspace.workday_end = (workday_end or "").strip() or None
+        workspace.business_days = (business_days or "").strip() or None
+    else:
+        workspace.workday_start = None
+        workspace.workday_end = None
+        workspace.business_days = None
+
+    db.commit()
     return RedirectResponse(url="/demo/settings", status_code=303)
 
 
@@ -1917,7 +1948,7 @@ def ui_update_lead_notes(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    lead.notes = notes
+    lead.notes = (notes or "").strip()
     db.commit()
 
     if crm_status_filter != "":

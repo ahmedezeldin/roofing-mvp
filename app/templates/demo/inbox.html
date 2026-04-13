@@ -350,7 +350,21 @@
             </form>
           </div>
 
-          <a href="/demo/lead/{{ selected.id }}" class="btn btn-secondary" style="width:100%;">Open Full Lead Page</a>
+          {% if selected.notes and selected.notes.strip() %}
+          <div class="info-card">
+            <div class="info-label">Saved Notes</div>
+            <div class="summary-list">
+              {% for line in selected.notes.splitlines() %}
+                {% if line.strip() %}
+                <div class="summary-row">
+                  <span>Note</span>
+                  <strong>{{ line.strip() }}</strong>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>
