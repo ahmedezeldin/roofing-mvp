@@ -273,7 +273,7 @@
                         {{ selected.customer_name or selected.phone_number }}
                       {% endif %}
                     </strong>
-                    <span class="message-time" data-timestamp="{{ msg.created_at.isoformat() if msg.created_at else '' }}">{{ format_dt(msg.created_at) }}</span>
+                    <span class="message-time" data-timestamp="{{ msg.created_at if msg.created_at else '' }}">{{ format_dt(msg.created_at) }}</span>
                   </div>
                   <div>{{ msg.body }}</div>
                 </div>
