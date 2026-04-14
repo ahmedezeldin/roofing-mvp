@@ -14,7 +14,7 @@
   </div>
 </div>
 
-{% if current_user is defined and current_user %}
+{% set has_account_access = current_user is defined and current_user %}
 <form method="post" action="/ui/settings/account" class="settings-card">
   <div class="settings-card-head">
     <div>
@@ -24,6 +24,9 @@
     <div class="settings-pill">Profile</div>
   </div>
 
+  {% if not has_account_access %}
+  <div class="settings-alert settings-alert-muted">Sign in to save profile and security changes.</div>
+  {% endif %}
   {% if account_error %}
   <div class="settings-alert settings-alert-error">{{ account_error }}</div>
   {% endif %}
@@ -42,12 +45,12 @@
     </div>
     <div class="settings-field">
       <label class="settings-label">Email</label>
-      <input class="input" name="email" type="email" value="{{ current_user.email or '' }}" required>
+      <input class="input" name="email" type="email" value="{{ current_user.email if has_account_access else '' }}" required>
     </div>
   </div>
 
   <div style="display:flex; gap:10px; margin-top:16px;">
-    <button type="submit" class="btn btn-primary">Save Profile</button>
+    <button type="submit" class="btn btn-primary" {% if not has_account_access %}disabled{% endif %}>Save Profile</button>
   </div>
 </form>
 
@@ -60,6 +63,9 @@
     <div class="settings-pill">Security</div>
   </div>
 
+  {% if not has_account_access %}
+  <div class="settings-alert settings-alert-muted">Sign in to update your password.</div>
+  {% endif %}
   {% if password_error %}
   <div class="settings-alert settings-alert-error">{{ password_error }}</div>
   {% endif %}
@@ -70,23 +76,22 @@
   <div class="settings-three-col">
     <div class="settings-field">
       <label class="settings-label">Current Password</label>
-      <input class="input" type="password" name="current_password" required>
+      <input class="input" type="password" name="current_password" required {% if not has_account_access %}disabled{% endif %}>
     </div>
     <div class="settings-field">
       <label class="settings-label">New Password</label>
-      <input class="input" type="password" name="new_password" required>
+      <input class="input" type="password" name="new_password" required {% if not has_account_access %}disabled{% endif %}>
     </div>
     <div class="settings-field">
       <label class="settings-label">Confirm New Password</label>
-      <input class="input" type="password" name="confirm_new_password" required>
+      <input class="input" type="password" name="confirm_new_password" required {% if not has_account_access %}disabled{% endif %}>
     </div>
   </div>
 
   <div style="display:flex; gap:10px; margin-top:16px;">
-    <button type="submit" class="btn btn-primary">Update Password</button>
+    <button type="submit" class="btn btn-primary" {% if not has_account_access %}disabled{% endif %}>Update Password</button>
   </div>
 </form>
-{% endif %}
 
 <form method="post" action="/ui/settings/update" class="settings-card">
   <div class="settings-card-head">

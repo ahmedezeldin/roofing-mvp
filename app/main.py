@@ -1599,6 +1599,8 @@ def demo_pipeline(request: Request, db: Session = Depends(get_db)):
 @app.get("/demo/settings", response_class=HTMLResponse)
 def demo_settings(request: Request, db: Session = Depends(get_db)):
     settings = logic.get_or_create_business_settings(db)
+    current_user = get_current_user_from_cookie(request, db)
+    first_name, last_name = split_full_name(current_user.full_name) if current_user else ("", "")
 
     return templates.TemplateResponse(
         request,
@@ -1606,6 +1608,9 @@ def demo_settings(request: Request, db: Session = Depends(get_db)):
         {
             "settings": settings,
             "workspace": None,
+            "current_user": current_user,
+            "profile_first_name": first_name,
+            "profile_last_name": last_name,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
