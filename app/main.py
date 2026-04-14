@@ -207,6 +207,7 @@ def send_password_reset_code(email: str, code: str) -> bool:
     smtp_from = os.getenv("SMTP_FROM", "").strip() or smtp_user
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() in {"1", "true", "yes"}
+    smtp_timeout_seconds = int(os.getenv("SMTP_TIMEOUT_SECONDS", "60"))
 
     if not smtp_host or not smtp_from:
         print(f"[PASSWORD RESET] No SMTP configured. Email={email}, code={code}")
@@ -222,17 +223,22 @@ def send_password_reset_code(email: str, code: str) -> bool:
         f"This code expires in {PASSWORD_RESET_CODE_MINUTES} minutes."
     )
 
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-            if smtp_tls:
-                smtp.starttls()
-            if smtp_user:
-                smtp.login(smtp_user, smtp_password)
-            smtp.send_message(message)
-        return True
-    except Exception as exc:
-        print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
-        return False
+    for attempt in range(1, 3):
+        try:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout_seconds) as smtp:
+                smtp.ehlo()
+                if smtp_tls:
+                    smtp.starttls()
+                    smtp.ehlo()
+                if smtp_user:
+                    smtp.login(smtp_user, smtp_password)
+                smtp.send_message(message)
+            return True
+        except Exception as exc:
+            if attempt == 2:
+                print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
+                return False
+            print(f"[PASSWORD RESET WARN] Attempt {attempt} failed for {email}: {exc}. Retrying...")
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -1599,6 +1605,7 @@ def demo_settings(request: Request, db: Session = Depends(get_db)):
         "demo/settings.html",
         {
             "settings": settings,
+            "workspace": None,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1827,10 +1834,39 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/ui/settings/update")
 def ui_update_settings(
+    request: Request,
     business_name: str = Form(...),
+    first_message: str = Form(""),
+    notification_email: str = Form(""),
+    team_mobile: str = Form(""),
+    phone_mode: str = Form("existing"),
+    coverage_mode: str = Form("always"),
+    workday_start: str = Form(""),
+    workday_end: str = Form(""),
+    business_days: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    logic.update_business_name(db, business_name)
+    workspace = get_current_workspace(request, db)
+    settings = get_workspace_settings(db, workspace.id) if workspace else logic.get_or_create_business_settings(db)
+    settings.business_name = (business_name or "").strip() or settings.business_name
+    settings.first_message = (first_message or "").strip() or settings.first_message
+
+    if workspace:
+        workspace.notification_email = (notification_email or "").strip() or None
+        workspace.team_mobile = (team_mobile or "").strip() or None
+        workspace.phone_mode = (phone_mode or "existing").strip()
+        workspace.coverage_mode = (coverage_mode or "always").strip()
+
+        if workspace.coverage_mode == "after_hours":
+            workspace.workday_start = (workday_start or "").strip() or None
+            workspace.workday_end = (workday_end or "").strip() or None
+            workspace.business_days = (business_days or "").strip() or None
+        else:
+            workspace.workday_start = None
+            workspace.workday_end = None
+            workspace.business_days = None
+
+    db.commit()
     return RedirectResponse(url="/demo/settings", status_code=303)
 
 
@@ -1911,7 +1947,7 @@ def ui_update_lead_notes(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    lead.notes = notes
+    lead.notes = (notes or "").strip()
     db.commit()
 
     if crm_status_filter != "":
@@ -1933,6 +1969,7 @@ def ui_update_lead_notes(
 def ui_update_lead_stage(
     lead_id: int = Form(...),
     crm_status: str = Form(...),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
@@ -1940,15 +1977,25 @@ def ui_update_lead_stage(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    if crm_status == "qualified":
+    allowed_statuses = {"new", "qualified", "contacted", "booked", "closed", "lost"}
+    if crm_status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail="Invalid crm_status")
+
+    if crm_status == "new":
+        lead.status = "new"
+        lead.crm_status = "new"
+    elif crm_status == "qualified":
         lead.status = "qualified"
         lead.crm_status = "new"
     else:
         lead.crm_status = crm_status
-        if crm_status in ["contacted", "booked", "closed"]:
+        if crm_status in ["contacted", "booked", "closed", "lost"]:
             lead.status = "qualified"
 
     db.commit()
+
+    if return_to == "inbox":
+        return RedirectResponse(url=f"/demo/inbox?lead_id={lead_id}", status_code=303)
 
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 
