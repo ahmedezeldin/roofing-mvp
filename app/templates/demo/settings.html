@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block content %}
+{% set ws = workspace if workspace is defined and workspace else None %}
 <div class="page-header">
   <div>
     <div class="eyebrow">Settings</div>
@@ -29,20 +30,20 @@
     </div>
     <div class="settings-field">
       <label class="settings-label">Notification Email</label>
-      <input class="input" name="notification_email" type="email" value="{{ workspace.notification_email or '' }}" placeholder="ops@yourroofingcompany.com">
+      <input class="input" name="notification_email" type="email" value="{{ ws.notification_email if ws else '' }}" placeholder="ops@yourroofingcompany.com">
     </div>
   </div>
 
   <div class="settings-two-col">
     <div class="settings-field">
       <label class="settings-label">Team Mobile</label>
-      <input class="input" name="team_mobile" value="{{ workspace.team_mobile or '' }}" placeholder="+1 555 555 5555">
+      <input class="input" name="team_mobile" value="{{ ws.team_mobile if ws else '' }}" placeholder="+1 555 555 5555">
     </div>
     <div class="settings-field">
       <label class="settings-label">Phone Mode</label>
       <select class="select" name="phone_mode">
-        <option value="existing" {% if workspace.phone_mode == 'existing' %}selected{% endif %}>Use existing number</option>
-        <option value="new" {% if workspace.phone_mode == 'new' %}selected{% endif %}>Provision new number</option>
+        <option value="existing" {% if ws and ws.phone_mode == 'existing' %}selected{% endif %}>Use existing number</option>
+        <option value="new" {% if ws and ws.phone_mode == 'new' %}selected{% endif %}>Provision new number</option>
       </select>
     </div>
   </div>
@@ -64,17 +65,17 @@
     <div class="settings-field">
       <label class="settings-label">Coverage Mode</label>
       <select class="select" name="coverage_mode" id="coverage_mode">
-        <option value="always" {% if workspace.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
-        <option value="after_hours" {% if workspace.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
+        <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
+        <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
       </select>
     </div>
     <div class="settings-field">
       <label class="settings-label">Business Days</label>
       <select class="select" name="business_days" id="business_days">
-        <option value="" {% if not workspace.business_days %}selected{% endif %}>Not set</option>
-        <option value="mon_fri" {% if workspace.business_days == 'mon_fri' %}selected{% endif %}>Mon–Fri</option>
-        <option value="mon_sat" {% if workspace.business_days == 'mon_sat' %}selected{% endif %}>Mon–Sat</option>
-        <option value="all_week" {% if workspace.business_days == 'all_week' %}selected{% endif %}>All week</option>
+        <option value="" {% if not ws or not ws.business_days %}selected{% endif %}>Not set</option>
+        <option value="mon_fri" {% if ws and ws.business_days == 'mon_fri' %}selected{% endif %}>Mon–Fri</option>
+        <option value="mon_sat" {% if ws and ws.business_days == 'mon_sat' %}selected{% endif %}>Mon–Sat</option>
+        <option value="all_week" {% if ws and ws.business_days == 'all_week' %}selected{% endif %}>All week</option>
       </select>
     </div>
   </div>
@@ -82,11 +83,11 @@
   <div class="settings-two-col" id="after_hours_fields">
     <div class="settings-field">
       <label class="settings-label">Workday Start</label>
-      <input class="input" type="time" name="workday_start" value="{{ workspace.workday_start or '' }}">
+      <input class="input" type="time" name="workday_start" value="{{ ws.workday_start if ws else '' }}">
     </div>
     <div class="settings-field">
       <label class="settings-label">Workday End</label>
-      <input class="input" type="time" name="workday_end" value="{{ workspace.workday_end or '' }}">
+      <input class="input" type="time" name="workday_end" value="{{ ws.workday_end if ws else '' }}">
     </div>
   </div>
 

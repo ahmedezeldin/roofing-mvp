@@ -1605,6 +1605,7 @@ def demo_settings(request: Request, db: Session = Depends(get_db)):
         "demo/settings.html",
         {
             "settings": settings,
+            "workspace": None,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1846,26 +1847,24 @@ def ui_update_settings(
     db: Session = Depends(get_db),
 ):
     workspace = get_current_workspace(request, db)
-    if not workspace:
-        return RedirectResponse(url="/signup", status_code=303)
-
-    settings = get_workspace_settings(db, workspace.id)
+    settings = get_workspace_settings(db, workspace.id) if workspace else logic.get_or_create_business_settings(db)
     settings.business_name = (business_name or "").strip() or settings.business_name
     settings.first_message = (first_message or "").strip() or settings.first_message
 
-    workspace.notification_email = (notification_email or "").strip() or None
-    workspace.team_mobile = (team_mobile or "").strip() or None
-    workspace.phone_mode = (phone_mode or "existing").strip()
-    workspace.coverage_mode = (coverage_mode or "always").strip()
+    if workspace:
+        workspace.notification_email = (notification_email or "").strip() or None
+        workspace.team_mobile = (team_mobile or "").strip() or None
+        workspace.phone_mode = (phone_mode or "existing").strip()
+        workspace.coverage_mode = (coverage_mode or "always").strip()
 
-    if workspace.coverage_mode == "after_hours":
-        workspace.workday_start = (workday_start or "").strip() or None
-        workspace.workday_end = (workday_end or "").strip() or None
-        workspace.business_days = (business_days or "").strip() or None
-    else:
-        workspace.workday_start = None
-        workspace.workday_end = None
-        workspace.business_days = None
+        if workspace.coverage_mode == "after_hours":
+            workspace.workday_start = (workday_start or "").strip() or None
+            workspace.workday_end = (workday_end or "").strip() or None
+            workspace.business_days = (business_days or "").strip() or None
+        else:
+            workspace.workday_start = None
+            workspace.workday_end = None
+            workspace.business_days = None
 
     db.commit()
     return RedirectResponse(url="/demo/settings", status_code=303)
