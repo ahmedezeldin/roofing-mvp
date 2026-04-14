@@ -14,6 +14,80 @@
   </div>
 </div>
 
+{% if current_user is defined and current_user %}
+<form method="post" action="/ui/settings/account" class="settings-card">
+  <div class="settings-card-head">
+    <div>
+      <div class="settings-card-title">Account Profile</div>
+      <div class="settings-card-subtitle">Update your personal name and login email for this workspace owner account.</div>
+    </div>
+    <div class="settings-pill">Profile</div>
+  </div>
+
+  {% if account_error %}
+  <div class="settings-alert settings-alert-error">{{ account_error }}</div>
+  {% endif %}
+  {% if account_success %}
+  <div class="settings-alert settings-alert-success">{{ account_success }}</div>
+  {% endif %}
+
+  <div class="settings-three-col">
+    <div class="settings-field">
+      <label class="settings-label">First Name</label>
+      <input class="input" name="first_name" value="{{ profile_first_name or '' }}" required>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Last Name</label>
+      <input class="input" name="last_name" value="{{ profile_last_name or '' }}">
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Email</label>
+      <input class="input" name="email" type="email" value="{{ current_user.email or '' }}" required>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:16px;">
+    <button type="submit" class="btn btn-primary">Save Profile</button>
+  </div>
+</form>
+
+<form method="post" action="/ui/settings/password" class="settings-card">
+  <div class="settings-card-head">
+    <div>
+      <div class="settings-card-title">Security</div>
+      <div class="settings-card-subtitle">Change your password using your current password for verification.</div>
+    </div>
+    <div class="settings-pill">Security</div>
+  </div>
+
+  {% if password_error %}
+  <div class="settings-alert settings-alert-error">{{ password_error }}</div>
+  {% endif %}
+  {% if password_success %}
+  <div class="settings-alert settings-alert-success">{{ password_success }}</div>
+  {% endif %}
+
+  <div class="settings-three-col">
+    <div class="settings-field">
+      <label class="settings-label">Current Password</label>
+      <input class="input" type="password" name="current_password" required>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">New Password</label>
+      <input class="input" type="password" name="new_password" required>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Confirm New Password</label>
+      <input class="input" type="password" name="confirm_new_password" required>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:16px;">
+    <button type="submit" class="btn btn-primary">Update Password</button>
+  </div>
+</form>
+{% endif %}
+
 <form method="post" action="/ui/settings/update" class="settings-card">
   <div class="settings-card-head">
     <div>

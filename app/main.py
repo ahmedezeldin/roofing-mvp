@@ -1811,6 +1811,7 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
     if not workspace:
         return RedirectResponse(url="/signup", status_code=303)
 
+    first_name, last_name = split_full_name(current_user.full_name)
     settings = get_workspace_settings(db, workspace.id)
 
     return templates.TemplateResponse(
@@ -1820,6 +1821,54 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
             "settings": settings,
             "workspace": workspace,
             "current_user": current_user,
+            "profile_first_name": first_name,
+            "profile_last_name": last_name,
+            "twilio_live": logic.twilio_enabled(),
+            "active_page": "settings",
+            "page_title": "Settings",
+            "page_subtitle": "Manage business identity and workspace basics.",
+        },
+    )
+
+
+def split_full_name(full_name: str) -> tuple[str, str]:
+    normalized = (full_name or "").strip()
+    if not normalized:
+        return "", ""
+    parts = normalized.split(None, 1)
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], parts[1]
+
+
+def render_app_settings_template(
+    request: Request,
+    db: Session,
+    current_user: models.AppUser,
+    workspace: models.Workspace,
+    *,
+    account_error: Optional[str] = None,
+    account_success: Optional[str] = None,
+    password_error: Optional[str] = None,
+    password_success: Optional[str] = None,
+    profile_first_name: Optional[str] = None,
+    profile_last_name: Optional[str] = None,
+):
+    settings = get_workspace_settings(db, workspace.id)
+    first_name, last_name = split_full_name(current_user.full_name)
+    return templates.TemplateResponse(
+        request,
+        "demo/settings.html",
+        {
+            "settings": settings,
+            "workspace": workspace,
+            "current_user": current_user,
+            "profile_first_name": profile_first_name if profile_first_name is not None else first_name,
+            "profile_last_name": profile_last_name if profile_last_name is not None else last_name,
+            "account_error": account_error,
+            "account_success": account_success,
+            "password_error": password_error,
+            "password_success": password_success,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1867,7 +1916,144 @@ def ui_update_settings(
             workspace.business_days = None
 
     db.commit()
-    return RedirectResponse(url="/demo/settings", status_code=303)
+    redirect_url = "/app/settings" if workspace else "/demo/settings"
+    return RedirectResponse(url=redirect_url, status_code=303)
+
+
+@app.post("/ui/settings/account")
+def ui_update_account(
+    request: Request,
+    first_name: str = Form(...),
+    last_name: str = Form(""),
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    normalized_first_name = (first_name or "").strip()
+    normalized_last_name = (last_name or "").strip()
+    normalized_email = (email or "").strip().lower()
+
+    if not normalized_first_name:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            account_error="First name is required.",
+            profile_first_name=normalized_first_name,
+            profile_last_name=normalized_last_name,
+        )
+
+    if not normalized_email:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            account_error="Email is required.",
+            profile_first_name=normalized_first_name,
+            profile_last_name=normalized_last_name,
+        )
+
+    existing_user = (
+        db.query(models.AppUser)
+        .filter(models.AppUser.email == normalized_email, models.AppUser.id != current_user.id)
+        .first()
+    )
+    if existing_user:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            account_error="That email is already used by another account.",
+            profile_first_name=normalized_first_name,
+            profile_last_name=normalized_last_name,
+        )
+
+    current_user.full_name = f"{normalized_first_name} {normalized_last_name}".strip()
+    current_user.email = normalized_email
+    db.commit()
+
+    return render_app_settings_template(
+        request,
+        db,
+        current_user,
+        workspace,
+        account_success="Profile updated successfully.",
+    )
+
+
+@app.post("/ui/settings/password")
+def ui_update_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_new_password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    if not verify_password(current_password, current_user.password_hash):
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error="Current password is incorrect.",
+        )
+
+    if new_password != confirm_new_password:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error="New password and confirmation do not match.",
+        )
+
+    password_error = validate_password_rules(new_password)
+    if password_error:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error=password_error,
+        )
+
+    if verify_password(new_password, current_user.password_hash):
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error="New password must be different from your current password.",
+        )
+
+    current_user.password_hash = hash_password(new_password)
+    db.commit()
+
+    return render_app_settings_template(
+        request,
+        db,
+        current_user,
+        workspace,
+        password_success="Password updated successfully.",
+    )
 
 
 @app.post("/ui/leads/create")
