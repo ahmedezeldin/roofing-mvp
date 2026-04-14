@@ -130,14 +130,17 @@
   <div class="settings-card-head" style="margin-top:26px;">
     <div>
       <div class="settings-card-title">Workflow Management</div>
-      <div class="settings-card-subtitle">Control your first message and when the automation should run.</div>
+      <div class="settings-card-subtitle">Edit the full missed-call workflow sequence (all qualification and handoff steps).</div>
     </div>
     <div class="settings-pill">Workflow</div>
   </div>
 
-  <div class="settings-field">
-    <label class="settings-label">First Message Template</label>
-    <textarea class="textarea" name="first_message" rows="4">{{ settings.first_message or '' }}</textarea>
+  <input type="hidden" name="workflow_steps_json" id="workflow_steps_json">
+  <div id="settings_workflow_steps" class="workflow-sequence-stack"></div>
+
+  <div class="settings-field" style="margin-top: 10px;">
+    <label class="settings-label">First Message Preview</label>
+    <textarea class="textarea" name="first_message" id="first_message_preview" rows="3" readonly>{{ settings.first_message or '' }}</textarea>
   </div>
 
   <div class="settings-two-col">
@@ -178,6 +181,87 @@
 
 <script>
   (() => {
+    const workflowStepsInput = document.getElementById('workflow_steps_json');
+    const workflowStepsContainer = document.getElementById('settings_workflow_steps');
+    const firstMessagePreview = document.getElementById('first_message_preview');
+    const workflowSteps = {{ workflow_steps | default([]) | tojson | safe }};
+
+    const updateWorkflowHiddenInput = () => {
+      if (workflowStepsInput) {
+        workflowStepsInput.value = JSON.stringify(workflowSteps);
+      }
+      if (firstMessagePreview) {
+        firstMessagePreview.value = (workflowSteps[0] && workflowSteps[0].message) ? workflowSteps[0].message : '';
+      }
+    };
+
+    const renderWorkflowSteps = () => {
+      if (!workflowStepsContainer) return;
+      workflowStepsContainer.innerHTML = '';
+
+      workflowSteps.forEach((step, index) => {
+        const card = document.createElement('div');
+        card.className = 'workflow-step-card';
+        card.innerHTML = `
+          <div class="workflow-step-top">
+            <div class="workflow-step-left">
+              <div class="workflow-step-number">Step ${index + 1}</div>
+              <div>
+                <div class="workflow-step-title">${step.title || 'Workflow Step'}</div>
+                <div class="workflow-step-subtitle">${step.description || ''}</div>
+              </div>
+            </div>
+          </div>
+          <div class="settings-two-col">
+            <div class="settings-field">
+              <label class="settings-label">Trigger</label>
+              <select class="select workflow-trigger">
+                <option value="missed_call" ${(step.trigger || '') === 'missed_call' ? 'selected' : ''}>Immediately after missed call</option>
+                <option value="after_reply" ${(step.trigger || '') !== 'missed_call' ? 'selected' : ''}>After customer reply</option>
+              </select>
+            </div>
+            <div class="settings-field">
+              <label class="settings-label">Delay</label>
+              <select class="select workflow-delay">
+                <option value="0" ${(Number(step.delayMinutes || 0) === 0) ? 'selected' : ''}>Immediately</option>
+                <option value="1" ${(Number(step.delayMinutes || 0) === 1) ? 'selected' : ''}>1 minute</option>
+                <option value="5" ${(Number(step.delayMinutes || 0) === 5) ? 'selected' : ''}>5 minutes</option>
+                <option value="10" ${(Number(step.delayMinutes || 0) === 10) ? 'selected' : ''}>10 minutes</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-field">
+            <label class="settings-label">Message</label>
+            <textarea class="textarea workflow-step-textarea" rows="3"></textarea>
+          </div>
+        `;
+
+        const triggerEl = card.querySelector('.workflow-trigger');
+        const delayEl = card.querySelector('.workflow-delay');
+        const messageEl = card.querySelector('.workflow-step-textarea');
+        messageEl.value = step.message || '';
+
+        triggerEl.addEventListener('change', () => {
+          workflowSteps[index].trigger = triggerEl.value;
+          updateWorkflowHiddenInput();
+        });
+        delayEl.addEventListener('change', () => {
+          workflowSteps[index].delayMinutes = Number(delayEl.value || 0);
+          updateWorkflowHiddenInput();
+        });
+        messageEl.addEventListener('input', () => {
+          workflowSteps[index].message = messageEl.value;
+          updateWorkflowHiddenInput();
+        });
+
+        workflowStepsContainer.appendChild(card);
+      });
+
+      updateWorkflowHiddenInput();
+    };
+
+    renderWorkflowSteps();
+
     const coverageMode = document.getElementById('coverage_mode');
     const afterHoursFields = document.getElementById('after_hours_fields');
     const businessDays = document.getElementById('business_days');

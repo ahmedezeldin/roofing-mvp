@@ -1,4 +1,5 @@
 import os
+import json
 import secrets
 import hashlib
 import smtplib
@@ -1601,6 +1602,7 @@ def demo_settings(request: Request, db: Session = Depends(get_db)):
     settings = logic.get_or_create_business_settings(db)
     current_user = get_current_user_from_cookie(request, db)
     first_name, last_name = split_full_name(current_user.full_name) if current_user else ("", "")
+    workflow_steps = get_settings_workflow_steps(db, current_user, settings.business_name)
 
     return templates.TemplateResponse(
         request,
@@ -1611,6 +1613,7 @@ def demo_settings(request: Request, db: Session = Depends(get_db)):
             "current_user": current_user,
             "profile_first_name": first_name,
             "profile_last_name": last_name,
+            "workflow_steps": workflow_steps,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1818,6 +1821,7 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
 
     first_name, last_name = split_full_name(current_user.full_name)
     settings = get_workspace_settings(db, workspace.id)
+    workflow_steps = get_settings_workflow_steps(db, current_user, settings.business_name)
 
     return templates.TemplateResponse(
         request,
@@ -1828,6 +1832,7 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
             "current_user": current_user,
             "profile_first_name": first_name,
             "profile_last_name": last_name,
+            "workflow_steps": workflow_steps,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1846,6 +1851,98 @@ def split_full_name(full_name: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
+def default_workflow_steps(business_name: str = "your roofing company") -> list[dict]:
+    name = (business_name or "your roofing company").strip() or "your roofing company"
+    return [
+        {
+            "id": "step-1",
+            "title": "Instant Reply",
+            "description": "First text sent immediately after a missed call.",
+            "trigger": "missed_call",
+            "delayMinutes": 0,
+            "message": f"Hey, thanks for calling {name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?",
+        },
+        {
+            "id": "step-2",
+            "title": "Ask for Postal Code",
+            "description": "Capture service area and route the lead properly.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": "Thanks — what’s the postal code for the property?",
+        },
+        {
+            "id": "step-3",
+            "title": "Ask About the Job",
+            "description": "Understand what kind of roofing help they need.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": "Got it. Is this for a repair, replacement, leak, storm damage, or inspection?",
+        },
+        {
+            "id": "step-4",
+            "title": "Ask About Urgency",
+            "description": "Identify emergencies and high-priority jobs.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": "How urgent is this — emergency, soon, or just getting quotes?",
+        },
+        {
+            "id": "step-5",
+            "title": "Final Handoff",
+            "description": "Let the customer know your team will follow up.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": f"Thanks — your request has been captured for {name}. A roofing specialist will follow up shortly to schedule an inspection or estimate.",
+        },
+    ]
+
+
+def normalize_workflow_steps(raw_steps, business_name: str = "your roofing company") -> list[dict]:
+    fallback = default_workflow_steps(business_name)
+    if not isinstance(raw_steps, list) or not raw_steps:
+        return fallback
+
+    normalized_steps = []
+    for index, step in enumerate(raw_steps):
+        if not isinstance(step, dict):
+            continue
+        fallback_step = fallback[min(index, len(fallback) - 1)]
+        normalized_steps.append(
+            {
+                "id": str(step.get("id") or f"step-{index + 1}"),
+                "title": str(step.get("title") or fallback_step["title"]),
+                "description": str(step.get("description") or fallback_step["description"]),
+                "trigger": "missed_call" if step.get("trigger") == "missed_call" else "after_reply",
+                "delayMinutes": max(0, int(step.get("delayMinutes") or 0)),
+                "message": str(step.get("message") or ""),
+            }
+        )
+
+    return normalized_steps or fallback
+
+
+def get_settings_workflow_steps(db: Session, user: Optional[models.AppUser], business_name: str) -> list[dict]:
+    if not user:
+        return default_workflow_steps(business_name)
+
+    progress = (
+        db.query(models.OnboardingProgress)
+        .filter(models.OnboardingProgress.user_id == user.id)
+        .first()
+    )
+    if not progress or not progress.workflow_data:
+        return default_workflow_steps(business_name)
+
+    raw_steps = progress.workflow_data.get("steps_json")
+    if isinstance(raw_steps, str):
+        try:
+            raw_steps = json.loads(raw_steps)
+        except json.JSONDecodeError:
+            raw_steps = []
+
+    return normalize_workflow_steps(raw_steps, business_name)
+
+
 def render_app_settings_template(
     request: Request,
     db: Session,
@@ -1858,9 +1955,11 @@ def render_app_settings_template(
     password_success: Optional[str] = None,
     profile_first_name: Optional[str] = None,
     profile_last_name: Optional[str] = None,
+    workflow_steps: Optional[list[dict]] = None,
 ):
     settings = get_workspace_settings(db, workspace.id)
     first_name, last_name = split_full_name(current_user.full_name)
+    effective_workflow_steps = workflow_steps or get_settings_workflow_steps(db, current_user, settings.business_name)
     return templates.TemplateResponse(
         request,
         "demo/settings.html",
@@ -1874,6 +1973,7 @@ def render_app_settings_template(
             "account_success": account_success,
             "password_error": password_error,
             "password_success": password_success,
+            "workflow_steps": effective_workflow_steps,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1898,8 +1998,10 @@ def ui_update_settings(
     workday_start: str = Form(""),
     workday_end: str = Form(""),
     business_days: str = Form(""),
+    workflow_steps_json: str = Form("[]"),
     db: Session = Depends(get_db),
 ):
+    current_user = get_current_user_from_cookie(request, db)
     workspace = get_current_workspace(request, db)
     settings = get_workspace_settings(db, workspace.id) if workspace else logic.get_or_create_business_settings(db)
     settings.business_name = (business_name or "").strip() or settings.business_name
@@ -1919,6 +2021,19 @@ def ui_update_settings(
             workspace.workday_start = None
             workspace.workday_end = None
             workspace.business_days = None
+
+    parsed_workflow_steps = []
+    try:
+        parsed_workflow_steps = json.loads(workflow_steps_json or "[]")
+    except json.JSONDecodeError:
+        parsed_workflow_steps = []
+
+    normalized_steps = normalize_workflow_steps(parsed_workflow_steps, settings.business_name)
+    if normalized_steps:
+        settings.first_message = normalized_steps[0]["message"] or settings.first_message
+
+    if current_user:
+        save_workflow_step(db, current_user.id, {"steps_json": normalized_steps})
 
     db.commit()
     redirect_url = "/app/settings" if workspace else "/demo/settings"
