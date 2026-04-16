@@ -297,7 +297,14 @@
 
 .settings-two-col {
   display: grid;
-  grid-template-columns: 1fr 220px;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.settings-three-col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 14px;
 }

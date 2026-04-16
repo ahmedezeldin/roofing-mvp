@@ -103,15 +103,9 @@
     <div class="settings-pill">Account</div>
   </div>
 
-  <div class="settings-two-col">
-    <div class="settings-field">
-      <label class="settings-label">Business Name</label>
-      <input class="input" name="business_name" value="{{ settings.business_name or '' }}" required>
-    </div>
-    <div class="settings-field">
-      <label class="settings-label">Notification Email</label>
-      <input class="input" name="notification_email" type="email" value="{{ ws.notification_email if ws else '' }}" placeholder="ops@yourroofingcompany.com">
-    </div>
+  <div class="settings-field">
+    <label class="settings-label">Business Name</label>
+    <input class="input" name="business_name" value="{{ settings.business_name or '' }}" required>
   </div>
 
   <div class="settings-two-col">

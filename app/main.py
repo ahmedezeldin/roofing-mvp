@@ -82,6 +82,24 @@ def format_dt(dt: Optional[datetime]) -> str:
 templates.env.globals["format_dt"] = format_dt
 
 
+def note_preview(raw_notes: Optional[str]) -> str:
+    raw = (raw_notes or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list) and parsed:
+            first = parsed[0]
+            if isinstance(first, dict):
+                return str(first.get("text") or "").strip()
+    except json.JSONDecodeError:
+        pass
+    return raw
+
+
+templates.env.globals["note_preview"] = note_preview
+
+
 # --------------------------------------------------
 # AUTH HELPERS
 # --------------------------------------------------
@@ -1570,6 +1588,7 @@ def demo_inbox(
             "high_priority_count": high_priority_count,
             "qualified_count": qualified_count,
             "booked_count": booked_count,
+            "selected_notes": parse_lead_notes(selected_lead) if selected_lead else [],
             "active_page": "inbox",
             "page_title": "Inbox",
             "page_subtitle": "All lead conversations in one workspace.",
@@ -1766,6 +1785,7 @@ def app_inbox(
             "high_priority_count": high_priority_count,
             "qualified_count": qualified_count,
             "booked_count": booked_count,
+            "selected_notes": parse_lead_notes(selected_lead) if selected_lead else [],
             "active_page": "inbox",
             "page_title": "Inbox",
             "page_subtitle": "All lead conversations in your workspace.",
@@ -1982,6 +2002,34 @@ def render_app_settings_template(
     )
 
 
+def parse_lead_notes(lead: models.Lead) -> list[dict]:
+    raw = (lead.notes or "").strip()
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            normalized = []
+            for item in parsed:
+                if isinstance(item, dict) and str(item.get("text", "")).strip():
+                    normalized.append(
+                        {
+                            "id": str(item.get("id") or secrets.token_hex(6)),
+                            "text": str(item.get("text", "")).strip(),
+                            "created_at": str(item.get("created_at") or datetime.utcnow().isoformat()),
+                        }
+                    )
+            return normalized
+    except json.JSONDecodeError:
+        pass
+    return [{"id": secrets.token_hex(6), "text": raw, "created_at": datetime.utcnow().isoformat()}]
+
+
+def save_lead_notes(lead: models.Lead, notes_list: list[dict]) -> None:
+    lead.notes = json.dumps(notes_list)
+    lead.updated_at = datetime.utcnow()
+
+
 # --------------------------------------------------
 # DEMO UI FORM ACTIONS
 # --------------------------------------------------
@@ -2008,7 +2056,7 @@ def ui_update_settings(
     settings.first_message = (first_message or "").strip() or settings.first_message
 
     if workspace:
-        workspace.notification_email = (notification_email or "").strip() or None
+        workspace.notification_email = current_user.email if current_user else workspace.notification_email
         workspace.team_mobile = (team_mobile or "").strip() or None
         workspace.phone_mode = (phone_mode or "existing").strip()
         workspace.coverage_mode = (coverage_mode or "always").strip()
@@ -2178,8 +2226,13 @@ def ui_update_password(
 
 @app.post("/ui/leads/create")
 def ui_create_lead(phone_number: str = Form(...), db: Session = Depends(get_db)):
-    logic.create_missed_call_lead(db, phone_number=phone_number)
-    return RedirectResponse(url="/demo/inbox", status_code=303)
+    normalized_phone = (phone_number or "").strip()
+    latest = logic.find_latest_lead_for_phone(db, normalized_phone)
+    if latest and not logic.is_finished_lead(latest):
+        return RedirectResponse(url=f"/demo/inbox?lead_id={latest.id}", status_code=303)
+
+    lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
+    return RedirectResponse(url=f"/demo/inbox?lead_id={lead.id}", status_code=303)
 
 
 @app.post("/ui/messages/send")
@@ -2253,7 +2306,18 @@ def ui_update_lead_notes(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    lead.notes = (notes or "").strip()
+    new_note_text = (notes or "").strip()
+    existing_notes = parse_lead_notes(lead)
+    if new_note_text:
+        existing_notes.insert(
+            0,
+            {
+                "id": secrets.token_hex(6),
+                "text": new_note_text,
+                "created_at": datetime.utcnow().isoformat(),
+            },
+        )
+    save_lead_notes(lead, existing_notes)
     db.commit()
 
     if crm_status_filter != "":
@@ -2268,6 +2332,38 @@ def ui_update_lead_notes(
             status_code=303,
         )
 
+    return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
+
+
+@app.post("/ui/leads/delete-note")
+def ui_delete_lead_note(
+    lead_id: int = Form(...),
+    note_id: str = Form(...),
+    crm_status_filter: str = Form(""),
+    priority_filter: str = Form("all"),
+    insurance_filter: str = Form("all"),
+    search: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    remaining = [note for note in parse_lead_notes(lead) if note.get("id") != note_id]
+    save_lead_notes(lead, remaining)
+    db.commit()
+
+    if crm_status_filter != "":
+        return RedirectResponse(
+            url=(
+                f"/demo/inbox?lead_id={lead_id}"
+                f"&crm_status_filter={crm_status_filter}"
+                f"&priority_filter={priority_filter}"
+                f"&insurance_filter={insurance_filter}"
+                f"&search={search}"
+            ),
+            status_code=303,
+        )
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 
 

@@ -2,9 +2,7 @@
 
 {% block content %}
 <div class="page-header">
-  <div class="eyebrow">Inbox</div>
   <h1 class="page-title">Lead Inbox</h1>
-  <p class="page-subtitle">Review live conversations, reply fast, and move leads to the next step.</p>
 </div>
 
 {% set selected = selected_lead %}
@@ -149,7 +147,7 @@
             {% if lead.messages and lead.messages[-1] %}
               {{ lead.messages[-1].body[:90] }}{% if lead.messages[-1].body|length > 90 %}...{% endif %}
             {% elif lead.notes %}
-              {{ lead.notes[:90] }}{% if lead.notes|length > 90 %}...{% endif %}
+              Internal notes saved
             {% else %}
               No conversation yet.
             {% endif %}
@@ -345,22 +343,32 @@
             <form method="post" action="/ui/leads/update-notes">
               <input type="hidden" name="lead_id" value="{{ selected.id }}" />
               <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
-              <textarea name="notes" class="textarea" placeholder="Add internal notes...">{{ selected.notes or "" }}</textarea>
+              <input type="hidden" name="priority_filter" value="{{ priority_filter }}" />
+              <input type="hidden" name="insurance_filter" value="{{ insurance_filter }}" />
+              <input type="hidden" name="search" value="{{ search }}" />
+              <textarea name="notes" class="textarea" placeholder="Add internal notes..."></textarea>
               <button type="submit" class="btn btn-secondary" style="width:100%; margin-top:12px;">Save Notes</button>
             </form>
           </div>
 
-          {% if selected.notes and selected.notes.strip() %}
+          {% if selected_notes %}
           <div class="info-card">
             <div class="info-label">Saved Notes</div>
             <div class="summary-list">
-              {% for line in selected.notes.splitlines() %}
-                {% if line.strip() %}
-                <div class="summary-row">
-                  <span>Note</span>
-                  <strong>{{ line.strip() }}</strong>
+              {% for note in selected_notes %}
+                <div class="summary-row" style="align-items:flex-start; gap:10px;">
+                  <span>{{ note.created_at }}</span>
+                  <strong style="flex:1;">{{ note.text }}</strong>
+                  <form method="post" action="/ui/leads/delete-note">
+                    <input type="hidden" name="lead_id" value="{{ selected.id }}" />
+                    <input type="hidden" name="note_id" value="{{ note.id }}" />
+                    <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
+                    <input type="hidden" name="priority_filter" value="{{ priority_filter }}" />
+                    <input type="hidden" name="insurance_filter" value="{{ insurance_filter }}" />
+                    <input type="hidden" name="search" value="{{ search }}" />
+                    <button type="submit" class="btn btn-secondary btn-xs">Trash</button>
+                  </form>
                 </div>
-                {% endif %}
               {% endfor %}
             </div>
           </div>
@@ -403,6 +411,18 @@
         minute: "2-digit",
       });
     });
+
+    const isTyping = () => {
+      const active = document.activeElement;
+      return !!active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+    };
+
+    setInterval(() => {
+      if (isTyping()) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set("_rt", Date.now().toString());
+      window.location.replace(url.toString());
+    }, 4000);
   })();
 </script>
 {% endblock %}

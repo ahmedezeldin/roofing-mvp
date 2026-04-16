@@ -63,6 +63,12 @@
           <div class="metric-foot">Closed business this month</div>
         </div>
 
+        <div class="metric-card">
+          <div class="metric-label">Est. Pipeline Value</div>
+          <div class="metric-value">${{ "{:,.0f}".format(estimated_pipeline_value) }}</div>
+          <div class="metric-foot">Live estimate from open stages</div>
+        </div>
+
       </div>
     </section>
 
@@ -80,6 +86,7 @@
         <div class="workspace-metric-card">
           <div class="workspace-metric-label">Estimated Pipeline Value</div>
           <div class="workspace-metric-value">${{ "{:,.0f}".format(estimated_pipeline_value) }}</div>
+          <div class="workspace-metric-label" style="margin-top:6px; text-transform:none; letter-spacing:0; font-size:12px;">Formula: New×3.5k, Qualified×6.5k, Contacted×9k, Booked×12k</div>
         </div>
 
         <div class="workspace-metric-card">
@@ -308,11 +315,11 @@
       <div class="activity-list">
         <div class="activity-row">
           <span>Business Name</span>
-          <strong>{{ settings.business_name }}</strong>
+          <strong style="text-align:right;">{{ settings.business_name }}</strong>
         </div>
         <div class="activity-row">
           <span>Mode</span>
-          <strong>Simulation</strong>
+          <strong style="text-align:right;">Simulation</strong>
         </div>
       </div>
     </section>

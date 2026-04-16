@@ -61,7 +61,7 @@
     <div class="metric-card metric-card-accent">
       <div class="metric-label">Pipeline Value</div>
       <div class="metric-value">${{ "{:,}".format(ns.total_value) }}</div>
-      <div class="metric-foot">Estimated revenue in motion</div>
+      <div class="metric-foot">Estimated revenue in motion (replacement 18k, repair 3.5k, inspection 750)</div>
     </div>
   </section>
 
@@ -115,7 +115,7 @@
                 {% set next_action = "Archive / review" %}
               {% endif %}
 
-              <a href="/demo/lead/{{ lead.id }}" class="pipeline-lead-card" draggable="true" data-lead-id="{{ lead.id }}">
+              <a href="/demo/lead/{{ lead.id }}" class="pipeline-lead-card" draggable="true" data-lead-id="{{ lead.id }}" data-estimated-value="{{ value }}">
                 <div class="lead-card-top">
                   <div>
                     <div class="lead-name">
@@ -168,7 +168,7 @@
 
                 {% if lead.notes %}
                   <div class="lead-note-preview">
-                    {{ lead.notes[:110] }}{% if lead.notes|length > 110 %}...{% endif %}
+                    {{ note_preview(lead.notes)[:110] }}{% if note_preview(lead.notes)|length > 110 %}...{% endif %}
                   </div>
                 {% endif %}
               </a>
@@ -192,6 +192,20 @@
     const columns = document.querySelectorAll(".pipeline-column-body[data-stage]");
     let draggingCard = null;
     let sourceColumn = null;
+    const pipelineValueEl = document.querySelector(".metric-card-accent .metric-value");
+
+    const formatCurrency = (amount) => {
+      return `$${Number(amount || 0).toLocaleString()}`;
+    };
+
+    const recalcSummary = () => {
+      let total = 0;
+      document.querySelectorAll(".pipeline-lead-card[data-estimated-value]").forEach((card) => {
+        total += Number(card.dataset.estimatedValue || 0);
+      });
+
+      if (pipelineValueEl) pipelineValueEl.textContent = formatCurrency(total);
+    };
 
     const refreshColumnUI = (column) => {
       const countEl = column.closest(".pipeline-column")?.querySelector(".pipeline-count");
@@ -250,6 +264,7 @@
         refreshColumnUI(sourceColumn);
       }
       persistStage(column, draggingCard);
+      recalcSummary();
     };
 
     document.querySelectorAll(cardSelector).forEach((card) => {
@@ -302,6 +317,14 @@
         moveCardToColumn(column);
       });
     });
+
+    setInterval(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set("_rt", Date.now().toString());
+      window.location.replace(url.toString());
+    }, 5000);
+
+    recalcSummary();
   })();
 </script>
 {% endblock %}
