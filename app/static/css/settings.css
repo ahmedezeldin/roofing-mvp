@@ -103,7 +103,8 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
   margin-bottom: 20px;
   padding: 16px 18px;
   background: rgba(255, 255, 255, 0.78);
@@ -118,6 +119,13 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.settings-subcard {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 22px;
+  padding: 18px;
 }
 
 .workflow-mini-note {
@@ -485,6 +493,10 @@
   }
   .settings-three-col {
     grid-template-columns: 1fr;
+  }
+
+  .workflow-toolbar {
+    flex-wrap: wrap;
   }
 }
 

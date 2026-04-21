@@ -122,25 +122,27 @@
     </div>
   </div>
 
-  <div class="workflow-main-card" style="margin-top:26px;">
-    <div class="workflow-kicker">Workflow</div>
-    <h2 class="workflow-title" style="font-size: clamp(1.4rem, 2.2vw, 2rem); margin-top: 10px;">Set up how we text missed callers</h2>
-    <p class="workflow-subtitle" style="font-size: 15px; margin-top: 8px;">
-      We’ll automatically text missed callers, qualify the lead, and help your team know when to step in.
-    </p>
+  <div class="settings-subcard" style="margin-top:26px;">
+    <div class="settings-card-head" style="margin-bottom: 8px;">
+      <div>
+        <div class="settings-card-title" style="font-size: clamp(1.5rem, 1.8vw, 1.9rem);">Workflow Management</div>
+        <div class="settings-card-subtitle">Set up how we text missed callers, qualify leads, and trigger handoff.</div>
+      </div>
+      <div class="settings-pill">Workflow</div>
+    </div>
 
     <input type="hidden" name="workflow_steps_json" id="steps_json">
 
-    <div class="workflow-toolbar">
+  <div class="workflow-toolbar">
       <button type="button" class="btn btn-primary" id="add-step-btn">+ Add Step</button>
       <button type="button" class="btn btn-secondary" id="reset-steps-btn">Use Recommended Flow</button>
     </div>
+    <div class="settings-pill">Workflow</div>
+  </div>
 
     <div class="workflow-helper-text">
       Drag to reorder or use the arrow buttons.
     </div>
-    <div class="settings-pill">Workflow</div>
-  </div>
 
     <div id="workflow-steps" class="workflow-steps"></div>
 
