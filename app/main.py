@@ -2372,6 +2372,11 @@ def ui_update_lead_stage(
     lead_id: int = Form(...),
     crm_status: str = Form(...),
     return_to: str = Form(""),
+    inbox_path: str = Form("/demo/inbox"),
+    crm_status_filter: str = Form("all"),
+    priority_filter: str = Form("all"),
+    insurance_filter: str = Form("all"),
+    search: str = Form(""),
     db: Session = Depends(get_db),
 ):
     lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
@@ -2382,6 +2387,8 @@ def ui_update_lead_stage(
     allowed_statuses = {"new", "qualified", "contacted", "booked", "closed", "lost"}
     if crm_status not in allowed_statuses:
         raise HTTPException(status_code=400, detail="Invalid crm_status")
+
+    previous_crm_status = lead.crm_status
 
     if crm_status == "new":
         lead.status = "new"
@@ -2394,10 +2401,38 @@ def ui_update_lead_stage(
         if crm_status in ["contacted", "booked", "closed", "lost"]:
             lead.status = "qualified"
 
+    if crm_status == "booked" and previous_crm_status != "booked":
+        booking_message = "Great — your estimate request is now marked as scheduled. We’ll follow up with your confirmed appointment day and arrival window."
+        latest_message = (
+            db.query(models.Message)
+            .filter(models.Message.lead_id == lead.id)
+            .order_by(models.Message.created_at.desc())
+            .first()
+        )
+        if not latest_message or latest_message.body != booking_message:
+            db.add(
+                models.Message(
+                    workspace_id=lead.workspace_id,
+                    lead_id=lead.id,
+                    direction="outbound",
+                    body=booking_message,
+                )
+            )
+
     db.commit()
 
     if return_to == "inbox":
-        return RedirectResponse(url=f"/demo/inbox?lead_id={lead_id}", status_code=303)
+        safe_inbox_path = inbox_path if inbox_path in {"/demo/inbox", "/app/inbox"} else "/demo/inbox"
+        return RedirectResponse(
+            url=(
+                f"{safe_inbox_path}?lead_id={lead_id}"
+                f"&crm_status_filter={crm_status_filter}"
+                f"&priority_filter={priority_filter}"
+                f"&insurance_filter={insurance_filter}"
+                f"&search={search}"
+            ),
+            status_code=303,
+        )
 
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 

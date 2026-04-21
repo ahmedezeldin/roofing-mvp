@@ -213,12 +213,22 @@
             <input type="hidden" name="lead_id" value="{{ selected.id }}" />
             <input type="hidden" name="crm_status" value="qualified" />
             <input type="hidden" name="return_to" value="inbox" />
+            <input type="hidden" name="inbox_path" value="{{ request.url.path }}" />
+            <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
+            <input type="hidden" name="priority_filter" value="{{ priority_filter }}" />
+            <input type="hidden" name="insurance_filter" value="{{ insurance_filter }}" />
+            <input type="hidden" name="search" value="{{ search }}" />
             <button type="submit" class="btn btn-secondary">Qualify</button>
           </form>
           <form method="post" action="/ui/leads/update-stage">
             <input type="hidden" name="lead_id" value="{{ selected.id }}" />
             <input type="hidden" name="crm_status" value="booked" />
             <input type="hidden" name="return_to" value="inbox" />
+            <input type="hidden" name="inbox_path" value="{{ request.url.path }}" />
+            <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
+            <input type="hidden" name="priority_filter" value="{{ priority_filter }}" />
+            <input type="hidden" name="insurance_filter" value="{{ insurance_filter }}" />
+            <input type="hidden" name="search" value="{{ search }}" />
             <button type="submit" class="btn btn-secondary">Book Estimate</button>
           </form>
         </div>
