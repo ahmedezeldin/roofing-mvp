@@ -103,7 +103,8 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
   margin-bottom: 20px;
   padding: 16px 18px;
   background: rgba(255, 255, 255, 0.78);
@@ -118,6 +119,13 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.settings-subcard {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 22px;
+  padding: 18px;
 }
 
 .workflow-mini-note {
@@ -297,7 +305,14 @@
 
 .settings-two-col {
   display: grid;
-  grid-template-columns: 1fr 220px;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.settings-three-col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -306,6 +321,17 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+#after_hours_fields {
+  margin-top: 12px;
+}
+
+.coverage-panel {
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .settings-label {
@@ -320,6 +346,7 @@
    INPUTS
    ========================================================= */
 
+.input,
 .select,
 .textarea {
   width: 100%;
@@ -330,6 +357,13 @@
   font: inherit;
   outline: none;
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.input {
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .select {
@@ -347,11 +381,38 @@
   resize: vertical;
 }
 
+.input:focus,
 .select:focus,
 .textarea:focus {
   border-color: rgba(37, 99, 235, 0.28);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
   background: #fff;
+}
+
+.settings-alert {
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-alert-error {
+  background: var(--red-soft);
+  color: #991b1b;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.settings-alert-success {
+  background: var(--green-soft);
+  color: #166534;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.settings-alert-muted {
+  background: rgba(241, 245, 249, 0.9);
+  color: #334155;
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .workflow-step-textarea {
@@ -429,6 +490,13 @@
 
   .settings-two-col {
     grid-template-columns: 1fr;
+  }
+  .settings-three-col {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-toolbar {
+    flex-wrap: wrap;
   }
 }
 
