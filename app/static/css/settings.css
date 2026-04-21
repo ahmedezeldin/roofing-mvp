@@ -202,6 +202,22 @@
   border-color: rgba(37, 99, 235, 0.18);
 }
 
+.btn-danger-outline {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--red);
+  border-color: rgba(220, 38, 38, 0.24);
+}
+
+.btn-danger-outline:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  border-color: transparent;
+}
+
 .btn-xs {
   min-height: 34px;
   padding: 0 12px;
@@ -232,6 +248,64 @@
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
   border-color: rgba(37, 99, 235, 0.14);
+}
+
+.settings-billing-actions {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cancel-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  padding: 20px;
+}
+
+.cancel-modal.open {
+  display: flex;
+}
+
+.cancel-modal-card {
+  width: min(560px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  padding: 22px;
+  box-shadow: var(--shadow-md);
+}
+
+.cancel-modal-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.cancel-modal-text {
+  margin: 10px 0 16px;
+  color: var(--muted);
+}
+
+.cancel-checkbox {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.cancel-modal-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 /* =========================================================

@@ -94,6 +94,79 @@
   </div>
 </form>
 
+{% set subscription = subscription_snapshot if subscription_snapshot is defined and subscription_snapshot else None %}
+<section class="settings-card">
+  <div class="settings-card-head">
+    <div>
+      <div class="settings-card-title">Membership & Billing</div>
+      <div class="settings-card-subtitle">View your current plan, update payment details, change plan, or cancel with end-of-cycle billing.</div>
+    </div>
+    <div class="settings-pill">Billing</div>
+  </div>
+
+  {% if billing_error %}
+  <div class="settings-alert settings-alert-error">{{ billing_error }}</div>
+  {% endif %}
+  {% if billing_success %}
+  <div class="settings-alert settings-alert-success">{{ billing_success }}</div>
+  {% endif %}
+
+  <div class="settings-two-col">
+    <div class="settings-field">
+      <label class="settings-label">Current Plan</label>
+      <input class="input" value="{{ subscription.plan_label if subscription else 'Pilot' }}" readonly>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Subscription Status</label>
+      <input class="input" value="{{ subscription.status_label if subscription else 'Pending' }}" readonly>
+    </div>
+  </div>
+
+  <div class="settings-alert settings-alert-muted" style="margin-top: 14px;">
+    {% if subscription and subscription.cancel_at_period_end and subscription.current_period_end %}
+      Your membership is scheduled to end on {{ format_dt(subscription.current_period_end) }} (UTC). Access remains active until then.
+    {% elif subscription and subscription.current_period_end %}
+      Your current billing period renews on {{ format_dt(subscription.current_period_end) }} (UTC).
+    {% else %}
+      Billing details are synced from Stripe after your first successful checkout.
+    {% endif %}
+  </div>
+
+  <div class="settings-billing-actions">
+    <form method="post" action="/ui/settings/billing/portal">
+      <button type="submit" class="btn btn-secondary">Change Plan</button>
+    </form>
+    <form method="post" action="/ui/settings/billing/portal">
+      <button type="submit" class="btn btn-secondary">Adjust Billing Info</button>
+    </form>
+    <form method="post" action="/ui/settings/billing/portal">
+      <button type="submit" class="btn btn-secondary">Update Card</button>
+    </form>
+    <button type="button" id="open-cancel-modal" class="btn btn-danger-outline">Cancel Membership</button>
+  </div>
+</section>
+
+<div id="cancel-membership-modal" class="cancel-modal" aria-hidden="true">
+  <div class="cancel-modal-card">
+    <div class="cancel-modal-title">Cancel Membership</div>
+    <p class="cancel-modal-text">
+      This action is intentionally protected. Your subscription will stay active until the end of your current billing cycle and will not end immediately.
+    </p>
+    <form method="post" action="/ui/settings/billing/cancel">
+      <label class="settings-label">Type CANCEL to continue</label>
+      <input class="input" name="confirm_text" placeholder="CANCEL" required>
+      <label class="cancel-checkbox">
+        <input type="checkbox" name="acknowledge_end_of_cycle" value="yes" required>
+        I understand cancellation is effective only at the end of this billing cycle.
+      </label>
+      <div class="cancel-modal-actions">
+        <button type="button" id="close-cancel-modal" class="btn btn-secondary">Keep Membership</button>
+        <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <form id="workflow-form" method="post" action="/ui/settings/update" class="settings-card">
   <div class="settings-card-head">
     <div>
@@ -527,6 +600,31 @@
     if (coverageMode) {
       coverageMode.addEventListener('change', syncCoverageUI);
       syncCoverageUI();
+    }
+
+    const cancelModal = document.getElementById('cancel-membership-modal');
+    const openCancelModalBtn = document.getElementById('open-cancel-modal');
+    const closeCancelModalBtn = document.getElementById('close-cancel-modal');
+
+    const closeCancelModal = () => {
+      if (!cancelModal) return;
+      cancelModal.classList.remove('open');
+      cancelModal.setAttribute('aria-hidden', 'true');
+    };
+
+    if (openCancelModalBtn && cancelModal) {
+      openCancelModalBtn.addEventListener('click', () => {
+        cancelModal.classList.add('open');
+        cancelModal.setAttribute('aria-hidden', 'false');
+      });
+    }
+    if (closeCancelModalBtn) {
+      closeCancelModalBtn.addEventListener('click', closeCancelModal);
+    }
+    if (cancelModal) {
+      cancelModal.addEventListener('click', (event) => {
+        if (event.target === cancelModal) closeCancelModal();
+      });
     }
   })();
 </script>
