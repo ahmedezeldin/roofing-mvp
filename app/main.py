@@ -2414,6 +2414,8 @@ def ui_update_lead_stage(
     if crm_status not in allowed_statuses:
         raise HTTPException(status_code=400, detail="Invalid crm_status")
 
+    previous_crm_status = lead.crm_status
+
     if crm_status == "new":
         lead.status = "new"
         lead.crm_status = "new"
@@ -2425,8 +2427,8 @@ def ui_update_lead_stage(
         if crm_status in ["contacted", "booked", "closed", "lost"]:
             lead.status = "qualified"
 
-    if crm_status == "booked":
-        booking_message = "Great news — your estimate is officially booked. Our team will text you shortly with the confirmed time window."
+    if crm_status == "booked" and previous_crm_status != "booked":
+        booking_message = "Great — your estimate request is now marked as scheduled. We’ll follow up with your confirmed appointment day and arrival window."
         latest_message = (
             db.query(models.Message)
             .filter(models.Message.lead_id == lead.id)
