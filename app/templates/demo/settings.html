@@ -37,6 +37,10 @@
 
   <div class="settings-three-col">
     <div class="settings-field">
+      <label class="settings-label">Email Verification Code</label>
+      <input class="input" name="email_otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Enter 6-digit OTP if changing email">
+    </div>
+    <div class="settings-field">
       <label class="settings-label">First Name</label>
       <input class="input" name="first_name" value="{{ profile_first_name or '' }}" required>
     </div>
@@ -46,8 +50,12 @@
     </div>
     <div class="settings-field">
       <label class="settings-label">Email</label>
-      <input class="input" name="email" type="email" value="{{ current_user.email if has_account_access else '' }}" required>
+      <input class="input" name="email" type="email" value="{{ profile_email if has_account_access else '' }}" required>
     </div>
+  </div>
+
+  <div class="settings-alert settings-alert-muted" style="margin-top: 12px;">
+    If you change your email, click <strong>Save Profile</strong> first to send an OTP to the new address, then enter that OTP and save again.
   </div>
 
   <div style="display:flex; gap:10px; margin-top:16px;">

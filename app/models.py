@@ -157,3 +157,15 @@ class PasswordResetCode(Base):
     verification_token = Column(String, nullable=True, unique=True, index=True)
     verification_expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class EmailChangeCode(Base):
+    __tablename__ = "email_change_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("app_users.id"), nullable=False, index=True)
+    new_email = Column(String, nullable=False, index=True)
+    code_hash = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

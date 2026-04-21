@@ -69,6 +69,7 @@ SHORT_SESSION_DAYS = 1
 REMEMBER_ME_DAYS = 30
 PASSWORD_RESET_CODE_MINUTES = 10
 PASSWORD_RESET_VERIFY_MINUTES = 15
+EMAIL_CHANGE_CODE_MINUTES = 10
 
 # --------------------------------------------------
 # TEMPLATE HELPERS
@@ -266,6 +267,52 @@ def send_password_reset_code(email: str, code: str) -> bool:
                 print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
                 return False
             print(f"[PASSWORD RESET WARN] Attempt {attempt} failed for {email}: {exc}. Retrying...")
+
+
+def send_email_change_code(email: str, code: str) -> bool:
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
+    smtp_from = os.getenv("SMTP_FROM", "").strip() or smtp_user
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() in {"1", "true", "yes"}
+    smtp_timeout_seconds = int(os.getenv("SMTP_TIMEOUT_SECONDS", "60"))
+
+    if not smtp_host or not smtp_from:
+        print(f"[EMAIL CHANGE OTP] No SMTP configured. Email={email}, code={code}")
+        return False
+
+    message = EmailMessage()
+    message["Subject"] = "Your Roofing Front Desk email change code"
+    message["From"] = smtp_from
+    message["To"] = email
+    message.set_content(
+        "Use this one-time code to confirm your new email:\n\n"
+        f"{code}\n\n"
+        f"This code expires in {EMAIL_CHANGE_CODE_MINUTES} minutes."
+    )
+
+    for attempt in range(1, 3):
+        try:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout_seconds) as smtp:
+                smtp.ehlo()
+                if smtp_tls:
+                    smtp.starttls()
+                    smtp.ehlo()
+                if smtp_user:
+                    smtp.login(smtp_user, smtp_password)
+                smtp.send_message(message)
+            return True
+        except smtplib.SMTPException as exc:
+            if attempt == 2:
+                print(f"[EMAIL CHANGE OTP ERROR] Failed to send email to {email}: {exc}")
+                return False
+            print(f"[EMAIL CHANGE OTP WARN] Attempt {attempt} failed for {email}: {exc}. Retrying...")
+        except Exception as exc:
+            print(f"[EMAIL CHANGE OTP ERROR] Unexpected error sending to {email}: {exc}")
+            return False
+
+    return False
 
 
 def send_billing_receipt_email(
@@ -2247,6 +2294,7 @@ def render_app_settings_template(
     password_success: Optional[str] = None,
     profile_first_name: Optional[str] = None,
     profile_last_name: Optional[str] = None,
+    profile_email: Optional[str] = None,
     workflow_steps: Optional[list[dict]] = None,
     billing_error: Optional[str] = None,
     billing_success: Optional[str] = None,
@@ -2264,6 +2312,7 @@ def render_app_settings_template(
             "current_user": current_user,
             "profile_first_name": profile_first_name if profile_first_name is not None else first_name,
             "profile_last_name": profile_last_name if profile_last_name is not None else last_name,
+            "profile_email": profile_email if profile_email is not None else (current_user.email or ""),
             "account_error": account_error,
             "account_success": account_success,
             "password_error": password_error,
@@ -2372,6 +2421,7 @@ def ui_update_account(
     first_name: str = Form(...),
     last_name: str = Form(""),
     email: str = Form(...),
+    email_otp: str = Form(""),
     db: Session = Depends(get_db),
 ):
     current_user = get_current_user_from_cookie(request, db)
@@ -2385,6 +2435,7 @@ def ui_update_account(
     normalized_first_name = (first_name or "").strip()
     normalized_last_name = (last_name or "").strip()
     normalized_email = (email or "").strip().lower()
+    normalized_otp = (email_otp or "").strip()
 
     if not normalized_first_name:
         return render_app_settings_template(
@@ -2395,6 +2446,7 @@ def ui_update_account(
             account_error="First name is required.",
             profile_first_name=normalized_first_name,
             profile_last_name=normalized_last_name,
+            profile_email=normalized_email,
         )
 
     if not normalized_email:
@@ -2406,6 +2458,7 @@ def ui_update_account(
             account_error="Email is required.",
             profile_first_name=normalized_first_name,
             profile_last_name=normalized_last_name,
+            profile_email=normalized_email,
         )
 
     existing_user = (
@@ -2422,7 +2475,91 @@ def ui_update_account(
             account_error="That email is already used by another account.",
             profile_first_name=normalized_first_name,
             profile_last_name=normalized_last_name,
+            profile_email=normalized_email,
         )
+
+    current_email = (current_user.email or "").strip().lower()
+
+    if normalized_email != current_email:
+        if not normalized_otp:
+            code = generate_reset_code()
+            code_hash = hash_reset_code(code)
+            expires_at = datetime.utcnow() + timedelta(minutes=EMAIL_CHANGE_CODE_MINUTES)
+
+            (
+                db.query(models.EmailChangeCode)
+                .filter(
+                    models.EmailChangeCode.user_id == current_user.id,
+                    models.EmailChangeCode.new_email == normalized_email,
+                    models.EmailChangeCode.used_at.is_(None),
+                )
+                .delete(synchronize_session=False)
+            )
+
+            pending_codes = (
+                db.query(models.EmailChangeCode)
+                .filter(
+                    models.EmailChangeCode.user_id == current_user.id,
+                    models.EmailChangeCode.used_at.is_(None),
+                )
+                .all()
+            )
+            for pending in pending_codes:
+                pending.used_at = datetime.utcnow()
+
+            db.add(
+                models.EmailChangeCode(
+                    user_id=current_user.id,
+                    new_email=normalized_email,
+                    code_hash=code_hash,
+                    expires_at=expires_at,
+                )
+            )
+            db.commit()
+
+            sent_to_email = send_email_change_code(normalized_email, code)
+            preview_code = None if sent_to_email else code
+            info_message = "We sent a one-time code to your new email. Enter it below to confirm this change."
+            if not sent_to_email:
+                info_message = "Email delivery is not configured yet. Use the temporary code below to confirm this change."
+                info_message = f"{info_message} Code: {preview_code}"
+
+            return render_app_settings_template(
+                request,
+                db,
+                current_user,
+                workspace,
+                account_success=info_message,
+                profile_first_name=normalized_first_name,
+                profile_last_name=normalized_last_name,
+                profile_email=normalized_email,
+            )
+
+        email_change = (
+            db.query(models.EmailChangeCode)
+            .filter(
+                models.EmailChangeCode.user_id == current_user.id,
+                models.EmailChangeCode.new_email == normalized_email,
+                models.EmailChangeCode.used_at.is_(None),
+                models.EmailChangeCode.expires_at >= datetime.utcnow(),
+            )
+            .order_by(models.EmailChangeCode.created_at.desc())
+            .first()
+        )
+
+        if not email_change or hash_reset_code(normalized_otp) != email_change.code_hash:
+            return render_app_settings_template(
+                request,
+                db,
+                current_user,
+                workspace,
+                account_error="Invalid or expired verification code for the new email.",
+                profile_first_name=normalized_first_name,
+                profile_last_name=normalized_last_name,
+                profile_email=normalized_email,
+            )
+
+        email_change.used_at = datetime.utcnow()
 
     current_user.full_name = f"{normalized_first_name} {normalized_last_name}".strip()
     current_user.email = normalized_email
