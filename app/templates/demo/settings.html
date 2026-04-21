@@ -195,6 +195,21 @@
     </div>
   </div>
 
+  {% set service_phone = (ws.business_phone if ws and ws.business_phone else (ws.pending_twilio_number if ws and ws.pending_twilio_number else 'Not set')) %}
+  <div class="settings-two-col">
+    <div class="settings-field">
+      <label class="settings-label">Current Service Number</label>
+      <input class="input" value="{{ service_phone }}" readonly>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Number Change Policy</label>
+      <input class="input" value="Switching to a new number requires a $25 change fee." readonly>
+    </div>
+  </div>
+  <div class="settings-alert settings-alert-muted" style="margin-top: 12px;">
+    Need a different service number? Choose <strong>Provision new number</strong> and we’ll confirm the $25 change fee before updating your routing.
+  </div>
+
   <section class="workflow-main-card settings-workflow-main-card">
     <div class="workflow-kicker">Workflow Management</div>
     <h2 class="workflow-title settings-workflow-title">Set up how we text missed callers</h2>
