@@ -4,6 +4,12 @@
 <div class="page-header">
   <h1 class="page-title">Lead Inbox</h1>
 </div>
+{% if upgrade_message %}
+<div class="settings-alert settings-alert-muted" style="margin-bottom: 12px;">
+  {{ upgrade_message }}
+  <a href="/pricing" style="margin-left: 8px;">Upgrade to Growth</a>
+</div>
+{% endif %}
 
 {% set selected = selected_lead %}
 {% set waiting_on_us = high_priority_count %}

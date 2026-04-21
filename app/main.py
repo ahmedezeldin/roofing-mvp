@@ -99,6 +99,12 @@ def note_preview(raw_notes: Optional[str]) -> str:
 
 templates.env.globals["note_preview"] = note_preview
 
+PILOT_GROWTH_UPGRADE_COPY = {
+    "pipeline_reporting": "Pipeline and reporting are available on Growth. Upgrade to Growth to unlock this view.",
+    "advanced_stage_management": "Advanced pipeline stage management is available on Growth. Upgrade to Growth to move leads beyond Qualified.",
+}
+PILOT_BLOCKED_STAGE_UPDATES = {"contacted", "booked", "closed", "lost"}
+
 
 # --------------------------------------------------
 # AUTH HELPERS
@@ -357,6 +363,19 @@ def get_current_workspace(request: Request, db: Session) -> Optional[models.Work
         .filter(models.Workspace.owner_user_id == user.id)
         .first()
     )
+
+
+def is_pilot_workspace(workspace: Optional[models.Workspace]) -> bool:
+    if not workspace:
+        return False
+    return (workspace.plan or "").strip().lower() == "pilot"
+
+
+def pilot_upgrade_message(feature_key: str) -> Optional[str]:
+    normalized_feature_key = (feature_key or "").strip().lower()
+    if not normalized_feature_key:
+        return None
+    return PILOT_GROWTH_UPGRADE_COPY.get(normalized_feature_key)
 
 
 def get_workspace_settings(db: Session, workspace_id: int) -> models.BusinessSettings:
@@ -1741,6 +1760,7 @@ def app_inbox(
     search: str = Query(""),
     priority_filter: str = Query("all"),
     insurance_filter: str = Query("all"),
+    upgrade_required: str = Query(""),
     db: Session = Depends(get_db),
 ):
     current_user = get_current_user_from_cookie(request, db)
@@ -1806,6 +1826,7 @@ def app_inbox(
             "priority_filter": priority_filter,
             "insurance_filter": insurance_filter,
             "search": search,
+            "upgrade_message": pilot_upgrade_message(upgrade_required),
             "high_priority_count": high_priority_count,
             "qualified_count": qualified_count,
             "booked_count": booked_count,
@@ -1826,6 +1847,11 @@ def app_pipeline(request: Request, db: Session = Depends(get_db)):
     workspace = get_current_workspace(request, db)
     if not workspace:
         return RedirectResponse(url="/signup", status_code=303)
+    if is_pilot_workspace(workspace):
+        return RedirectResponse(
+            url="/app/inbox?upgrade_required=pipeline_reporting",
+            status_code=303,
+        )
 
     settings = get_workspace_settings(db, workspace.id)
 
@@ -2413,6 +2439,23 @@ def ui_update_lead_stage(
     allowed_statuses = {"new", "qualified", "contacted", "booked", "closed", "lost"}
     if crm_status not in allowed_statuses:
         raise HTTPException(status_code=400, detail="Invalid crm_status")
+
+    if (
+        inbox_path == "/app/inbox"
+        and is_pilot_workspace(lead.workspace)
+        and crm_status in PILOT_BLOCKED_STAGE_UPDATES
+    ):
+        return RedirectResponse(
+            url=(
+                f"/app/inbox?lead_id={lead_id}"
+                f"&crm_status_filter={crm_status_filter}"
+                f"&priority_filter={priority_filter}"
+                f"&insurance_filter={insurance_filter}"
+                f"&search={search}"
+                "&upgrade_required=advanced_stage_management"
+            ),
+            status_code=303,
+        )
 
     previous_crm_status = lead.crm_status
 

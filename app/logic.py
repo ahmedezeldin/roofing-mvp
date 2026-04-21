@@ -314,6 +314,8 @@ def process_inbound_message(
     send_outbound_sms: bool = True,
 ) -> str:
     text = normalize_text(inbound_text)
+    workspace_plan = (lead.workspace.plan or "").strip().lower() if lead.workspace else "pilot"
+    is_pilot_plan = workspace_plan == "pilot"
 
     create_message(db, lead.id, "inbound", inbound_text)
 
@@ -340,14 +342,31 @@ def process_inbound_message(
     elif lead.conversation_state == "awaiting_name":
         if looks_like_name(inbound_text):
             lead.customer_name = inbound_text.strip()
-            lead.conversation_state = "awaiting_urgency"
-            lead.status = "in_progress"
-            reply = "How urgent is it: emergency, this week, or flexible?"
+            if is_pilot_plan:
+                lead.conversation_state = "qualified"
+                lead.status = "qualified"
+                just_qualified = True
+                reply = (
+                    "Thanks — your request has been captured. "
+                    "For advanced qualification and pipeline tracking, upgrade to Growth."
+                )
+            else:
+                lead.conversation_state = "awaiting_urgency"
+                lead.status = "in_progress"
+                reply = "How urgent is it: emergency, this week, or flexible?"
         else:
             reply = "Please reply with your name."
 
     elif lead.conversation_state == "awaiting_urgency":
-        if text in VALID_URGENCY:
+        if is_pilot_plan:
+            lead.conversation_state = "qualified"
+            lead.status = "qualified"
+            just_qualified = True
+            reply = (
+                "You are on Pilot, so advanced qualification is locked. "
+                "Upgrade to Growth to capture urgency and insurance details automatically."
+            )
+        elif text in VALID_URGENCY:
             lead.urgency = VALID_URGENCY[text]
             lead.priority = compute_priority(lead.urgency)
             lead.conversation_state = "awaiting_insurance_claim"
@@ -357,7 +376,15 @@ def process_inbound_message(
             reply = "How urgent is it: emergency, this week, or flexible?"
 
     elif lead.conversation_state == "awaiting_insurance_claim":
-        if text in VALID_YES_NO:
+        if is_pilot_plan:
+            lead.conversation_state = "qualified"
+            lead.status = "qualified"
+            just_qualified = True
+            reply = (
+                "You are on Pilot, so advanced qualification is locked. "
+                "Upgrade to Growth to capture urgency and insurance details automatically."
+            )
+        elif text in VALID_YES_NO:
             lead.insurance_claim = VALID_YES_NO[text]
             lead.conversation_state = "qualified"
             lead.status = "qualified"
