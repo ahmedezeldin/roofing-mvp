@@ -389,6 +389,40 @@ def get_workspace_settings(db: Session, workspace_id: int) -> models.BusinessSet
     return settings
 
 
+def get_plan_display_name(plan: Optional[str]) -> str:
+    normalized = (plan or "").strip().lower()
+    if normalized == "growth":
+        return "Growth"
+    return "Pilot"
+
+
+def get_subscription_snapshot(workspace: Optional[models.Workspace]) -> dict:
+    snapshot = {
+        "plan_label": get_plan_display_name(workspace.plan if workspace else "pilot"),
+        "status_label": (workspace.status or "pending").replace("_", " ").title() if workspace else "Pending",
+        "has_subscription": bool(workspace and workspace.stripe_subscription_id),
+        "cancel_at_period_end": False,
+        "current_period_end": None,
+    }
+
+    if not workspace or not stripe.api_key or not workspace.stripe_subscription_id:
+        return snapshot
+
+    try:
+        subscription = stripe.Subscription.retrieve(workspace.stripe_subscription_id)
+        snapshot["cancel_at_period_end"] = bool(stripe_attr(subscription, "cancel_at_period_end", False))
+        period_end = stripe_attr(subscription, "current_period_end")
+        if period_end:
+            snapshot["current_period_end"] = datetime.utcfromtimestamp(int(period_end))
+        status = stripe_attr(subscription, "status")
+        if status:
+            snapshot["status_label"] = str(status).replace("_", " ").title()
+    except Exception:
+        pass
+
+    return snapshot
+
+
 # --------------------------------------------------
 # DEMO DATA HELPERS
 # --------------------------------------------------
@@ -1856,7 +1890,12 @@ def app_pipeline(request: Request, db: Session = Depends(get_db)):
 
 
 @app.get("/app/settings", response_class=HTMLResponse)
-def app_settings(request: Request, db: Session = Depends(get_db)):
+def app_settings(
+    request: Request,
+    billing_success: Optional[str] = Query(None),
+    billing_error: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
     current_user = get_current_user_from_cookie(request, db)
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
@@ -1868,6 +1907,7 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
     first_name, last_name = split_full_name(current_user.full_name)
     settings = get_workspace_settings(db, workspace.id)
     workflow_steps = get_settings_workflow_steps(db, current_user, settings.business_name)
+    subscription_snapshot = get_subscription_snapshot(workspace)
 
     return templates.TemplateResponse(
         request,
@@ -1879,6 +1919,9 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
             "profile_first_name": first_name,
             "profile_last_name": last_name,
             "workflow_steps": workflow_steps,
+            "subscription_snapshot": subscription_snapshot,
+            "billing_success": billing_success,
+            "billing_error": billing_error,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -2002,10 +2045,13 @@ def render_app_settings_template(
     profile_first_name: Optional[str] = None,
     profile_last_name: Optional[str] = None,
     workflow_steps: Optional[list[dict]] = None,
+    billing_error: Optional[str] = None,
+    billing_success: Optional[str] = None,
 ):
     settings = get_workspace_settings(db, workspace.id)
     first_name, last_name = split_full_name(current_user.full_name)
     effective_workflow_steps = workflow_steps or get_settings_workflow_steps(db, current_user, settings.business_name)
+    subscription_snapshot = get_subscription_snapshot(workspace)
     return templates.TemplateResponse(
         request,
         "demo/settings.html",
@@ -2020,6 +2066,9 @@ def render_app_settings_template(
             "password_error": password_error,
             "password_success": password_success,
             "workflow_steps": effective_workflow_steps,
+            "subscription_snapshot": subscription_snapshot,
+            "billing_error": billing_error,
+            "billing_success": billing_success,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -2247,6 +2296,108 @@ def ui_update_password(
         current_user,
         workspace,
         password_success="Password updated successfully.",
+    )
+
+
+@app.post("/ui/settings/billing/portal")
+def ui_settings_billing_portal(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    if not stripe.api_key:
+        return RedirectResponse(
+            url="/app/settings?billing_error=Stripe+is+not+configured+yet.",
+            status_code=303,
+        )
+
+    if not workspace.stripe_customer_id:
+        return RedirectResponse(
+            url="/app/settings?billing_error=No+Stripe+customer+is+linked+to+this+workspace.",
+            status_code=303,
+        )
+
+    try:
+        session = stripe.billing_portal.Session.create(
+            customer=workspace.stripe_customer_id,
+            return_url=f"{APP_BASE_URL}/app/settings",
+        )
+        return RedirectResponse(url=session.url, status_code=303)
+    except Exception:
+        return RedirectResponse(
+            url="/app/settings?billing_error=We+could+not+open+the+billing+portal.+Please+try+again.",
+            status_code=303,
+        )
+
+
+@app.post("/ui/settings/billing/cancel")
+def ui_settings_cancel_membership(
+    request: Request,
+    confirm_text: str = Form(""),
+    acknowledge_end_of_cycle: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    if (confirm_text or "").strip().upper() != "CANCEL":
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error='Type "CANCEL" exactly to confirm cancellation.',
+        )
+
+    if acknowledge_end_of_cycle != "yes":
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error="Please confirm that cancellation takes effect at the end of your current billing cycle.",
+        )
+
+    if not stripe.api_key or not workspace.stripe_subscription_id:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error="No active Stripe subscription was found for this workspace.",
+        )
+
+    try:
+        stripe.Subscription.modify(
+            workspace.stripe_subscription_id,
+            cancel_at_period_end=True,
+        )
+        workspace.status = "cancel_at_period_end"
+        db.commit()
+    except Exception:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error="We couldn't schedule cancellation right now. Please try again in a minute.",
+        )
+
+    return RedirectResponse(
+        url="/app/settings?billing_success=Cancellation+scheduled.+Your+subscription+remains+active+until+the+end+of+the+current+billing+cycle.",
+        status_code=303,
     )
 
 
