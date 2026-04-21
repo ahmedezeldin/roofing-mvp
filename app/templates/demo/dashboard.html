@@ -63,11 +63,12 @@
           <div class="metric-foot">Closed business this month</div>
         </div>
 
-        <div class="metric-card metric-card-accent">
-          <div class="metric-label">Response SLA</div>
-          <div class="metric-value">{{ response_sla_label }}</div>
-          <div class="metric-foot">Target for hot lead touch</div>
+        <div class="metric-card">
+          <div class="metric-label">Est. Pipeline Value</div>
+          <div class="metric-value">${{ "{:,.0f}".format(estimated_pipeline_value) }}</div>
+          <div class="metric-foot">Live estimate from open stages</div>
         </div>
+
       </div>
     </section>
 
@@ -85,6 +86,7 @@
         <div class="workspace-metric-card">
           <div class="workspace-metric-label">Estimated Pipeline Value</div>
           <div class="workspace-metric-value">${{ "{:,.0f}".format(estimated_pipeline_value) }}</div>
+          <div class="workspace-metric-label" style="margin-top:6px; text-transform:none; letter-spacing:0; font-size:12px;">Formula: New×3.5k, Qualified×6.5k, Contacted×9k, Booked×12k</div>
         </div>
 
         <div class="workspace-metric-card">
@@ -137,9 +139,9 @@
           <div class="queue-item-main">
             <div class="queue-item-name">{{ lead.customer_name or lead.phone_number }}</div>
             <div class="queue-item-sub">
-              {{ lead.job_type or "unknown job" }}
+              {{ (lead.job_type or "unknown job")|replace('_', ' ')|title }}
               {% if lead.postal_code %} · {{ lead.postal_code }}{% endif %}
-              {% if lead.urgency %} · {{ lead.urgency|title }}{% endif %}
+              {% if lead.urgency %} · {{ lead.urgency|replace('_', ' ')|title }}{% endif %}
             </div>
           </div>
 
@@ -267,10 +269,6 @@
             </strong>
           </div>
 
-          <div class="dashboard-metric-row">
-            <span>Response Target</span>
-            <strong>{{ response_sla_label }}</strong>
-          </div>
         </div>
       </section>
     </div>
@@ -317,83 +315,11 @@
       <div class="activity-list">
         <div class="activity-row">
           <span>Business Name</span>
-          <strong>{{ settings.business_name }}</strong>
+          <strong style="text-align:right;">{{ settings.business_name }}</strong>
         </div>
         <div class="activity-row">
           <span>Mode</span>
-          <strong>{% if twilio_live %}Live SMS{% else %}Simulation{% endif %}</strong>
-        </div>
-        <div class="activity-row block">
-          <span>First Message</span>
-          <strong>{{ (settings.first_message or "Hey, thanks for calling {business_name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?").format(business_name=settings.business_name) }}</strong>
-        </div>
-      </div>
-    </section>
-
-    <section class="settings-card">
-      <div class="settings-card-head">
-        <div>
-          <div class="settings-card-title">Suggested Actions</div>
-          <div class="settings-card-subtitle">Fast operator shortcuts based on current lead flow.</div>
-        </div>
-      </div>
-
-      <div class="action-stack">
-        <a href="/demo/inbox" class="action-card">
-          <div class="action-card-title">Review active conversations</div>
-          <div class="action-card-sub">Open the workspace and respond to leads quickly.</div>
-        </a>
-
-        <a href="/demo/pipeline" class="action-card">
-          <div class="action-card-title">Move qualified leads forward</div>
-          <div class="action-card-sub">Update pipeline stages and schedule estimates.</div>
-        </a>
-
-        <a href="/demo/settings" class="action-card">
-          <div class="action-card-title">Check front-desk settings</div>
-          <div class="action-card-sub">Review business name and outbound messaging setup.</div>
-        </a>
-      </div>
-    </section>
-
-    <section class="settings-card">
-      <div class="settings-card-head">
-        <div>
-          <div class="settings-card-title">Owner Readout</div>
-          <div class="settings-card-subtitle">Plain-English interpretation of what the system is seeing.</div>
-        </div>
-      </div>
-
-      <div class="improvement-stack">
-        <div class="improvement-item">
-          <strong>
-            {% if emergency_overdue > 0 %}
-              Follow-up speed is the biggest risk right now
-            {% elif booked_week > 0 %}
-              Booking flow is moving in the right direction
-            {% else %}
-              Lead flow is light and stable
-            {% endif %}
-          </strong>
-          <span>
-            {% if emergency_overdue > 0 %}
-              One or more qualified leads are close to going cold. Immediate callback effort matters most.
-            {% elif booked_week > 0 %}
-              Booked opportunities are visible. The next goal is converting scheduled jobs into won revenue.
-            {% else %}
-              No serious pressure is showing. The next improvement is generating more qualified conversations.
-            {% endif %}
-          </span>
-        </div>
-
-        <div class="improvement-item">
-          <strong>Qualified demand is visible</strong>
-          <span>{{ hot_leads }} qualified lead{% if hot_leads != 1 %}s{% endif %} are ready for live sales follow-up.</span>
-        </div>
-
-        <div class="improvement-item">
-          <strong>Booking flow status</strong>
-          <span>{{ booked_week }} lead{% if booked_week != 1 %}s{% endif %} have already reached scheduled estimate activity this week.</span>
+          <strong style="text-align:right;">Simulation</strong>
         </div>
       </div>
     </section>
