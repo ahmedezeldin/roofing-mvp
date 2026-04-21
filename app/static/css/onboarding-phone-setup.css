@@ -290,7 +290,7 @@
 .coverage-choice-card {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
   border: 1px solid #d9e1ef;
   border-radius: 18px;
   padding: 16px;
@@ -298,8 +298,21 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
+.coverage-choice-card:hover {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
 .coverage-choice-card input {
-  margin-top: 4px;
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+  flex: 0 0 auto;
+}
+
+.coverage-choice-content {
+  flex: 1 1 auto;
 }
 
 .coverage-choice-card-active {
