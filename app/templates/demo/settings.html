@@ -133,12 +133,10 @@
 
     <input type="hidden" name="workflow_steps_json" id="steps_json">
 
-  <div class="workflow-toolbar">
+    <div class="workflow-toolbar">
       <button type="button" class="btn btn-primary" id="add-step-btn">+ Add Step</button>
       <button type="button" class="btn btn-secondary" id="reset-steps-btn">Use Recommended Flow</button>
     </div>
-    <div class="settings-pill">Workflow</div>
-  </div>
 
     <div class="workflow-helper-text">
       Drag to reorder or use the arrow buttons.
@@ -150,36 +148,35 @@
       <label class="settings-label">First Message Preview</label>
       <textarea class="textarea" name="first_message" id="first_message_preview" rows="3" readonly>{{ settings.first_message or '' }}</textarea>
     </div>
-  </div>
+    <div class="coverage-panel">
+      <div class="settings-two-col">
+        <div class="settings-field">
+          <label class="settings-label">Coverage Mode</label>
+          <select class="select" name="coverage_mode" id="coverage_mode">
+            <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
+            <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
+          </select>
+        </div>
+        <div class="settings-field" id="coverage_schedule_row">
+          <label class="settings-label">Business Days</label>
+          <select class="select" name="business_days" id="business_days">
+            <option value="" {% if not ws or not ws.business_days %}selected{% endif %}>Not set</option>
+            <option value="mon_fri" {% if ws and ws.business_days == 'mon_fri' %}selected{% endif %}>Mon–Fri</option>
+            <option value="mon_sat" {% if ws and ws.business_days == 'mon_sat' %}selected{% endif %}>Mon–Sat</option>
+            <option value="all_week" {% if ws and ws.business_days == 'all_week' %}selected{% endif %}>All week</option>
+          </select>
+        </div>
+      </div>
 
-  <div class="coverage-panel">
-    <div class="settings-two-col">
-      <div class="settings-field">
-        <label class="settings-label">Coverage Mode</label>
-        <select class="select" name="coverage_mode" id="coverage_mode">
-          <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
-          <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
-        </select>
-      </div>
-      <div class="settings-field" id="coverage_schedule_row">
-        <label class="settings-label">Business Days</label>
-        <select class="select" name="business_days" id="business_days">
-          <option value="" {% if not ws or not ws.business_days %}selected{% endif %}>Not set</option>
-          <option value="mon_fri" {% if ws and ws.business_days == 'mon_fri' %}selected{% endif %}>Mon–Fri</option>
-          <option value="mon_sat" {% if ws and ws.business_days == 'mon_sat' %}selected{% endif %}>Mon–Sat</option>
-          <option value="all_week" {% if ws and ws.business_days == 'all_week' %}selected{% endif %}>All week</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="settings-two-col" id="after_hours_fields">
-      <div class="settings-field">
-        <label class="settings-label">Workday Start</label>
-        <input class="input" type="time" name="workday_start" value="{{ ws.workday_start if ws else '' }}">
-      </div>
-      <div class="settings-field">
-        <label class="settings-label">Workday End</label>
-        <input class="input" type="time" name="workday_end" value="{{ ws.workday_end if ws else '' }}">
+      <div class="settings-two-col" id="after_hours_fields">
+        <div class="settings-field">
+          <label class="settings-label">Workday Start</label>
+          <input class="input" type="time" name="workday_start" value="{{ ws.workday_start if ws else '' }}">
+        </div>
+        <div class="settings-field">
+          <label class="settings-label">Workday End</label>
+          <input class="input" type="time" name="workday_end" value="{{ ws.workday_end if ws else '' }}">
+        </div>
       </div>
     </div>
   </div>
