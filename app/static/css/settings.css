@@ -128,6 +128,29 @@
   padding: 18px;
 }
 
+.settings-workflow-main-card {
+  margin-top: 26px;
+}
+
+.settings-workflow-title {
+  font-size: clamp(1.8rem, 2.6vw, 2.7rem);
+}
+
+.settings-workflow-main-card .workflow-toolbar {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: auto;
+  margin-top: 22px;
+  margin-bottom: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
 .workflow-mini-note {
   font-size: 13px;
   font-weight: 700;

@@ -122,14 +122,12 @@
     </div>
   </div>
 
-  <div class="settings-subcard" style="margin-top:26px;">
-    <div class="settings-card-head" style="margin-bottom: 8px;">
-      <div>
-        <div class="settings-card-title" style="font-size: clamp(1.5rem, 1.8vw, 1.9rem);">Workflow Management</div>
-        <div class="settings-card-subtitle">Set up how we text missed callers, qualify leads, and trigger handoff.</div>
-      </div>
-      <div class="settings-pill">Workflow</div>
-    </div>
+  <section class="workflow-main-card settings-workflow-main-card">
+    <div class="workflow-kicker">Workflow Management</div>
+    <h2 class="workflow-title settings-workflow-title">Set up how we text missed callers</h2>
+    <p class="workflow-subtitle">
+      We’ll automatically text missed callers, qualify the lead, and help your team know when to step in.
+    </p>
 
     <input type="hidden" name="workflow_steps_json" id="steps_json">
 
@@ -179,7 +177,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
   <div style="display:flex; gap:10px; margin-top:24px;">
     <button type="submit" class="btn btn-primary">Save Settings</button>
@@ -395,11 +393,7 @@
               </div>
             </div>
           </div>
-          <div class="settings-field">
-            <label class="settings-label">Message</label>
-            <textarea class="textarea workflow-step-textarea" rows="3"></textarea>
-          </div>
-        `;
+        </div>
 
         <div class="workflow-field-group">
           <label>Text message</label>
