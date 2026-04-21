@@ -142,10 +142,6 @@
 
     <div id="workflow-steps" class="workflow-steps"></div>
 
-    <div class="settings-field" style="margin-top: 10px;">
-      <label class="settings-label">First Message Preview</label>
-      <textarea class="textarea" name="first_message" id="first_message_preview" rows="3" readonly>{{ settings.first_message or '' }}</textarea>
-    </div>
     <div class="coverage-panel">
       <div class="settings-two-col">
         <div class="settings-field">
@@ -273,7 +269,6 @@
     const addStepBtn = document.getElementById("add-step-btn");
     const resetStepsBtn = document.getElementById("reset-steps-btn");
     const workflowForm = document.getElementById("workflow-form");
-    const firstMessagePreview = document.getElementById('first_message_preview');
 
     function escapeHtml(str) {
       return String(str || "")
@@ -292,9 +287,6 @@
 
     function updateHiddenInput() {
       if (stepsInput) stepsInput.value = JSON.stringify(steps);
-      if (firstMessagePreview) {
-        firstMessagePreview.value = (steps[0] && steps[0].message) ? steps[0].message : '';
-      }
     }
 
     function moveStep(index, direction) {
