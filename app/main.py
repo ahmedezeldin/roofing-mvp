@@ -1487,7 +1487,11 @@ def billing_success_page(
                 )
                 if workspace:
                     business_name = workspace.company_name
-                    phone_number = workspace.business_phone or workspace.pending_twilio_number
+                    phone_number = (
+                        workspace.business_phone
+                        or workspace.active_twilio_number
+                        or workspace.pending_twilio_number
+                    )
 
             if not user_to_auth and customer_email:
                 user_to_auth = (
@@ -1608,6 +1612,19 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 workspace.status = "active"
                 workspace.stripe_customer_id = customer_id
                 workspace.stripe_subscription_id = subscription_id
+
+                if workspace.phone_mode == "new" and workspace.pending_twilio_number and not workspace.active_twilio_number:
+                    try:
+                        purchased_number = provision_twilio_number(workspace.pending_twilio_number)
+                        workspace.active_twilio_number = getattr(
+                            purchased_number,
+                            "phone_number",
+                            workspace.pending_twilio_number,
+                        )
+                        workspace.business_phone = workspace.active_twilio_number
+                        workspace.pending_twilio_number = None
+                    except Exception as exc:
+                        print(f"twilio.provision.failed workspace={workspace.id} error={exc}")
                 db.commit()
 
         print("checkout.session.completed", session_id)
@@ -3007,6 +3024,24 @@ def get_twilio_client() -> Client:
     return Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 
+def provision_twilio_number(number: str):
+    normalized_number = (number or "").strip()
+    if not normalized_number:
+        raise HTTPException(status_code=400, detail="No Twilio number was selected.")
+
+    client = get_twilio_client()
+    existing = client.incoming_phone_numbers.list(phone_number=normalized_number, limit=1)
+    if existing:
+        return existing[0]
+
+    sms_webhook_url = f"{APP_BASE_URL}/webhooks/twilio/inbound"
+    return client.incoming_phone_numbers.create(
+        phone_number=normalized_number,
+        sms_url=sms_webhook_url,
+        sms_method="POST",
+    )
+
+
 CITY_AREA_CODE_MAP: Dict[str, List[str]] = {
     "calgary": ["403", "587", "825", "368"],
     "edmonton": ["780", "587", "825", "368"],
@@ -3222,9 +3257,24 @@ def onboarding_phone_setup_submit(
         if workspace.phone_mode == "existing":
             workspace.business_phone = phone_setup_data["business_phone"] or None
             workspace.pending_twilio_number = None
+            workspace.active_twilio_number = None
         else:
-            workspace.business_phone = None
-            workspace.pending_twilio_number = phone_setup_data["selected_twilio_number"] or None
+            selected_number = phone_setup_data["selected_twilio_number"] or None
+            if selected_number:
+                try:
+                    purchased_number = provision_twilio_number(selected_number)
+                    workspace.active_twilio_number = getattr(purchased_number, "phone_number", selected_number)
+                    workspace.pending_twilio_number = None
+                    workspace.business_phone = workspace.active_twilio_number
+                except Exception as exc:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Could not purchase the selected number: {exc}",
+                    )
+            else:
+                workspace.business_phone = None
+                workspace.active_twilio_number = None
+                workspace.pending_twilio_number = None
 
         if workspace.coverage_mode == "after_hours":
             workspace.workday_start = phone_setup_data["workday_start"] or None
