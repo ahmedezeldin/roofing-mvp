@@ -309,17 +309,14 @@
   margin-bottom: 14px;
 }
 
-.settings-three-col {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
 .settings-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+#after_hours_fields {
+  margin-top: 12px;
 }
 
 .settings-label {

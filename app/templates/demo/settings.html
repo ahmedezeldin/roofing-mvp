@@ -150,14 +150,15 @@
     </div>
   </div>
 
-  <div class="settings-two-col">
-    <div class="settings-field">
-      <label class="settings-label">Coverage Mode</label>
-      <select class="select" name="coverage_mode" id="coverage_mode">
-        <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
-        <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
-      </select>
-    </div>
+  <div class="settings-field">
+    <label class="settings-label">Coverage Mode</label>
+    <select class="select" name="coverage_mode" id="coverage_mode">
+      <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
+      <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
+    </select>
+  </div>
+
+  <div id="after_hours_fields">
     <div class="settings-field">
       <label class="settings-label">Business Days</label>
       <select class="select" name="business_days" id="business_days">
@@ -167,9 +168,8 @@
         <option value="all_week" {% if ws and ws.business_days == 'all_week' %}selected{% endif %}>All week</option>
       </select>
     </div>
-  </div>
 
-  <div class="settings-two-col" id="after_hours_fields">
+    <div class="settings-two-col">
     <div class="settings-field">
       <label class="settings-label">Workday Start</label>
       <input class="input" type="time" name="workday_start" value="{{ ws.workday_start if ws else '' }}">
@@ -177,6 +177,7 @@
     <div class="settings-field">
       <label class="settings-label">Workday End</label>
       <input class="input" type="time" name="workday_end" value="{{ ws.workday_end if ws else '' }}">
+    </div>
     </div>
   </div>
 
@@ -248,8 +249,22 @@
     }
 
     const savedStepsRaw = {{ workflow_steps | default([]) | tojson | safe }};
+    const parsedSavedSteps = (() => {
+      if (Array.isArray(savedStepsRaw)) return savedStepsRaw;
+      if (typeof savedStepsRaw === "string") {
+        try {
+          const decoded = JSON.parse(savedStepsRaw);
+          return Array.isArray(decoded) ? decoded : [];
+        } catch (_) {
+          return [];
+        }
+      }
+      return [];
+    })();
     let steps = Array.isArray(savedStepsRaw) && savedStepsRaw.length
       ? savedStepsRaw.map(normalizeStep)
+      : parsedSavedSteps.length
+      ? parsedSavedSteps.map(normalizeStep)
       : cloneSteps(fallbackSteps);
 
     let activeTextarea = null;
@@ -264,11 +279,11 @@
 
     function escapeHtml(str) {
       return String(str || "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     function getDelayLabel(delayMinutes) {
@@ -509,7 +524,7 @@
 
     const syncCoverageUI = () => {
       const afterHours = coverageMode && coverageMode.value === 'after_hours';
-      if (afterHoursFields) afterHoursFields.style.display = afterHours ? 'grid' : 'none';
+      if (afterHoursFields) afterHoursFields.style.display = afterHours ? 'block' : 'none';
       if (businessDays) businessDays.disabled = !afterHours;
     };
 

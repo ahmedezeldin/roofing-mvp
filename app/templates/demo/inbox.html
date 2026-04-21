@@ -357,7 +357,6 @@
             <div class="summary-list">
               {% for note in selected_notes %}
                 <div class="summary-row" style="align-items:flex-start; gap:10px;">
-                  <span>{{ note.created_at }}</span>
                   <strong style="flex:1;">{{ note.text }}</strong>
                   <form method="post" action="/ui/leads/delete-note">
                     <input type="hidden" name="lead_id" value="{{ selected.id }}" />
