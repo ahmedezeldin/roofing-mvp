@@ -79,16 +79,23 @@
 
 .page-actions {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: fit-content;
 }
 
 .pipeline-drag-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.78);
   font-size: 12px;
   font-weight: 700;
   color: var(--muted);
-  margin-right: 8px;
+  white-space: nowrap;
 }
 
 /* =========================================================
@@ -539,10 +546,7 @@
 
   .page-actions {
     width: 100%;
-  }
-
-  .page-actions .btn {
-    flex: 1 1 auto;
+    justify-content: flex-start;
   }
 
   .pipeline-summary-grid {
