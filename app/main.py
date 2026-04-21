@@ -264,6 +264,76 @@ def send_password_reset_code(email: str, code: str) -> bool:
                 print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
                 return False
             print(f"[PASSWORD RESET WARN] Attempt {attempt} failed for {email}: {exc}. Retrying...")
+
+
+def send_billing_receipt_email(
+    recipient_email: str,
+    amount_paid_cents: Optional[int] = None,
+    currency: Optional[str] = None,
+    invoice_number: Optional[str] = None,
+    hosted_invoice_url: Optional[str] = None,
+    invoice_pdf_url: Optional[str] = None,
+) -> bool:
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
+    smtp_from = os.getenv("SMTP_FROM", "").strip() or smtp_user
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() in {"1", "true", "yes"}
+    smtp_timeout_seconds = int(os.getenv("SMTP_TIMEOUT_SECONDS", "60"))
+
+    normalized_email = (recipient_email or "").strip().lower()
+    if not normalized_email:
+        return False
+
+    if not smtp_host or not smtp_from:
+        print(f"[BILLING RECEIPT] No SMTP configured. Email={normalized_email}")
+        return False
+
+    display_amount = "your recent payment"
+    if amount_paid_cents is not None:
+        amount = amount_paid_cents / 100
+        display_currency = (currency or "usd").upper()
+        display_amount = f"{display_currency} {amount:,.2f}"
+
+    body_lines = [
+        "Thanks for choosing Roofing Front Desk.",
+        "",
+        f"We received {display_amount}.",
+    ]
+
+    if invoice_number:
+        body_lines.append(f"Invoice number: {invoice_number}")
+
+    if hosted_invoice_url:
+        body_lines.extend(["", f"View your receipt: {hosted_invoice_url}"])
+    elif invoice_pdf_url:
+        body_lines.extend(["", f"Download your receipt PDF: {invoice_pdf_url}"])
+
+    body_lines.extend(["", "If you need anything, reply to this email and our team will help."])
+
+    message = EmailMessage()
+    message["Subject"] = "Your Roofing Front Desk receipt"
+    message["From"] = smtp_from
+    message["To"] = normalized_email
+    message.set_content("\n".join(body_lines))
+
+    for attempt in range(1, 3):
+        try:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout_seconds) as smtp:
+                smtp.ehlo()
+                if smtp_tls:
+                    smtp.starttls()
+                    smtp.ehlo()
+                if smtp_user:
+                    smtp.login(smtp_user, smtp_password)
+                smtp.send_message(message)
+            return True
+        except Exception as exc:
+            if attempt == 2:
+                print(f"[BILLING RECEIPT ERROR] Failed to send email to {normalized_email}: {exc}")
+                return False
+            print(f"[BILLING RECEIPT WARN] Attempt {attempt} failed for {normalized_email}: {exc}. Retrying...")
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -1464,6 +1534,7 @@ def create_checkout_session(
         raise HTTPException(status_code=500, detail="Missing STRIPE_SECRET_KEY")
 
     workspace = get_current_workspace(request, db)
+    current_user = get_current_user_from_cookie(request, db)
     plan_name, line_items = get_checkout_prices(plan)
 
     metadata = {
@@ -1476,13 +1547,19 @@ def create_checkout_session(
         metadata["workspace_id"] = str(workspace.id)
 
     try:
+        checkout_payload = {
+            "mode": "subscription",
+            "line_items": line_items,
+            "success_url": f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            "cancel_url": f"{APP_BASE_URL}/billing?plan={plan}&canceled=1",
+            "allow_promotion_codes": True,
+            "metadata": metadata,
+        }
+        if current_user and current_user.email:
+            checkout_payload["customer_email"] = current_user.email.strip().lower()
+
         checkout_session = stripe.checkout.Session.create(
-            mode="subscription",
-            line_items=line_items,
-            success_url=f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{APP_BASE_URL}/billing?plan={plan}&canceled=1",
-            allow_promotion_codes=True,
-            metadata=metadata,
+            **checkout_payload,
         )
         return RedirectResponse(url=checkout_session.url, status_code=303)
 
@@ -1566,6 +1643,29 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         invoice_id = stripe_attr(obj, "id")
         customer_id = stripe_attr(obj, "customer")
         subscription_id = stripe_attr(obj, "subscription")
+        invoice_number = stripe_attr(obj, "number")
+        amount_paid = stripe_attr(obj, "amount_paid")
+        currency = stripe_attr(obj, "currency")
+        hosted_invoice_url = stripe_attr(obj, "hosted_invoice_url")
+        invoice_pdf = stripe_attr(obj, "invoice_pdf")
+        customer_email = stripe_attr(obj, "customer_email")
+
+        if not customer_email and customer_id:
+            try:
+                customer_data = stripe.Customer.retrieve(customer_id)
+                customer_email = stripe_attr(customer_data, "email")
+            except Exception:
+                customer_email = None
+
+        if customer_email:
+            send_billing_receipt_email(
+                recipient_email=customer_email,
+                amount_paid_cents=amount_paid,
+                currency=currency,
+                invoice_number=invoice_number,
+                hosted_invoice_url=hosted_invoice_url,
+                invoice_pdf_url=invoice_pdf,
+            )
 
         print("invoice.paid", invoice_id)
         print("customer_id", customer_id)
