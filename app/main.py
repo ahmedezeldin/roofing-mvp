@@ -2328,6 +2328,7 @@ def ui_update_settings(
     first_message: str = Form(""),
     notification_email: str = Form(""),
     team_mobile: str = Form(""),
+    existing_business_phone: str = Form(""),
     phone_mode: str = Form("existing"),
     coverage_mode: str = Form("always"),
     workday_start: str = Form(""),
@@ -2346,6 +2347,8 @@ def ui_update_settings(
         workspace.notification_email = current_user.email if current_user else workspace.notification_email
         workspace.team_mobile = (team_mobile or "").strip() or None
         workspace.phone_mode = (phone_mode or "existing").strip()
+        if workspace.phone_mode == "existing":
+            workspace.business_phone = (existing_business_phone or "").strip() or None
         workspace.coverage_mode = (coverage_mode or "always").strip()
 
         if workspace.coverage_mode == "after_hours":

@@ -216,6 +216,21 @@
     Need a different service number? Choose <strong>Provision new number</strong> and we’ll confirm the $25 change fee before updating your routing.
   </div>
   {% if ws %}
+  <div id="existing-number-settings-block" class="settings-subcard hidden-block settings-number-change-block">
+    <div class="settings-number-change-title">Use your existing service number</div>
+    <div class="settings-field" style="margin-top: 12px;">
+      <label class="settings-label" for="existing_business_phone">Existing Phone Number</label>
+      <input
+        class="input"
+        id="existing_business_phone"
+        name="existing_business_phone"
+        value="{{ ws.business_phone if ws and ws.business_phone else '' }}"
+        placeholder="+1 555 555 5555"
+      >
+    </div>
+  </div>
+  {% endif %}
+  {% if ws %}
   <div id="new-number-settings-block" class="settings-subcard hidden-block settings-number-change-block">
     <div class="settings-number-change-title">Choose your new service number</div>
     <div class="settings-number-toolbar">
@@ -625,6 +640,8 @@
     const afterHoursFields = document.getElementById('after_hours_fields');
     const businessDays = document.getElementById('business_days');
     const coverageScheduleRow = document.getElementById('coverage_schedule_row');
+    const existingNumberSettingsBlock = document.getElementById('existing-number-settings-block');
+    const existingBusinessPhoneInput = document.getElementById('existing_business_phone');
     const newNumberSettingsBlock = document.getElementById('new-number-settings-block');
     const findNumbersBtn = document.getElementById('find-numbers-btn');
     const refreshNumbersBtn = document.getElementById('refresh-numbers-btn');
@@ -647,9 +664,11 @@
     }
 
     const syncPhoneModeUI = () => {
-      if (!newNumberSettingsBlock || !phoneMode) return;
-      const show = phoneMode.value === 'new';
-      newNumberSettingsBlock.classList.toggle('hidden-block', !show);
+      if (!phoneMode) return;
+      const isNew = phoneMode.value === 'new';
+      if (newNumberSettingsBlock) newNumberSettingsBlock.classList.toggle('hidden-block', !isNew);
+      if (existingNumberSettingsBlock) existingNumberSettingsBlock.classList.toggle('hidden-block', isNew);
+      if (existingBusinessPhoneInput) existingBusinessPhoneInput.disabled = isNew;
     };
 
     async function loadAvailableNumbers() {
