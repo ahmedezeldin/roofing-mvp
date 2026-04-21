@@ -10,7 +10,6 @@
 </div>
 
 {% set open_leads_total = new_today + hot_leads + contacted_count + booked_week %}
-{% set estimated_pipeline_value = (new_today * 3500) + (hot_leads * 6500) + (contacted_count * 9000) + (booked_week * 12000) %}
 {% set pipeline_health = "Stable" %}
 {% if emergency_overdue > 0 %}
   {% set pipeline_health = "Attention Needed" %}
@@ -86,7 +85,7 @@
         <div class="workspace-metric-card">
           <div class="workspace-metric-label">Estimated Pipeline Value</div>
           <div class="workspace-metric-value">${{ "{:,.0f}".format(estimated_pipeline_value) }}</div>
-          <div class="workspace-metric-label" style="margin-top:6px; text-transform:none; letter-spacing:0; font-size:12px;">Formula: New×3.5k, Qualified×6.5k, Contacted×9k, Booked×12k</div>
+          <div class="workspace-metric-label" style="margin-top:6px; text-transform:none; letter-spacing:0; font-size:12px;">Estimated from lead job types across current pipeline.</div>
         </div>
 
         <div class="workspace-metric-card">

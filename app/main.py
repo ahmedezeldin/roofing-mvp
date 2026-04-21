@@ -444,6 +444,7 @@ def get_dashboard_stats(db: Session) -> dict:
         .limit(8)
         .all()
     )
+    pipeline_leads = db.query(models.Lead).all()
 
     return {
         "new_today": new_today,
@@ -454,6 +455,7 @@ def get_dashboard_stats(db: Session) -> dict:
         "emergency_overdue": emergency_overdue,
         "recent_hot_leads": recent_hot_leads,
         "response_sla_label": get_response_sla_label("high"),
+        "estimated_pipeline_value": calculate_pipeline_value(pipeline_leads),
     }
 
 
@@ -555,6 +557,11 @@ def get_dashboard_stats_for_workspace(db: Session, workspace_id: int) -> dict:
         .limit(8)
         .all()
     )
+    pipeline_leads = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace_id)
+        .all()
+    )
 
     return {
         "new_today": new_today,
@@ -565,6 +572,7 @@ def get_dashboard_stats_for_workspace(db: Session, workspace_id: int) -> dict:
         "emergency_overdue": emergency_overdue,
         "recent_hot_leads": recent_hot_leads,
         "response_sla_label": get_response_sla_label("high"),
+        "estimated_pipeline_value": calculate_pipeline_value(pipeline_leads),
     }
 
 
@@ -633,6 +641,20 @@ def build_pipeline_columns(leads):
             columns["new"].append(lead)
 
     return columns
+
+
+def estimate_lead_value(lead: models.Lead) -> int:
+    if lead.job_type == "replacement":
+        return 18000
+    if lead.job_type == "repair":
+        return 3500
+    if lead.job_type == "inspection":
+        return 750
+    return 2500
+
+
+def calculate_pipeline_value(leads: list[models.Lead]) -> int:
+    return sum(estimate_lead_value(lead) for lead in leads)
 
 
 def build_activity_log(lead: models.Lead) -> list[dict]:
@@ -1601,6 +1623,7 @@ def demo_pipeline(request: Request, db: Session = Depends(get_db)):
     settings = logic.get_or_create_business_settings(db)
     leads = db.query(models.Lead).order_by(models.Lead.updated_at.desc()).all()
     columns = build_pipeline_columns(leads)
+    estimated_pipeline_value = calculate_pipeline_value(leads)
 
     return templates.TemplateResponse(
         request,
@@ -1608,6 +1631,7 @@ def demo_pipeline(request: Request, db: Session = Depends(get_db)):
         {
             "settings": settings,
             "columns": columns,
+            "estimated_pipeline_value": estimated_pipeline_value,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "pipeline",
             "page_title": "Pipeline",
@@ -1812,6 +1836,7 @@ def app_pipeline(request: Request, db: Session = Depends(get_db)):
         .all()
     )
     columns = build_pipeline_columns(leads)
+    estimated_pipeline_value = calculate_pipeline_value(leads)
 
     return templates.TemplateResponse(
         request,
@@ -1821,6 +1846,7 @@ def app_pipeline(request: Request, db: Session = Depends(get_db)):
             "workspace": workspace,
             "current_user": current_user,
             "columns": columns,
+            "estimated_pipeline_value": estimated_pipeline_value,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "pipeline",
             "page_title": "Pipeline",
