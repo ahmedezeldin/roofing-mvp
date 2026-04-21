@@ -3,6 +3,7 @@ import json
 import secrets
 import hashlib
 import smtplib
+from urllib.parse import quote_plus
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
@@ -1920,6 +1921,8 @@ def app_settings(
     request: Request,
     billing_success: Optional[str] = Query(None),
     billing_error: Optional[str] = Query(None),
+    number_success: Optional[str] = Query(None),
+    number_error: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     current_user = get_current_user_from_cookie(request, db)
@@ -1948,6 +1951,8 @@ def app_settings(
             "subscription_snapshot": subscription_snapshot,
             "billing_success": billing_success,
             "billing_error": billing_error,
+            "number_success": number_success,
+            "number_error": number_error,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -2130,6 +2135,8 @@ def render_app_settings_template(
     workflow_steps: Optional[list[dict]] = None,
     billing_error: Optional[str] = None,
     billing_success: Optional[str] = None,
+    number_error: Optional[str] = None,
+    number_success: Optional[str] = None,
 ):
     settings = get_workspace_settings(db, workspace.id)
     first_name, last_name = split_full_name(current_user.full_name)
@@ -2152,6 +2159,8 @@ def render_app_settings_template(
             "subscription_snapshot": subscription_snapshot,
             "billing_error": billing_error,
             "billing_success": billing_success,
+            "number_error": number_error,
+            "number_success": number_success,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -2244,6 +2253,54 @@ def ui_update_settings(
     db.commit()
     redirect_url = "/app/settings" if workspace else "/demo/settings"
     return RedirectResponse(url=redirect_url, status_code=303)
+
+
+@app.post("/ui/settings/phone-number/change")
+def ui_change_service_number(
+    request: Request,
+    selected_twilio_number: str = Form(""),
+    confirm_new_number_fee: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    if confirm_new_number_fee != "yes":
+        return RedirectResponse(
+            url="/app/settings?number_error=Please+confirm+the+number+change+charge+before+continuing.",
+            status_code=303,
+        )
+
+    normalized_number = (selected_twilio_number or "").strip()
+    if not normalized_number:
+        return RedirectResponse(
+            url="/app/settings?number_error=Please+choose+a+new+service+number+first.",
+            status_code=303,
+        )
+
+    old_number = workspace.business_phone or workspace.active_twilio_number or "Not set"
+    workspace.phone_mode = "new"
+    workspace.pending_twilio_number = None
+    workspace.active_twilio_number = normalized_number
+    workspace.business_phone = normalized_number
+
+    db.commit()
+
+    return RedirectResponse(
+        url=(
+            "/app/settings?number_success="
+            + quote_plus(
+                f"Service number updated from {old_number} to {normalized_number}. "
+                "Your old number has been removed."
+            )
+        ),
+        status_code=303,
+    )
 
 
 @app.post("/ui/settings/account")
