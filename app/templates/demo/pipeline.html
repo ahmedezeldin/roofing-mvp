@@ -15,23 +15,6 @@
     </div>
   </div>
 
-  {% set ns = namespace(total_value=0) %}
-  {% for status, leads_in_col in columns.items() %}
-    {% for lead in leads_in_col %}
-      {% set value = 0 %}
-      {% if lead.job_type == "replacement" %}
-        {% set value = 18000 %}
-      {% elif lead.job_type == "repair" %}
-        {% set value = 3500 %}
-      {% elif lead.job_type == "inspection" %}
-        {% set value = 750 %}
-      {% else %}
-        {% set value = 2500 %}
-      {% endif %}
-      {% set ns.total_value = ns.total_value + value %}
-    {% endfor %}
-  {% endfor %}
-
   <section class="pipeline-summary-grid">
     <div class="metric-card">
       <div class="metric-label">New</div>
@@ -60,7 +43,7 @@
     </div>
     <div class="metric-card metric-card-accent">
       <div class="metric-label">Pipeline Value</div>
-      <div class="metric-value">${{ "{:,}".format(ns.total_value) }}</div>
+      <div class="metric-value">${{ "{:,}".format(estimated_pipeline_value) }}</div>
       <div class="metric-foot">Estimated revenue in motion (replacement 18k, repair 3.5k, inspection 750)</div>
     </div>
   </section>
