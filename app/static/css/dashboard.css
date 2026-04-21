@@ -112,6 +112,12 @@
   color: #0f172a;
 }
 
+.metric-card-wide-value .metric-value {
+  font-size: clamp(18px, 1.35vw, 24px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
 .metric-foot {
   margin-top: 8px;
   color: #64748b;
