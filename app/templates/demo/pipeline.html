@@ -96,7 +96,7 @@
                 {% set next_action = "Archive / review" %}
               {% endif %}
 
-              <a href="/demo/lead/{{ lead.id }}" class="pipeline-lead-card" draggable="true" data-lead-id="{{ lead.id }}" data-estimated-value="{{ value }}">
+              <a href="{{ route_prefix }}/lead/{{ lead.id }}" class="pipeline-lead-card" draggable="true" data-lead-id="{{ lead.id }}" data-estimated-value="{{ value }}">
                 <div class="lead-card-top">
                   <div>
                     <div class="lead-name">

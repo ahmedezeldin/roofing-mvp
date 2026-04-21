@@ -1956,6 +1956,56 @@ def app_settings(
     )
 
 
+@app.get("/app/lead/{lead_id}", response_class=HTMLResponse)
+def app_lead_detail(request: Request, lead_id: int, db: Session = Depends(get_db)):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    settings = get_workspace_settings(db, workspace.id)
+    lead = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace.id)
+        .filter(models.Lead.id == lead_id)
+        .first()
+    )
+
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    activity_log = build_activity_log(lead)
+    stage_options = [
+        ("new", "New"),
+        ("qualified", "Qualified"),
+        ("contacted", "Contacted"),
+        ("booked", "Estimate Scheduled"),
+        ("closed", "Won"),
+        ("lost", "Lost"),
+    ]
+
+    return templates.TemplateResponse(
+        request,
+        "lead_detail.html",
+        {
+            "settings": settings,
+            "workspace": workspace,
+            "current_user": current_user,
+            "lead": lead,
+            "activity_log": activity_log,
+            "stage_options": stage_options,
+            "twilio_live": logic.twilio_enabled(),
+            "recommended_response_time": logic.recommended_response_time,
+            "active_page": "pipeline",
+            "page_title": "Lead Record",
+            "page_subtitle": "Review the full lead lifecycle and update next actions.",
+        },
+    )
+
+
 def split_full_name(full_name: str) -> tuple[str, str]:
     normalized = (full_name or "").strip()
     if not normalized:
@@ -1964,6 +2014,13 @@ def split_full_name(full_name: str) -> tuple[str, str]:
     if len(parts) == 1:
         return parts[0], ""
     return parts[0], parts[1]
+
+
+def get_ui_context(request: Request, db: Session) -> tuple[Optional[models.AppUser], Optional[models.Workspace], str]:
+    current_user = get_current_user_from_cookie(request, db)
+    workspace = get_current_workspace(request, db) if current_user else None
+    route_prefix = "/app" if workspace else "/demo"
+    return current_user, workspace, route_prefix
 
 
 def default_workflow_steps(business_name: str = "your roofing company") -> list[dict]:
@@ -2428,18 +2485,37 @@ def ui_settings_cancel_membership(
 
 
 @app.post("/ui/leads/create")
-def ui_create_lead(phone_number: str = Form(...), db: Session = Depends(get_db)):
+def ui_create_lead(
+    request: Request,
+    phone_number: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    _, workspace, route_prefix = get_ui_context(request, db)
     normalized_phone = (phone_number or "").strip()
-    latest = logic.find_latest_lead_for_phone(db, normalized_phone)
+    latest_query = db.query(models.Lead).filter(models.Lead.phone_number == normalized_phone)
+    if workspace:
+        latest_query = latest_query.filter(models.Lead.workspace_id == workspace.id)
+    latest = latest_query.order_by(models.Lead.created_at.desc()).first()
     if latest and not logic.is_finished_lead(latest):
-        return RedirectResponse(url=f"/demo/inbox?lead_id={latest.id}", status_code=303)
+        return RedirectResponse(url=f"{route_prefix}/inbox?lead_id={latest.id}", status_code=303)
 
-    lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
-    return RedirectResponse(url=f"/demo/inbox?lead_id={lead.id}", status_code=303)
+    if workspace:
+        lead = models.Lead(
+            workspace_id=workspace.id,
+            phone_number=normalized_phone,
+            source="manual",
+        )
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+    else:
+        lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
+    return RedirectResponse(url=f"{route_prefix}/inbox?lead_id={lead.id}", status_code=303)
 
 
 @app.post("/ui/messages/send")
 def ui_send_message(
+    request: Request,
     lead_id: int = Form(...),
     body: str = Form(...),
     crm_status_filter: str = Form("all"),
@@ -2448,15 +2524,19 @@ def ui_send_message(
     search: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    _, workspace, route_prefix = get_ui_context(request, db)
+    lead_query = db.query(models.Lead).filter(models.Lead.id == lead_id)
+    if workspace:
+        lead_query = lead_query.filter(models.Lead.workspace_id == workspace.id)
+    lead = lead_query.first()
     if not lead:
-        return RedirectResponse(url="/demo/inbox", status_code=303)
+        return RedirectResponse(url=f"{route_prefix}/inbox", status_code=303)
 
     logic.process_inbound_message(db, lead, body)
 
     return RedirectResponse(
         url=(
-            f"/demo/inbox?lead_id={lead_id}"
+            f"{route_prefix}/inbox?lead_id={lead_id}"
             f"&crm_status_filter={crm_status_filter}"
             f"&priority_filter={priority_filter}"
             f"&insurance_filter={insurance_filter}"
@@ -2468,6 +2548,7 @@ def ui_send_message(
 
 @app.post("/ui/leads/update-status")
 def ui_update_crm_status(
+    request: Request,
     lead_id: int = Form(...),
     crm_status: str = Form(...),
     crm_status_filter: str = Form("all"),
@@ -2476,15 +2557,19 @@ def ui_update_crm_status(
     search: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    _, workspace, route_prefix = get_ui_context(request, db)
+    lead_query = db.query(models.Lead).filter(models.Lead.id == lead_id)
+    if workspace:
+        lead_query = lead_query.filter(models.Lead.workspace_id == workspace.id)
+    lead = lead_query.first()
     if not lead:
-        return RedirectResponse(url="/demo/inbox", status_code=303)
+        return RedirectResponse(url=f"{route_prefix}/inbox", status_code=303)
 
     logic.update_crm_status(db, lead, crm_status)
 
     return RedirectResponse(
         url=(
-            f"/demo/inbox?lead_id={lead_id}"
+            f"{route_prefix}/inbox?lead_id={lead_id}"
             f"&crm_status_filter={crm_status_filter}"
             f"&priority_filter={priority_filter}"
             f"&insurance_filter={insurance_filter}"
@@ -2496,6 +2581,7 @@ def ui_update_crm_status(
 
 @app.post("/ui/leads/update-notes")
 def ui_update_lead_notes(
+    request: Request,
     lead_id: int = Form(...),
     notes: str = Form(...),
     crm_status_filter: str = Form(""),
@@ -2504,7 +2590,11 @@ def ui_update_lead_notes(
     search: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    _, workspace, route_prefix = get_ui_context(request, db)
+    lead_query = db.query(models.Lead).filter(models.Lead.id == lead_id)
+    if workspace:
+        lead_query = lead_query.filter(models.Lead.workspace_id == workspace.id)
+    lead = lead_query.first()
 
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -2526,7 +2616,7 @@ def ui_update_lead_notes(
     if crm_status_filter != "":
         return RedirectResponse(
             url=(
-                f"/demo/inbox?lead_id={lead_id}"
+                f"{route_prefix}/inbox?lead_id={lead_id}"
                 f"&crm_status_filter={crm_status_filter}"
                 f"&priority_filter={priority_filter}"
                 f"&insurance_filter={insurance_filter}"
@@ -2535,11 +2625,12 @@ def ui_update_lead_notes(
             status_code=303,
         )
 
-    return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
+    return RedirectResponse(url=f"{route_prefix}/lead/{lead_id}", status_code=303)
 
 
 @app.post("/ui/leads/delete-note")
 def ui_delete_lead_note(
+    request: Request,
     lead_id: int = Form(...),
     note_id: str = Form(...),
     crm_status_filter: str = Form(""),
@@ -2548,7 +2639,11 @@ def ui_delete_lead_note(
     search: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    _, workspace, route_prefix = get_ui_context(request, db)
+    lead_query = db.query(models.Lead).filter(models.Lead.id == lead_id)
+    if workspace:
+        lead_query = lead_query.filter(models.Lead.workspace_id == workspace.id)
+    lead = lead_query.first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
@@ -2559,7 +2654,7 @@ def ui_delete_lead_note(
     if crm_status_filter != "":
         return RedirectResponse(
             url=(
-                f"/demo/inbox?lead_id={lead_id}"
+                f"{route_prefix}/inbox?lead_id={lead_id}"
                 f"&crm_status_filter={crm_status_filter}"
                 f"&priority_filter={priority_filter}"
                 f"&insurance_filter={insurance_filter}"
@@ -2567,11 +2662,12 @@ def ui_delete_lead_note(
             ),
             status_code=303,
         )
-    return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
+    return RedirectResponse(url=f"{route_prefix}/lead/{lead_id}", status_code=303)
 
 
 @app.post("/ui/leads/update-stage")
 def ui_update_lead_stage(
+    request: Request,
     lead_id: int = Form(...),
     crm_status: str = Form(...),
     return_to: str = Form(""),
@@ -2582,7 +2678,11 @@ def ui_update_lead_stage(
     search: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    _, workspace, route_prefix = get_ui_context(request, db)
+    lead_query = db.query(models.Lead).filter(models.Lead.id == lead_id)
+    if workspace:
+        lead_query = lead_query.filter(models.Lead.workspace_id == workspace.id)
+    lead = lead_query.first()
 
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -2642,7 +2742,7 @@ def ui_update_lead_stage(
     db.commit()
 
     if return_to == "inbox":
-        safe_inbox_path = inbox_path if inbox_path in {"/demo/inbox", "/app/inbox"} else "/demo/inbox"
+        safe_inbox_path = inbox_path if inbox_path in {"/demo/inbox", "/app/inbox"} else f"{route_prefix}/inbox"
         return RedirectResponse(
             url=(
                 f"{safe_inbox_path}?lead_id={lead_id}"
@@ -2654,7 +2754,7 @@ def ui_update_lead_stage(
             status_code=303,
         )
 
-    return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
+    return RedirectResponse(url=f"{route_prefix}/lead/{lead_id}", status_code=303)
 
 
 # --------------------------------------------------

@@ -53,7 +53,7 @@
         <span class="badge blue">{{ leads|length }} shown</span>
       </div>
 
-      <form method="get" action="/demo/inbox" class="inbox-filter-form">
+      <form method="get" action="{{ route_prefix }}/inbox" class="inbox-filter-form">
         <div class="inbox-search-row mb-12">
           <input
             type="text"
@@ -102,7 +102,7 @@
 
         <div style="display:flex; gap:10px; margin-bottom: 14px;">
           <button type="submit" class="btn btn-primary">Apply Filters</button>
-          <a href="/demo/inbox" class="btn btn-secondary">Reset</a>
+          <a href="{{ route_prefix }}/inbox" class="btn btn-secondary">Reset</a>
         </div>
       </form>
 
@@ -125,7 +125,7 @@
       {% if leads %}
         {% for lead in leads %}
         <a
-          href="/demo/inbox?lead_id={{ lead.id }}&crm_status_filter={{ crm_status_filter }}&priority_filter={{ priority_filter }}&insurance_filter={{ insurance_filter }}&search={{ search }}"
+          href="{{ route_prefix }}/inbox?lead_id={{ lead.id }}&crm_status_filter={{ crm_status_filter }}&priority_filter={{ priority_filter }}&insurance_filter={{ insurance_filter }}&search={{ search }}"
           class="inbox-item inbox-item-pro {% if selected and selected.id == lead.id %}active{% endif %}"
         >
           <div class="list-item-top">

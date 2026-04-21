@@ -16,6 +16,7 @@
   {% block page_css %}{% endblock %}
 </head>
 <body>
+  {% set route_prefix = "/app" if workspace else "/demo" %}
   <div class="app-shell">
     <!-- Sidebar -->
     <aside class="app-sidebar">
@@ -29,28 +30,28 @@
 
       <nav class="sidebar-nav">
         <a
-          href="/demo/dashboard"
+          href="{{ route_prefix }}/dashboard"
           class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}"
         >
           Dashboard
         </a>
 
         <a
-          href="/demo/inbox"
+          href="{{ route_prefix }}/inbox"
           class="sidebar-link {% if active_page == 'inbox' %}active{% endif %}"
         >
           Inbox
         </a>
 
         <a
-          href="/demo/pipeline"
+          href="{{ route_prefix }}/pipeline"
           class="sidebar-link {% if active_page == 'pipeline' %}active{% endif %}"
         >
           Pipeline
         </a>
 
         <a
-          href="/demo/settings"
+          href="{{ route_prefix }}/settings"
           class="sidebar-link {% if active_page == 'settings' %}active{% endif %}"
         >
           Settings
@@ -59,11 +60,18 @@
 
       <div class="sidebar-mode">
         <div class="sidebar-mode-label">Workspace mode</div>
-        <div class="sidebar-mode-pill">Simulation</div>
+        <div class="sidebar-mode-pill">{{ "Live Workspace" if workspace else "Simulation" }}</div>
       </div>
 
       <div class="sidebar-footer">
-        <a href="/" class="sidebar-footer-link">Back to main page</a>
+        {% if current_user %}
+          <div class="sidebar-footer-link" style="margin-bottom: 8px;">Signed in as {{ current_user.email }}</div>
+          <form method="post" action="/logout">
+            <button type="submit" class="sidebar-footer-link" style="background:none;border:none;padding:0;cursor:pointer;">Sign out</button>
+          </form>
+        {% else %}
+          <a href="/" class="sidebar-footer-link">Back to main page</a>
+        {% endif %}
       </div>
     </aside>
 
