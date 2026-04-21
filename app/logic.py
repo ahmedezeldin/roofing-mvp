@@ -42,6 +42,11 @@ RESTART_KEYWORDS = {
     "different issue",
 }
 
+PLAN_RECOVERED_LEAD_LIMITS = {
+    "pilot": 30,
+    "growth": 250,
+}
+
 
 def normalize_text(text: str) -> str:
     return " ".join(text.strip().lower().split())
@@ -229,6 +234,60 @@ def send_owner_sms_alert(lead: models.Lead, business_name: str) -> bool:
         return False
 
 
+def send_team_handoff_alert(lead: models.Lead, business_name: str) -> bool:
+    workspace = lead.workspace
+    team_number = (workspace.team_mobile or "").strip() if workspace else ""
+    if not team_number:
+        return False
+    if not twilio_enabled():
+        return False
+
+    body = (
+        f"Handoff lead for {business_name}\n\n"
+        f"Name: {lead.customer_name or '—'}\n"
+        f"Phone: {lead.phone_number}\n"
+        f"Job: {lead.job_type or '—'}\n"
+        f"Postal: {lead.postal_code or '—'}\n"
+        f"Urgency: {lead.urgency or '—'}\n"
+        f"Insurance: {lead.insurance_claim or '—'}\n"
+        f"Priority: {lead.priority or '—'}\n"
+        f"Action: {recommended_response_time(lead.priority)}"
+    )
+
+    try:
+        sent = send_sms_if_configured(team_number, body)
+        print(f"[HANDOFF ALERT DEBUG] Team handoff SMS sent={sent} to {team_number}")
+        return sent
+    except Exception as e:
+        print(f"[HANDOFF ALERT ERROR] Failed to send team handoff SMS alert: {e}")
+        return False
+
+
+def enforce_workspace_recovered_lead_limit(db: Session, workspace_id: int) -> None:
+    workspace = db.query(models.Workspace).filter(models.Workspace.id == workspace_id).first()
+    if not workspace:
+        return
+
+    workspace_plan = (workspace.plan or "").strip().lower()
+    monthly_limit = PLAN_RECOVERED_LEAD_LIMITS.get(workspace_plan)
+    if not monthly_limit:
+        return
+
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+    recovered_this_month = (
+        db.query(models.Lead)
+        .filter(models.Lead.workspace_id == workspace.id)
+        .filter(models.Lead.created_at >= month_start)
+        .count()
+    )
+    if recovered_this_month >= monthly_limit:
+        raise ValueError(
+            f"Monthly recovered lead limit reached for {workspace_plan.title()} "
+            f"({monthly_limit}/month). Upgrade your plan to continue."
+        )
+
+
 def create_outbound_message(db: Session, lead_id: int, body: str, phone_number: str) -> models.Message:
     print("[SMS DEBUG] create_outbound_message called")
 
@@ -245,6 +304,7 @@ def create_outbound_message(db: Session, lead_id: int, body: str, phone_number: 
 
 def create_missed_call_lead(db: Session, phone_number: str, source: str = "missed_call") -> models.Lead:
     settings = get_or_create_business_settings(db)
+    enforce_workspace_recovered_lead_limit(db, settings.workspace_id)
     lead = models.Lead(
         workspace_id=settings.workspace_id,
         phone_number=phone_number,
@@ -386,12 +446,23 @@ def process_inbound_message(
             )
         elif text in VALID_YES_NO:
             lead.insurance_claim = VALID_YES_NO[text]
+            lead.conversation_state = "awaiting_photo_prompt"
+            lead.status = "in_progress"
+            reply = "If possible, please send 2–3 photos of the issue. Reply skip if you can’t share photos now."
+        else:
+            reply = "Is this related to an insurance claim? Reply yes or no."
+
+    elif lead.conversation_state == "awaiting_photo_prompt":
+        if text in {"skip", "no", "n"}:
             lead.conversation_state = "qualified"
             lead.status = "qualified"
             just_qualified = True
             reply = "Thanks — your request has been captured. A roofing specialist will follow up shortly."
         else:
-            reply = "Is this related to an insurance claim? Reply yes or no."
+            lead.conversation_state = "qualified"
+            lead.status = "qualified"
+            just_qualified = True
+            reply = "Thanks for sharing photos — your request has been captured. A roofing specialist will follow up shortly."
 
     else:
         reply = "Thanks — your request has already been captured. A roofing specialist will follow up shortly."
@@ -409,5 +480,6 @@ def process_inbound_message(
     if just_qualified:
         settings = get_or_create_business_settings(db)
         send_owner_sms_alert(lead, settings.business_name)
+        send_team_handoff_alert(lead, settings.business_name)
 
     return reply

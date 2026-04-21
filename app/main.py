@@ -5,6 +5,7 @@ import hashlib
 import smtplib
 from urllib.parse import quote_plus
 from pathlib import Path
+from urllib.parse import quote_plus
 from typing import Optional
 from datetime import datetime, timedelta
 from email.message import EmailMessage
@@ -103,6 +104,7 @@ templates.env.globals["note_preview"] = note_preview
 PILOT_GROWTH_UPGRADE_COPY = {
     "pipeline_reporting": "Pipeline and reporting are available on Growth. Upgrade to Growth to unlock this view.",
     "advanced_stage_management": "Advanced pipeline stage management is available on Growth. Upgrade to Growth to move leads beyond Qualified.",
+    "lead_limit": "Monthly recovered lead limit reached on your current plan. Upgrade to continue capturing new leads.",
 }
 PILOT_BLOCKED_STAGE_UPDATES = {"contacted", "booked", "closed", "lost"}
 
@@ -265,6 +267,76 @@ def send_password_reset_code(email: str, code: str) -> bool:
                 print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
                 return False
             print(f"[PASSWORD RESET WARN] Attempt {attempt} failed for {email}: {exc}. Retrying...")
+
+
+def send_billing_receipt_email(
+    recipient_email: str,
+    amount_paid_cents: Optional[int] = None,
+    currency: Optional[str] = None,
+    invoice_number: Optional[str] = None,
+    hosted_invoice_url: Optional[str] = None,
+    invoice_pdf_url: Optional[str] = None,
+) -> bool:
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
+    smtp_from = os.getenv("SMTP_FROM", "").strip() or smtp_user
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() in {"1", "true", "yes"}
+    smtp_timeout_seconds = int(os.getenv("SMTP_TIMEOUT_SECONDS", "60"))
+
+    normalized_email = (recipient_email or "").strip().lower()
+    if not normalized_email:
+        return False
+
+    if not smtp_host or not smtp_from:
+        print(f"[BILLING RECEIPT] No SMTP configured. Email={normalized_email}")
+        return False
+
+    display_amount = "your recent payment"
+    if amount_paid_cents is not None:
+        amount = amount_paid_cents / 100
+        display_currency = (currency or "usd").upper()
+        display_amount = f"{display_currency} {amount:,.2f}"
+
+    body_lines = [
+        "Thanks for choosing Roofing Front Desk.",
+        "",
+        f"We received {display_amount}.",
+    ]
+
+    if invoice_number:
+        body_lines.append(f"Invoice number: {invoice_number}")
+
+    if hosted_invoice_url:
+        body_lines.extend(["", f"View your receipt: {hosted_invoice_url}"])
+    elif invoice_pdf_url:
+        body_lines.extend(["", f"Download your receipt PDF: {invoice_pdf_url}"])
+
+    body_lines.extend(["", "If you need anything, reply to this email and our team will help."])
+
+    message = EmailMessage()
+    message["Subject"] = "Your Roofing Front Desk receipt"
+    message["From"] = smtp_from
+    message["To"] = normalized_email
+    message.set_content("\n".join(body_lines))
+
+    for attempt in range(1, 3):
+        try:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout_seconds) as smtp:
+                smtp.ehlo()
+                if smtp_tls:
+                    smtp.starttls()
+                    smtp.ehlo()
+                if smtp_user:
+                    smtp.login(smtp_user, smtp_password)
+                smtp.send_message(message)
+            return True
+        except Exception as exc:
+            if attempt == 2:
+                print(f"[BILLING RECEIPT ERROR] Failed to send email to {normalized_email}: {exc}")
+                return False
+            print(f"[BILLING RECEIPT WARN] Attempt {attempt} failed for {normalized_email}: {exc}. Retrying...")
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -1418,7 +1490,11 @@ def billing_success_page(
                 )
                 if workspace:
                     business_name = workspace.company_name
-                    phone_number = workspace.business_phone or workspace.pending_twilio_number
+                    phone_number = (
+                        workspace.business_phone
+                        or workspace.active_twilio_number
+                        or workspace.pending_twilio_number
+                    )
 
             if not user_to_auth and customer_email:
                 user_to_auth = (
@@ -1465,6 +1541,7 @@ def create_checkout_session(
         raise HTTPException(status_code=500, detail="Missing STRIPE_SECRET_KEY")
 
     workspace = get_current_workspace(request, db)
+    current_user = get_current_user_from_cookie(request, db)
     plan_name, line_items = get_checkout_prices(plan)
 
     metadata = {
@@ -1477,13 +1554,19 @@ def create_checkout_session(
         metadata["workspace_id"] = str(workspace.id)
 
     try:
+        checkout_payload = {
+            "mode": "subscription",
+            "line_items": line_items,
+            "success_url": f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            "cancel_url": f"{APP_BASE_URL}/billing?plan={plan}&canceled=1",
+            "allow_promotion_codes": True,
+            "metadata": metadata,
+        }
+        if current_user and current_user.email:
+            checkout_payload["customer_email"] = current_user.email.strip().lower()
+
         checkout_session = stripe.checkout.Session.create(
-            mode="subscription",
-            line_items=line_items,
-            success_url=f"{APP_BASE_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{APP_BASE_URL}/billing?plan={plan}&canceled=1",
-            allow_promotion_codes=True,
-            metadata=metadata,
+            **checkout_payload,
         )
         return RedirectResponse(url=checkout_session.url, status_code=303)
 
@@ -1532,6 +1615,19 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 workspace.status = "active"
                 workspace.stripe_customer_id = customer_id
                 workspace.stripe_subscription_id = subscription_id
+
+                if workspace.phone_mode == "new" and workspace.pending_twilio_number and not workspace.active_twilio_number:
+                    try:
+                        purchased_number = provision_twilio_number(workspace.pending_twilio_number)
+                        workspace.active_twilio_number = getattr(
+                            purchased_number,
+                            "phone_number",
+                            workspace.pending_twilio_number,
+                        )
+                        workspace.business_phone = workspace.active_twilio_number
+                        workspace.pending_twilio_number = None
+                    except Exception as exc:
+                        print(f"twilio.provision.failed workspace={workspace.id} error={exc}")
                 db.commit()
 
         print("checkout.session.completed", session_id)
@@ -1567,6 +1663,29 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         invoice_id = stripe_attr(obj, "id")
         customer_id = stripe_attr(obj, "customer")
         subscription_id = stripe_attr(obj, "subscription")
+        invoice_number = stripe_attr(obj, "number")
+        amount_paid = stripe_attr(obj, "amount_paid")
+        currency = stripe_attr(obj, "currency")
+        hosted_invoice_url = stripe_attr(obj, "hosted_invoice_url")
+        invoice_pdf = stripe_attr(obj, "invoice_pdf")
+        customer_email = stripe_attr(obj, "customer_email")
+
+        if not customer_email and customer_id:
+            try:
+                customer_data = stripe.Customer.retrieve(customer_id)
+                customer_email = stripe_attr(customer_data, "email")
+            except Exception:
+                customer_email = None
+
+        if customer_email:
+            send_billing_receipt_email(
+                recipient_email=customer_email,
+                amount_paid_cents=amount_paid,
+                currency=currency,
+                invoice_number=invoice_number,
+                hosted_invoice_url=hosted_invoice_url,
+                invoice_pdf_url=invoice_pdf,
+            )
 
         print("invoice.paid", invoice_id)
         print("customer_id", customer_id)
@@ -1796,6 +1915,7 @@ def app_inbox(
     priority_filter: str = Query("all"),
     insurance_filter: str = Query("all"),
     upgrade_required: str = Query(""),
+    limit_message: str = Query(""),
     db: Session = Depends(get_db),
 ):
     current_user = get_current_user_from_cookie(request, db)
@@ -1861,7 +1981,7 @@ def app_inbox(
             "priority_filter": priority_filter,
             "insurance_filter": insurance_filter,
             "search": search,
-            "upgrade_message": pilot_upgrade_message(upgrade_required),
+            "upgrade_message": (limit_message or pilot_upgrade_message(upgrade_required)),
             "high_priority_count": high_priority_count,
             "qualified_count": qualified_count,
             "booked_count": booked_count,
@@ -2556,17 +2676,24 @@ def ui_create_lead(
     if latest and not logic.is_finished_lead(latest):
         return RedirectResponse(url=f"{route_prefix}/inbox?lead_id={latest.id}", status_code=303)
 
-    if workspace:
-        lead = models.Lead(
-            workspace_id=workspace.id,
-            phone_number=normalized_phone,
-            source="manual",
+    try:
+        if workspace:
+            logic.enforce_workspace_recovered_lead_limit(db, workspace.id)
+            lead = models.Lead(
+                workspace_id=workspace.id,
+                phone_number=normalized_phone,
+                source="manual",
+            )
+            db.add(lead)
+            db.commit()
+            db.refresh(lead)
+        else:
+            lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
+    except ValueError as exc:
+        return RedirectResponse(
+            url=f"{route_prefix}/inbox?upgrade_required=lead_limit&limit_message={quote_plus(str(exc))}",
+            status_code=303,
         )
-        db.add(lead)
-        db.commit()
-        db.refresh(lead)
-    else:
-        lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
     return RedirectResponse(url=f"{route_prefix}/inbox?lead_id={lead.id}", status_code=303)
 
 
@@ -2833,11 +2960,14 @@ def api_update_settings(
 
 @app.post("/api/leads/missed-call", response_model=schemas.LeadOut)
 def api_create_missed_call_lead(payload: schemas.LeadCreate, db: Session = Depends(get_db)):
-    return logic.create_missed_call_lead(
-        db,
-        phone_number=payload.phone_number,
-        source=payload.source,
-    )
+    try:
+        return logic.create_missed_call_lead(
+            db,
+            phone_number=payload.phone_number,
+            source=payload.source,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
 
 
 @app.get("/api/leads", response_model=list[schemas.LeadOut])
@@ -2885,7 +3015,12 @@ def twilio_inbound(
     latest_lead = logic.find_latest_lead_for_phone(db, From)
 
     if logic.should_start_new_lead(latest_lead, Body):
-        lead = logic.create_missed_call_lead(db, phone_number=From, source="sms_inbound")
+        try:
+            lead = logic.create_missed_call_lead(db, phone_number=From, source="sms_inbound")
+        except ValueError as exc:
+            resp = MessagingResponse()
+            resp.message(str(exc))
+            return HTMLResponse(content=str(resp), media_type="application/xml")
 
         if text in logic.RESTART_KEYWORDS:
             reply = "Got it — let’s start a new request. Are you looking for a repair, replacement, or inspection?"
@@ -2962,6 +3097,24 @@ def get_twilio_client() -> Client:
     if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
         raise HTTPException(status_code=500, detail="Twilio credentials are missing.")
     return Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+
+def provision_twilio_number(number: str):
+    normalized_number = (number or "").strip()
+    if not normalized_number:
+        raise HTTPException(status_code=400, detail="No Twilio number was selected.")
+
+    client = get_twilio_client()
+    existing = client.incoming_phone_numbers.list(phone_number=normalized_number, limit=1)
+    if existing:
+        return existing[0]
+
+    sms_webhook_url = f"{APP_BASE_URL}/webhooks/twilio/inbound"
+    return client.incoming_phone_numbers.create(
+        phone_number=normalized_number,
+        sms_url=sms_webhook_url,
+        sms_method="POST",
+    )
 
 
 CITY_AREA_CODE_MAP: Dict[str, List[str]] = {
@@ -3179,9 +3332,24 @@ def onboarding_phone_setup_submit(
         if workspace.phone_mode == "existing":
             workspace.business_phone = phone_setup_data["business_phone"] or None
             workspace.pending_twilio_number = None
+            workspace.active_twilio_number = None
         else:
-            workspace.business_phone = None
-            workspace.pending_twilio_number = phone_setup_data["selected_twilio_number"] or None
+            selected_number = phone_setup_data["selected_twilio_number"] or None
+            if selected_number:
+                try:
+                    purchased_number = provision_twilio_number(selected_number)
+                    workspace.active_twilio_number = getattr(purchased_number, "phone_number", selected_number)
+                    workspace.pending_twilio_number = None
+                    workspace.business_phone = workspace.active_twilio_number
+                except Exception as exc:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Could not purchase the selected number: {exc}",
+                    )
+            else:
+                workspace.business_phone = None
+                workspace.active_twilio_number = None
+                workspace.pending_twilio_number = None
 
         if workspace.coverage_mode == "after_hours":
             workspace.workday_start = phone_setup_data["workday_start"] or None
