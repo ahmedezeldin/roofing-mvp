@@ -416,7 +416,9 @@
     timeNodes.forEach((node) => {
       const raw = node.getAttribute("data-timestamp");
       if (!raw) return;
-      const dt = new Date(raw);
+      const normalized = raw.includes("T") ? raw : raw.replace(" ", "T");
+      const hasTimezone = /[zZ]|[+-]\d{2}:\d{2}$/.test(normalized);
+      const dt = new Date(hasTimezone ? normalized : `${normalized}Z`);
       if (Number.isNaN(dt.getTime())) return;
 
       node.textContent = dt.toLocaleString([], {
