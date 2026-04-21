@@ -9,6 +9,7 @@
       <p class="page-subtitle">Track every roofing lead from first contact to closed job.</p>
     </div>
     <div class="page-actions">
+      <span class="pipeline-drag-note">Tip: drag cards between stages to simulate movement.</span>
       <a href="/demo/inbox" class="btn btn-secondary">Open Inbox</a>
       <a href="/demo/settings" class="btn btn-primary">Settings</a>
     </div>
@@ -60,7 +61,7 @@
     <div class="metric-card metric-card-accent">
       <div class="metric-label">Pipeline Value</div>
       <div class="metric-value">${{ "{:,}".format(ns.total_value) }}</div>
-      <div class="metric-foot">Estimated revenue in motion</div>
+      <div class="metric-foot">Estimated revenue in motion (replacement 18k, repair 3.5k, inspection 750)</div>
     </div>
   </section>
 
@@ -87,7 +88,7 @@
           <div class="pipeline-count">{{ leads_in_col|length }}</div>
         </div>
 
-        <div class="pipeline-column-body">
+        <div class="pipeline-column-body" data-stage="{{ status_key }}">
           {% if leads_in_col %}
             {% for lead in leads_in_col %}
               {% set value = 2500 %}
@@ -114,7 +115,7 @@
                 {% set next_action = "Archive / review" %}
               {% endif %}
 
-              <a href="/demo/lead/{{ lead.id }}" class="pipeline-lead-card">
+              <a href="/demo/lead/{{ lead.id }}" class="pipeline-lead-card" draggable="true" data-lead-id="{{ lead.id }}" data-estimated-value="{{ value }}">
                 <div class="lead-card-top">
                   <div>
                     <div class="lead-name">
@@ -167,7 +168,7 @@
 
                 {% if lead.notes %}
                   <div class="lead-note-preview">
-                    {{ lead.notes[:110] }}{% if lead.notes|length > 110 %}...{% endif %}
+                    {{ note_preview(lead.notes)[:110] }}{% if note_preview(lead.notes)|length > 110 %}...{% endif %}
                   </div>
                 {% endif %}
               </a>
@@ -184,4 +185,146 @@
     {% endfor %}
   </section>
 </div>
+
+<script>
+  (() => {
+    const cardSelector = ".pipeline-lead-card[draggable='true']";
+    const columns = document.querySelectorAll(".pipeline-column-body[data-stage]");
+    let draggingCard = null;
+    let sourceColumn = null;
+    const pipelineValueEl = document.querySelector(".metric-card-accent .metric-value");
+
+    const formatCurrency = (amount) => {
+      return `$${Number(amount || 0).toLocaleString()}`;
+    };
+
+    const recalcSummary = () => {
+      let total = 0;
+      document.querySelectorAll(".pipeline-lead-card[data-estimated-value]").forEach((card) => {
+        total += Number(card.dataset.estimatedValue || 0);
+      });
+
+      if (pipelineValueEl) pipelineValueEl.textContent = formatCurrency(total);
+    };
+
+    const refreshColumnUI = (column) => {
+      const countEl = column.closest(".pipeline-column")?.querySelector(".pipeline-count");
+      const cards = column.querySelectorAll(":scope > .pipeline-lead-card");
+      const empty = column.querySelector(".pipeline-empty");
+
+      if (countEl) countEl.textContent = String(cards.length);
+
+      if (cards.length > 0 && empty) {
+        empty.remove();
+      }
+
+      if (cards.length === 0 && !empty) {
+        const emptyState = document.createElement("div");
+        emptyState.className = "pipeline-empty";
+        emptyState.innerHTML = `
+          <div class="pipeline-empty-icon">—</div>
+          <div class="pipeline-empty-title">No leads</div>
+          <div class="pipeline-empty-text">Nothing in this stage right now.</div>
+        `;
+        column.appendChild(emptyState);
+      }
+    };
+
+    const persistStage = (column, card) => {
+      const stage = column.dataset.stage;
+      const leadId = card.dataset.leadId;
+      if (!stage || !leadId) return;
+
+      const body = new URLSearchParams({
+        lead_id: leadId,
+        crm_status: stage,
+      });
+
+      fetch("/ui/leads/update-stage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        },
+        body,
+      }).catch(() => {
+        // If save fails, leave the visual move in place for demo continuity.
+      });
+    };
+
+    const moveCardToColumn = (column, beforeCard = null) => {
+      if (!draggingCard) return;
+      column.querySelectorAll(".pipeline-empty").forEach((el) => el.remove());
+      if (beforeCard && beforeCard !== draggingCard) {
+        column.insertBefore(draggingCard, beforeCard);
+      } else {
+        column.appendChild(draggingCard);
+      }
+      refreshColumnUI(column);
+      if (sourceColumn && sourceColumn !== column) {
+        refreshColumnUI(sourceColumn);
+      }
+      persistStage(column, draggingCard);
+      recalcSummary();
+    };
+
+    document.querySelectorAll(cardSelector).forEach((card) => {
+      card.addEventListener("dragstart", (event) => {
+        draggingCard = card;
+        sourceColumn = card.closest(".pipeline-column-body");
+        card.classList.add("is-dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", card.dataset.leadId || "");
+      });
+
+      card.addEventListener("dragend", () => {
+        card.classList.remove("is-dragging");
+        draggingCard = null;
+        sourceColumn = null;
+        document.querySelectorAll(".pipeline-column-body.is-drop-target").forEach((el) => {
+          el.classList.remove("is-drop-target");
+        });
+      });
+
+      card.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        const parentColumn = card.closest(".pipeline-column-body");
+        parentColumn?.classList.add("is-drop-target");
+      });
+
+      card.addEventListener("drop", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const parentColumn = card.closest(".pipeline-column-body");
+        if (!parentColumn || !draggingCard) return;
+        parentColumn.classList.remove("is-drop-target");
+        moveCardToColumn(parentColumn, card);
+      });
+    });
+
+    columns.forEach((column) => {
+      column.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        column.classList.add("is-drop-target");
+      });
+
+      column.addEventListener("dragleave", () => {
+        column.classList.remove("is-drop-target");
+      });
+
+      column.addEventListener("drop", (event) => {
+        event.preventDefault();
+        column.classList.remove("is-drop-target");
+        moveCardToColumn(column);
+      });
+    });
+
+    setInterval(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set("_rt", Date.now().toString());
+      window.location.replace(url.toString());
+    }, 5000);
+
+    recalcSummary();
+  })();
+</script>
 {% endblock %}

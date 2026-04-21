@@ -1,4 +1,5 @@
 import os
+import json
 import secrets
 import hashlib
 import smtplib
@@ -79,6 +80,24 @@ def format_dt(dt: Optional[datetime]) -> str:
 
 
 templates.env.globals["format_dt"] = format_dt
+
+
+def note_preview(raw_notes: Optional[str]) -> str:
+    raw = (raw_notes or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list) and parsed:
+            first = parsed[0]
+            if isinstance(first, dict):
+                return str(first.get("text") or "").strip()
+    except json.JSONDecodeError:
+        pass
+    return raw
+
+
+templates.env.globals["note_preview"] = note_preview
 
 
 # --------------------------------------------------
@@ -207,6 +226,7 @@ def send_password_reset_code(email: str, code: str) -> bool:
     smtp_from = os.getenv("SMTP_FROM", "").strip() or smtp_user
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_tls = os.getenv("SMTP_USE_TLS", "1").strip().lower() in {"1", "true", "yes"}
+    smtp_timeout_seconds = int(os.getenv("SMTP_TIMEOUT_SECONDS", "60"))
 
     if not smtp_host or not smtp_from:
         print(f"[PASSWORD RESET] No SMTP configured. Email={email}, code={code}")
@@ -222,17 +242,22 @@ def send_password_reset_code(email: str, code: str) -> bool:
         f"This code expires in {PASSWORD_RESET_CODE_MINUTES} minutes."
     )
 
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp:
-            if smtp_tls:
-                smtp.starttls()
-            if smtp_user:
-                smtp.login(smtp_user, smtp_password)
-            smtp.send_message(message)
-        return True
-    except Exception as exc:
-        print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
-        return False
+    for attempt in range(1, 3):
+        try:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout_seconds) as smtp:
+                smtp.ehlo()
+                if smtp_tls:
+                    smtp.starttls()
+                    smtp.ehlo()
+                if smtp_user:
+                    smtp.login(smtp_user, smtp_password)
+                smtp.send_message(message)
+            return True
+        except Exception as exc:
+            if attempt == 2:
+                print(f"[PASSWORD RESET ERROR] Failed to send email to {email}: {exc}")
+                return False
+            print(f"[PASSWORD RESET WARN] Attempt {attempt} failed for {email}: {exc}. Retrying...")
     
 # --------------------------------------------------
 # GENERIC HELPERS
@@ -1563,6 +1588,7 @@ def demo_inbox(
             "high_priority_count": high_priority_count,
             "qualified_count": qualified_count,
             "booked_count": booked_count,
+            "selected_notes": parse_lead_notes(selected_lead) if selected_lead else [],
             "active_page": "inbox",
             "page_title": "Inbox",
             "page_subtitle": "All lead conversations in one workspace.",
@@ -1593,12 +1619,20 @@ def demo_pipeline(request: Request, db: Session = Depends(get_db)):
 @app.get("/demo/settings", response_class=HTMLResponse)
 def demo_settings(request: Request, db: Session = Depends(get_db)):
     settings = logic.get_or_create_business_settings(db)
+    current_user = get_current_user_from_cookie(request, db)
+    first_name, last_name = split_full_name(current_user.full_name) if current_user else ("", "")
+    workflow_steps = get_settings_workflow_steps(db, current_user, settings.business_name)
 
     return templates.TemplateResponse(
         request,
         "demo/settings.html",
         {
             "settings": settings,
+            "workspace": None,
+            "current_user": current_user,
+            "profile_first_name": first_name,
+            "profile_last_name": last_name,
+            "workflow_steps": workflow_steps,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1751,6 +1785,7 @@ def app_inbox(
             "high_priority_count": high_priority_count,
             "qualified_count": qualified_count,
             "booked_count": booked_count,
+            "selected_notes": parse_lead_notes(selected_lead) if selected_lead else [],
             "active_page": "inbox",
             "page_title": "Inbox",
             "page_subtitle": "All lead conversations in your workspace.",
@@ -1804,7 +1839,9 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
     if not workspace:
         return RedirectResponse(url="/signup", status_code=303)
 
+    first_name, last_name = split_full_name(current_user.full_name)
     settings = get_workspace_settings(db, workspace.id)
+    workflow_steps = get_settings_workflow_steps(db, current_user, settings.business_name)
 
     return templates.TemplateResponse(
         request,
@@ -1813,6 +1850,9 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
             "settings": settings,
             "workspace": workspace,
             "current_user": current_user,
+            "profile_first_name": first_name,
+            "profile_last_name": last_name,
+            "workflow_steps": workflow_steps,
             "twilio_live": logic.twilio_enabled(),
             "active_page": "settings",
             "page_title": "Settings",
@@ -1821,23 +1861,378 @@ def app_settings(request: Request, db: Session = Depends(get_db)):
     )
 
 
+def split_full_name(full_name: str) -> tuple[str, str]:
+    normalized = (full_name or "").strip()
+    if not normalized:
+        return "", ""
+    parts = normalized.split(None, 1)
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], parts[1]
+
+
+def default_workflow_steps(business_name: str = "your roofing company") -> list[dict]:
+    name = (business_name or "your roofing company").strip() or "your roofing company"
+    return [
+        {
+            "id": "step-1",
+            "title": "Instant Reply",
+            "description": "First text sent immediately after a missed call.",
+            "trigger": "missed_call",
+            "delayMinutes": 0,
+            "message": f"Hey, thanks for calling {name}. Sorry we missed you — are you looking for a repair, replacement, or inspection?",
+        },
+        {
+            "id": "step-2",
+            "title": "Ask for Postal Code",
+            "description": "Capture service area and route the lead properly.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": "Thanks — what’s the postal code for the property?",
+        },
+        {
+            "id": "step-3",
+            "title": "Ask About the Job",
+            "description": "Understand what kind of roofing help they need.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": "Got it. Is this for a repair, replacement, leak, storm damage, or inspection?",
+        },
+        {
+            "id": "step-4",
+            "title": "Ask About Urgency",
+            "description": "Identify emergencies and high-priority jobs.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": "How urgent is this — emergency, soon, or just getting quotes?",
+        },
+        {
+            "id": "step-5",
+            "title": "Final Handoff",
+            "description": "Let the customer know your team will follow up.",
+            "trigger": "after_reply",
+            "delayMinutes": 0,
+            "message": f"Thanks — your request has been captured for {name}. A roofing specialist will follow up shortly to schedule an inspection or estimate.",
+        },
+    ]
+
+
+def normalize_workflow_steps(raw_steps, business_name: str = "your roofing company") -> list[dict]:
+    fallback = default_workflow_steps(business_name)
+    if not isinstance(raw_steps, list) or not raw_steps:
+        return fallback
+
+    normalized_steps = []
+    for index, step in enumerate(raw_steps):
+        if not isinstance(step, dict):
+            continue
+        fallback_step = fallback[min(index, len(fallback) - 1)]
+        normalized_steps.append(
+            {
+                "id": str(step.get("id") or f"step-{index + 1}"),
+                "title": str(step.get("title") or fallback_step["title"]),
+                "description": str(step.get("description") or fallback_step["description"]),
+                "trigger": "missed_call" if step.get("trigger") == "missed_call" else "after_reply",
+                "delayMinutes": max(0, int(step.get("delayMinutes") or 0)),
+                "message": str(step.get("message") or ""),
+            }
+        )
+
+    return normalized_steps or fallback
+
+
+def get_settings_workflow_steps(db: Session, user: Optional[models.AppUser], business_name: str) -> list[dict]:
+    if not user:
+        return default_workflow_steps(business_name)
+
+    progress = (
+        db.query(models.OnboardingProgress)
+        .filter(models.OnboardingProgress.user_id == user.id)
+        .first()
+    )
+    if not progress or not progress.workflow_data:
+        return default_workflow_steps(business_name)
+
+    raw_steps = progress.workflow_data.get("steps_json")
+    if isinstance(raw_steps, str):
+        try:
+            raw_steps = json.loads(raw_steps)
+        except json.JSONDecodeError:
+            raw_steps = []
+
+    return normalize_workflow_steps(raw_steps, business_name)
+
+
+def render_app_settings_template(
+    request: Request,
+    db: Session,
+    current_user: models.AppUser,
+    workspace: models.Workspace,
+    *,
+    account_error: Optional[str] = None,
+    account_success: Optional[str] = None,
+    password_error: Optional[str] = None,
+    password_success: Optional[str] = None,
+    profile_first_name: Optional[str] = None,
+    profile_last_name: Optional[str] = None,
+    workflow_steps: Optional[list[dict]] = None,
+):
+    settings = get_workspace_settings(db, workspace.id)
+    first_name, last_name = split_full_name(current_user.full_name)
+    effective_workflow_steps = workflow_steps or get_settings_workflow_steps(db, current_user, settings.business_name)
+    return templates.TemplateResponse(
+        request,
+        "demo/settings.html",
+        {
+            "settings": settings,
+            "workspace": workspace,
+            "current_user": current_user,
+            "profile_first_name": profile_first_name if profile_first_name is not None else first_name,
+            "profile_last_name": profile_last_name if profile_last_name is not None else last_name,
+            "account_error": account_error,
+            "account_success": account_success,
+            "password_error": password_error,
+            "password_success": password_success,
+            "workflow_steps": effective_workflow_steps,
+            "twilio_live": logic.twilio_enabled(),
+            "active_page": "settings",
+            "page_title": "Settings",
+            "page_subtitle": "Manage business identity and workspace basics.",
+        },
+    )
+
+
+def parse_lead_notes(lead: models.Lead) -> list[dict]:
+    raw = (lead.notes or "").strip()
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            normalized = []
+            for item in parsed:
+                if isinstance(item, dict) and str(item.get("text", "")).strip():
+                    normalized.append(
+                        {
+                            "id": str(item.get("id") or secrets.token_hex(6)),
+                            "text": str(item.get("text", "")).strip(),
+                            "created_at": str(item.get("created_at") or datetime.utcnow().isoformat()),
+                        }
+                    )
+            return normalized
+    except json.JSONDecodeError:
+        pass
+    return [{"id": secrets.token_hex(6), "text": raw, "created_at": datetime.utcnow().isoformat()}]
+
+
+def save_lead_notes(lead: models.Lead, notes_list: list[dict]) -> None:
+    lead.notes = json.dumps(notes_list)
+    lead.updated_at = datetime.utcnow()
+
+
 # --------------------------------------------------
 # DEMO UI FORM ACTIONS
 # --------------------------------------------------
 
 @app.post("/ui/settings/update")
 def ui_update_settings(
+    request: Request,
     business_name: str = Form(...),
+    first_message: str = Form(""),
+    notification_email: str = Form(""),
+    team_mobile: str = Form(""),
+    phone_mode: str = Form("existing"),
+    coverage_mode: str = Form("always"),
+    workday_start: str = Form(""),
+    workday_end: str = Form(""),
+    business_days: str = Form(""),
+    workflow_steps_json: str = Form("[]"),
     db: Session = Depends(get_db),
 ):
-    logic.update_business_name(db, business_name)
-    return RedirectResponse(url="/demo/settings", status_code=303)
+    current_user = get_current_user_from_cookie(request, db)
+    workspace = get_current_workspace(request, db)
+    settings = get_workspace_settings(db, workspace.id) if workspace else logic.get_or_create_business_settings(db)
+    settings.business_name = (business_name or "").strip() or settings.business_name
+    settings.first_message = (first_message or "").strip() or settings.first_message
+
+    if workspace:
+        workspace.notification_email = current_user.email if current_user else workspace.notification_email
+        workspace.team_mobile = (team_mobile or "").strip() or None
+        workspace.phone_mode = (phone_mode or "existing").strip()
+        workspace.coverage_mode = (coverage_mode or "always").strip()
+
+        if workspace.coverage_mode == "after_hours":
+            workspace.workday_start = (workday_start or "").strip() or None
+            workspace.workday_end = (workday_end or "").strip() or None
+            workspace.business_days = (business_days or "").strip() or None
+        else:
+            workspace.workday_start = None
+            workspace.workday_end = None
+            workspace.business_days = None
+
+    parsed_workflow_steps = []
+    try:
+        parsed_workflow_steps = json.loads(workflow_steps_json or "[]")
+    except json.JSONDecodeError:
+        parsed_workflow_steps = []
+
+    normalized_steps = normalize_workflow_steps(parsed_workflow_steps, settings.business_name)
+    if normalized_steps:
+        settings.first_message = normalized_steps[0]["message"] or settings.first_message
+
+    if current_user:
+        save_workflow_step(db, current_user.id, {"steps_json": normalized_steps})
+
+    db.commit()
+    redirect_url = "/app/settings" if workspace else "/demo/settings"
+    return RedirectResponse(url=redirect_url, status_code=303)
+
+
+@app.post("/ui/settings/account")
+def ui_update_account(
+    request: Request,
+    first_name: str = Form(...),
+    last_name: str = Form(""),
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    normalized_first_name = (first_name or "").strip()
+    normalized_last_name = (last_name or "").strip()
+    normalized_email = (email or "").strip().lower()
+
+    if not normalized_first_name:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            account_error="First name is required.",
+            profile_first_name=normalized_first_name,
+            profile_last_name=normalized_last_name,
+        )
+
+    if not normalized_email:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            account_error="Email is required.",
+            profile_first_name=normalized_first_name,
+            profile_last_name=normalized_last_name,
+        )
+
+    existing_user = (
+        db.query(models.AppUser)
+        .filter(models.AppUser.email == normalized_email, models.AppUser.id != current_user.id)
+        .first()
+    )
+    if existing_user:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            account_error="That email is already used by another account.",
+            profile_first_name=normalized_first_name,
+            profile_last_name=normalized_last_name,
+        )
+
+    current_user.full_name = f"{normalized_first_name} {normalized_last_name}".strip()
+    current_user.email = normalized_email
+    db.commit()
+
+    return render_app_settings_template(
+        request,
+        db,
+        current_user,
+        workspace,
+        account_success="Profile updated successfully.",
+    )
+
+
+@app.post("/ui/settings/password")
+def ui_update_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_new_password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    if not verify_password(current_password, current_user.password_hash):
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error="Current password is incorrect.",
+        )
+
+    if new_password != confirm_new_password:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error="New password and confirmation do not match.",
+        )
+
+    password_error = validate_password_rules(new_password)
+    if password_error:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error=password_error,
+        )
+
+    if verify_password(new_password, current_user.password_hash):
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            password_error="New password must be different from your current password.",
+        )
+
+    current_user.password_hash = hash_password(new_password)
+    db.commit()
+
+    return render_app_settings_template(
+        request,
+        db,
+        current_user,
+        workspace,
+        password_success="Password updated successfully.",
+    )
 
 
 @app.post("/ui/leads/create")
 def ui_create_lead(phone_number: str = Form(...), db: Session = Depends(get_db)):
-    logic.create_missed_call_lead(db, phone_number=phone_number)
-    return RedirectResponse(url="/demo/inbox", status_code=303)
+    normalized_phone = (phone_number or "").strip()
+    latest = logic.find_latest_lead_for_phone(db, normalized_phone)
+    if latest and not logic.is_finished_lead(latest):
+        return RedirectResponse(url=f"/demo/inbox?lead_id={latest.id}", status_code=303)
+
+    lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
+    return RedirectResponse(url=f"/demo/inbox?lead_id={lead.id}", status_code=303)
 
 
 @app.post("/ui/messages/send")
@@ -1911,7 +2306,18 @@ def ui_update_lead_notes(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    lead.notes = notes
+    new_note_text = (notes or "").strip()
+    existing_notes = parse_lead_notes(lead)
+    if new_note_text:
+        existing_notes.insert(
+            0,
+            {
+                "id": secrets.token_hex(6),
+                "text": new_note_text,
+                "created_at": datetime.utcnow().isoformat(),
+            },
+        )
+    save_lead_notes(lead, existing_notes)
     db.commit()
 
     if crm_status_filter != "":
@@ -1929,10 +2335,43 @@ def ui_update_lead_notes(
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 
 
+@app.post("/ui/leads/delete-note")
+def ui_delete_lead_note(
+    lead_id: int = Form(...),
+    note_id: str = Form(...),
+    crm_status_filter: str = Form(""),
+    priority_filter: str = Form("all"),
+    insurance_filter: str = Form("all"),
+    search: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    remaining = [note for note in parse_lead_notes(lead) if note.get("id") != note_id]
+    save_lead_notes(lead, remaining)
+    db.commit()
+
+    if crm_status_filter != "":
+        return RedirectResponse(
+            url=(
+                f"/demo/inbox?lead_id={lead_id}"
+                f"&crm_status_filter={crm_status_filter}"
+                f"&priority_filter={priority_filter}"
+                f"&insurance_filter={insurance_filter}"
+                f"&search={search}"
+            ),
+            status_code=303,
+        )
+    return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
+
+
 @app.post("/ui/leads/update-stage")
 def ui_update_lead_stage(
     lead_id: int = Form(...),
     crm_status: str = Form(...),
+    return_to: str = Form(""),
     db: Session = Depends(get_db),
 ):
     lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
@@ -1940,15 +2379,25 @@ def ui_update_lead_stage(
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
 
-    if crm_status == "qualified":
+    allowed_statuses = {"new", "qualified", "contacted", "booked", "closed", "lost"}
+    if crm_status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail="Invalid crm_status")
+
+    if crm_status == "new":
+        lead.status = "new"
+        lead.crm_status = "new"
+    elif crm_status == "qualified":
         lead.status = "qualified"
         lead.crm_status = "new"
     else:
         lead.crm_status = crm_status
-        if crm_status in ["contacted", "booked", "closed"]:
+        if crm_status in ["contacted", "booked", "closed", "lost"]:
             lead.status = "qualified"
 
     db.commit()
+
+    if return_to == "inbox":
+        return RedirectResponse(url=f"/demo/inbox?lead_id={lead_id}", status_code=303)
 
     return RedirectResponse(url=f"/demo/lead/{lead_id}", status_code=303)
 

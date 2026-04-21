@@ -304,9 +304,6 @@ def should_start_new_lead(latest_lead: Optional[models.Lead], inbound_text: str)
     if text in RESTART_KEYWORDS:
         return True
 
-    if is_finished_lead(latest_lead):
-        return True
-
     return False
 
 

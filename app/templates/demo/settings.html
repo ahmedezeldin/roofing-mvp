@@ -2,302 +2,533 @@
 
 {% block page_css %}
 <link rel="stylesheet" href="/static/css/settings.css">
+<link rel="stylesheet" href="/static/css/onboarding-workflow.css">
 {% endblock %}
 
 {% block content %}
-<div class="settings-card">
-  <div class="settings-card-head">
-    <div>
-      <div class="settings-card-title">Automated Lead Workflow</div>
-      <div class="settings-card-subtitle">
-        Start from the recommended sequence, then edit, disable, reorder, remove, or add steps
-        to match how your team wants missed-call follow-up to run.
-      </div>
-    </div>
-    <div class="settings-pill">Workflow</div>
-  </div>
-
-  <div class="workflow-toolbar">
-    <div class="workflow-toolbar-left">
-      <button class="btn btn-primary" type="button">+ Add Step</button>
-      <button class="btn btn-secondary" type="button">Reset to Recommended</button>
-    </div>
-    <div class="workflow-toolbar-right">
-      <div class="workflow-mini-note">Standard sequence loaded</div>
-    </div>
-  </div>
-
-  <div class="workflow-sequence-stack">
-
-    <!-- STEP 1 -->
-    <div class="workflow-step-card">
-      <div class="workflow-step-top">
-        <div class="workflow-step-left">
-          <div class="workflow-step-number">Step 1</div>
-          <div>
-            <div class="workflow-step-title">Missed Call Auto-Reply</div>
-            <div class="workflow-step-subtitle">
-              First text sent immediately after a missed call.
-            </div>
-          </div>
-        </div>
-
-        <div class="workflow-step-actions">
-          <span class="check-status enabled">Enabled</span>
-          <button class="btn btn-secondary btn-xs" type="button">↑</button>
-          <button class="btn btn-secondary btn-xs" type="button">↓</button>
-          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
-        </div>
-      </div>
-
-      <div class="settings-two-col">
-        <div class="settings-field">
-          <label class="settings-label">Trigger</label>
-          <select class="select">
-            <option>Immediately after missed call</option>
-          </select>
-        </div>
-        <div class="settings-field">
-          <label class="settings-label">Delay</label>
-          <select class="select">
-            <option>0 minutes</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="settings-field">
-        <label class="settings-label">Message Text</label>
-        <textarea class="textarea workflow-step-textarea">Hey, thanks for calling Karl's Roofing. Sorry we missed you — are you looking for a repair, replacement, or inspection?</textarea>
-      </div>
-    </div>
-
-    <!-- STEP 2 -->
-    <div class="workflow-step-card">
-      <div class="workflow-step-top">
-        <div class="workflow-step-left">
-          <div class="workflow-step-number">Step 2</div>
-          <div>
-            <div class="workflow-step-title">Ask for Postal Code</div>
-            <div class="workflow-step-subtitle">
-              Capture service area and route the lead properly.
-            </div>
-          </div>
-        </div>
-
-        <div class="workflow-step-actions">
-          <span class="check-status enabled">Enabled</span>
-          <button class="btn btn-secondary btn-xs" type="button">↑</button>
-          <button class="btn btn-secondary btn-xs" type="button">↓</button>
-          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
-        </div>
-      </div>
-
-      <div class="settings-two-col">
-        <div class="settings-field">
-          <label class="settings-label">Trigger</label>
-          <select class="select">
-            <option>After customer replies</option>
-          </select>
-        </div>
-        <div class="settings-field">
-          <label class="settings-label">Delay</label>
-          <select class="select">
-            <option>0 minutes</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="settings-field">
-        <label class="settings-label">Message Text</label>
-        <textarea class="textarea workflow-step-textarea">What's the property postal code?</textarea>
-      </div>
-    </div>
-
-    <!-- STEP 3 -->
-    <div class="workflow-step-card">
-      <div class="workflow-step-top">
-        <div class="workflow-step-left">
-          <div class="workflow-step-number">Step 3</div>
-          <div>
-            <div class="workflow-step-title">Ask for Urgency</div>
-            <div class="workflow-step-subtitle">
-              Clarify whether the lead needs emergency treatment or standard follow-up.
-            </div>
-          </div>
-        </div>
-
-        <div class="workflow-step-actions">
-          <span class="check-status enabled">Enabled</span>
-          <button class="btn btn-secondary btn-xs" type="button">↑</button>
-          <button class="btn btn-secondary btn-xs" type="button">↓</button>
-          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
-        </div>
-      </div>
-
-      <div class="settings-two-col">
-        <div class="settings-field">
-          <label class="settings-label">Trigger</label>
-          <select class="select">
-            <option>After customer replies</option>
-          </select>
-        </div>
-        <div class="settings-field">
-          <label class="settings-label">Delay</label>
-          <select class="select">
-            <option>0 minutes</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="settings-field">
-        <label class="settings-label">Message Text</label>
-        <textarea class="textarea workflow-step-textarea">How urgent is it — low, medium, or emergency?</textarea>
-      </div>
-    </div>
-
-    <!-- STEP 4 -->
-    <div class="workflow-step-card">
-      <div class="workflow-step-top">
-        <div class="workflow-step-left">
-          <div class="workflow-step-number">Step 4</div>
-          <div>
-            <div class="workflow-step-title">Insurance Check</div>
-            <div class="workflow-step-subtitle">
-              Useful for storm damage and hail workflows.
-            </div>
-          </div>
-        </div>
-
-        <div class="workflow-step-actions">
-          <span class="check-status enabled">Enabled</span>
-          <button class="btn btn-secondary btn-xs" type="button">↑</button>
-          <button class="btn btn-secondary btn-xs" type="button">↓</button>
-          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
-        </div>
-      </div>
-
-      <div class="settings-two-col">
-        <div class="settings-field">
-          <label class="settings-label">Trigger</label>
-          <select class="select">
-            <option>After customer replies</option>
-          </select>
-        </div>
-        <div class="settings-field">
-          <label class="settings-label">Delay</label>
-          <select class="select">
-            <option>0 minutes</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="settings-field">
-        <label class="settings-label">Message Text</label>
-        <textarea class="textarea workflow-step-textarea">Is this related to an insurance claim? Please reply yes or no.</textarea>
-      </div>
-    </div>
-
-    <!-- STEP 5 -->
-    <div class="workflow-step-card">
-      <div class="workflow-step-top">
-        <div class="workflow-step-left">
-          <div class="workflow-step-number">Step 5</div>
-          <div>
-            <div class="workflow-step-title">Photo Request</div>
-            <div class="workflow-step-subtitle">
-              Optional step for better triage before human follow-up.
-            </div>
-          </div>
-        </div>
-
-        <div class="workflow-step-actions">
-          <span class="check-status disabled">Disabled</span>
-          <button class="btn btn-secondary btn-xs" type="button">↑</button>
-          <button class="btn btn-secondary btn-xs" type="button">↓</button>
-          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
-        </div>
-      </div>
-
-      <div class="settings-two-col">
-        <div class="settings-field">
-          <label class="settings-label">Trigger</label>
-          <select class="select">
-            <option>After qualification completed</option>
-          </select>
-        </div>
-        <div class="settings-field">
-          <label class="settings-label">Delay</label>
-          <select class="select">
-            <option>0 minutes</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="settings-field">
-        <label class="settings-label">Message Text</label>
-        <textarea class="textarea workflow-step-textarea">If possible, please send 3–5 photos of the damage so our team can prepare before follow-up.</textarea>
-      </div>
-    </div>
-
-    <!-- STEP 6 -->
-    <div class="workflow-step-card">
-      <div class="workflow-step-top">
-        <div class="workflow-step-left">
-          <div class="workflow-step-number">Step 6</div>
-          <div>
-            <div class="workflow-step-title">Qualified Lead Handoff</div>
-            <div class="workflow-step-subtitle">
-              Close the automated portion and set expectation for live team follow-up.
-            </div>
-          </div>
-        </div>
-
-        <div class="workflow-step-actions">
-          <span class="check-status enabled">Enabled</span>
-          <button class="btn btn-secondary btn-xs" type="button">↑</button>
-          <button class="btn btn-secondary btn-xs" type="button">↓</button>
-          <button class="btn btn-secondary btn-xs" type="button">Delete</button>
-        </div>
-      </div>
-
-      <div class="settings-two-col">
-        <div class="settings-field">
-          <label class="settings-label">Trigger</label>
-          <select class="select">
-            <option>After qualification completed</option>
-          </select>
-        </div>
-        <div class="settings-field">
-          <label class="settings-label">Delay</label>
-          <select class="select">
-            <option>0 minutes</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="settings-field">
-        <label class="settings-label">Message Text</label>
-        <textarea class="textarea workflow-step-textarea">Thanks — your request has been captured. A roofing specialist will follow up shortly to schedule an inspection or estimate.</textarea>
-      </div>
-    </div>
-
-  </div>
-
-  <div class="workflow-footer">
-    <div class="workflow-variable-box">
-      <div class="workflow-variable-title">Supported variables</div>
-      <div class="workflow-variable-row">
-        <span class="workflow-variable-chip">{business_name}</span>
-        <span class="workflow-variable-chip">{customer_name}</span>
-        <span class="workflow-variable-chip">{job_type}</span>
-        <span class="workflow-variable-chip">{postal_code}</span>
-        <span class="workflow-variable-chip">{urgency}</span>
-      </div>
-    </div>
-
-    <div class="settings-actions-row">
-      <button class="btn btn-primary" type="button">Save Workflow</button>
-    </div>
+{% set ws = workspace if workspace is defined and workspace else None %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Settings</div>
+    <h1 class="page-title">Workspace Settings</h1>
+    <p class="page-subtitle">Edit account details, workflow behavior, and communication preferences in one place.</p>
   </div>
 </div>
+
+{% set has_account_access = current_user is defined and current_user %}
+<form method="post" action="/ui/settings/account" class="settings-card">
+  <div class="settings-card-head">
+    <div>
+      <div class="settings-card-title">Account Profile</div>
+      <div class="settings-card-subtitle">Update your personal name and login email for this workspace owner account.</div>
+    </div>
+    <div class="settings-pill">Profile</div>
+  </div>
+
+  {% if not has_account_access %}
+  <div class="settings-alert settings-alert-muted">Sign in to save profile and security changes.</div>
+  {% endif %}
+  {% if account_error %}
+  <div class="settings-alert settings-alert-error">{{ account_error }}</div>
+  {% endif %}
+  {% if account_success %}
+  <div class="settings-alert settings-alert-success">{{ account_success }}</div>
+  {% endif %}
+
+  <div class="settings-three-col">
+    <div class="settings-field">
+      <label class="settings-label">First Name</label>
+      <input class="input" name="first_name" value="{{ profile_first_name or '' }}" required>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Last Name</label>
+      <input class="input" name="last_name" value="{{ profile_last_name or '' }}">
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Email</label>
+      <input class="input" name="email" type="email" value="{{ current_user.email if has_account_access else '' }}" required>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:16px;">
+    <button type="submit" class="btn btn-primary" {% if not has_account_access %}disabled{% endif %}>Save Profile</button>
+  </div>
+</form>
+
+<form method="post" action="/ui/settings/password" class="settings-card">
+  <div class="settings-card-head">
+    <div>
+      <div class="settings-card-title">Security</div>
+      <div class="settings-card-subtitle">Change your password using your current password for verification.</div>
+    </div>
+    <div class="settings-pill">Security</div>
+  </div>
+
+  {% if not has_account_access %}
+  <div class="settings-alert settings-alert-muted">Sign in to update your password.</div>
+  {% endif %}
+  {% if password_error %}
+  <div class="settings-alert settings-alert-error">{{ password_error }}</div>
+  {% endif %}
+  {% if password_success %}
+  <div class="settings-alert settings-alert-success">{{ password_success }}</div>
+  {% endif %}
+
+  <div class="settings-three-col">
+    <div class="settings-field">
+      <label class="settings-label">Current Password</label>
+      <input class="input" type="password" name="current_password" required {% if not has_account_access %}disabled{% endif %}>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">New Password</label>
+      <input class="input" type="password" name="new_password" required {% if not has_account_access %}disabled{% endif %}>
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Confirm New Password</label>
+      <input class="input" type="password" name="confirm_new_password" required {% if not has_account_access %}disabled{% endif %}>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:16px;">
+    <button type="submit" class="btn btn-primary" {% if not has_account_access %}disabled{% endif %}>Update Password</button>
+  </div>
+</form>
+
+<form id="workflow-form" method="post" action="/ui/settings/update" class="settings-card">
+  <div class="settings-card-head">
+    <div>
+      <div class="settings-card-title">Account Management</div>
+      <div class="settings-card-subtitle">Business identity and notification details used across the workspace.</div>
+    </div>
+    <div class="settings-pill">Account</div>
+  </div>
+
+  <div class="settings-field">
+    <label class="settings-label">Business Name</label>
+    <input class="input" name="business_name" value="{{ settings.business_name or '' }}" required>
+  </div>
+
+  <div class="settings-two-col">
+    <div class="settings-field">
+      <label class="settings-label">Team Mobile</label>
+      <input class="input" name="team_mobile" value="{{ ws.team_mobile if ws else '' }}" placeholder="+1 555 555 5555">
+    </div>
+    <div class="settings-field">
+      <label class="settings-label">Phone Mode</label>
+      <select class="select" name="phone_mode">
+        <option value="existing" {% if ws and ws.phone_mode == 'existing' %}selected{% endif %}>Use existing number</option>
+        <option value="new" {% if ws and ws.phone_mode == 'new' %}selected{% endif %}>Provision new number</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="workflow-main-card" style="margin-top:26px;">
+    <div class="workflow-kicker">Workflow</div>
+    <h2 class="workflow-title" style="font-size: clamp(1.4rem, 2.2vw, 2rem); margin-top: 10px;">Set up how we text missed callers</h2>
+    <p class="workflow-subtitle" style="font-size: 15px; margin-top: 8px;">
+      We’ll automatically text missed callers, qualify the lead, and help your team know when to step in.
+    </p>
+
+    <input type="hidden" name="workflow_steps_json" id="steps_json">
+
+    <div class="workflow-toolbar">
+      <button type="button" class="btn btn-primary" id="add-step-btn">+ Add Step</button>
+      <button type="button" class="btn btn-secondary" id="reset-steps-btn">Use Recommended Flow</button>
+    </div>
+
+    <div class="workflow-helper-text">
+      Drag to reorder or use the arrow buttons.
+    </div>
+
+    <div id="workflow-steps" class="workflow-steps"></div>
+
+    <div class="settings-field" style="margin-top: 10px;">
+      <label class="settings-label">First Message Preview</label>
+      <textarea class="textarea" name="first_message" id="first_message_preview" rows="3" readonly>{{ settings.first_message or '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="coverage-panel">
+    <div class="settings-two-col">
+      <div class="settings-field">
+        <label class="settings-label">Coverage Mode</label>
+        <select class="select" name="coverage_mode" id="coverage_mode">
+          <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
+          <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
+        </select>
+      </div>
+      <div class="settings-field" id="coverage_schedule_row">
+        <label class="settings-label">Business Days</label>
+        <select class="select" name="business_days" id="business_days">
+          <option value="" {% if not ws or not ws.business_days %}selected{% endif %}>Not set</option>
+          <option value="mon_fri" {% if ws and ws.business_days == 'mon_fri' %}selected{% endif %}>Mon–Fri</option>
+          <option value="mon_sat" {% if ws and ws.business_days == 'mon_sat' %}selected{% endif %}>Mon–Sat</option>
+          <option value="all_week" {% if ws and ws.business_days == 'all_week' %}selected{% endif %}>All week</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-two-col" id="after_hours_fields">
+      <div class="settings-field">
+        <label class="settings-label">Workday Start</label>
+        <input class="input" type="time" name="workday_start" value="{{ ws.workday_start if ws else '' }}">
+      </div>
+      <div class="settings-field">
+        <label class="settings-label">Workday End</label>
+        <input class="input" type="time" name="workday_end" value="{{ ws.workday_end if ws else '' }}">
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-top:24px;">
+    <button type="submit" class="btn btn-primary">Save Settings</button>
+    <a href="/demo/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+  </div>
+</form>
+
+<script>
+  (() => {
+    const settingsBusinessName = {{ (settings.business_name or 'your roofing company') | tojson | safe }};
+    const fallbackSteps = [
+      {
+        id: "step-1",
+        title: "Instant Reply",
+        description: "First text sent immediately after a missed call.",
+        trigger: "missed_call",
+        delayMinutes: 0,
+        message: `Hey, thanks for calling ${settingsBusinessName}. Sorry we missed you — are you looking for a repair, replacement, or inspection?`
+      },
+      {
+        id: "step-2",
+        title: "Ask for Postal Code",
+        description: "Capture service area and route the lead properly.",
+        trigger: "after_reply",
+        delayMinutes: 0,
+        message: "Thanks — what’s the postal code for the property?"
+      },
+      {
+        id: "step-3",
+        title: "Ask About the Job",
+        description: "Understand what kind of roofing help they need.",
+        trigger: "after_reply",
+        delayMinutes: 0,
+        message: "Got it. Is this for a repair, replacement, leak, storm damage, or inspection?"
+      },
+      {
+        id: "step-4",
+        title: "Ask About Urgency",
+        description: "Identify emergencies and high-priority jobs.",
+        trigger: "after_reply",
+        delayMinutes: 0,
+        message: "How urgent is this — emergency, soon, or just getting quotes?"
+      },
+      {
+        id: "step-5",
+        title: "Final Handoff",
+        description: "Let the customer know your team will follow up.",
+        trigger: "after_reply",
+        delayMinutes: 0,
+        message: `Thanks — your request has been captured for ${settingsBusinessName}. A roofing specialist will follow up shortly to schedule an inspection or estimate.`
+      }
+    ];
+
+    function cloneSteps(items) {
+      return JSON.parse(JSON.stringify(items));
+    }
+
+    function normalizeStep(step, index) {
+      return {
+        id: step.id || `step-${index + 1}-${Date.now()}`,
+        title: step.title || "Custom Follow-Up",
+        description: step.description || "Add your own extra question or message.",
+        trigger: step.trigger || "after_reply",
+        delayMinutes: Number(step.delayMinutes || 0),
+        message: step.message || ""
+      };
+    }
+
+    const savedStepsRaw = {{ workflow_steps | default([]) | tojson | safe }};
+    const parsedSavedSteps = (() => {
+      if (Array.isArray(savedStepsRaw)) return savedStepsRaw;
+      if (typeof savedStepsRaw === "string") {
+        try {
+          const decoded = JSON.parse(savedStepsRaw);
+          return Array.isArray(decoded) ? decoded : [];
+        } catch (_) {
+          return [];
+        }
+      }
+      return [];
+    })();
+    let steps = Array.isArray(savedStepsRaw) && savedStepsRaw.length
+      ? savedStepsRaw.map(normalizeStep)
+      : parsedSavedSteps.length
+      ? parsedSavedSteps.map(normalizeStep)
+      : cloneSteps(fallbackSteps);
+
+    let activeTextarea = null;
+    let draggedId = null;
+
+    const stepsContainer = document.getElementById("workflow-steps");
+    const stepsInput = document.getElementById("steps_json");
+    const addStepBtn = document.getElementById("add-step-btn");
+    const resetStepsBtn = document.getElementById("reset-steps-btn");
+    const workflowForm = document.getElementById("workflow-form");
+    const firstMessagePreview = document.getElementById('first_message_preview');
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function getDelayLabel(delayMinutes) {
+      if (delayMinutes === 0) return "Immediately";
+      if (delayMinutes === 1) return "1 minute later";
+      return `${delayMinutes} minutes later`;
+    }
+
+    function updateHiddenInput() {
+      if (stepsInput) stepsInput.value = JSON.stringify(steps);
+      if (firstMessagePreview) {
+        firstMessagePreview.value = (steps[0] && steps[0].message) ? steps[0].message : '';
+      }
+    }
+
+    function moveStep(index, direction) {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= steps.length) return;
+      [steps[index], steps[newIndex]] = [steps[newIndex], steps[index]];
+      renderSteps();
+    }
+
+    function deleteStep(id) {
+      steps = steps.filter(step => step.id !== id);
+      renderSteps();
+    }
+
+    function addCustomStep() {
+      steps.push({
+        id: `step-${Date.now()}`,
+        title: "Custom Follow-Up",
+        description: "Add your own extra question or message.",
+        trigger: "after_reply",
+        delayMinutes: 0,
+        message: ""
+      });
+      renderSteps();
+    }
+
+    function resetRecommended() {
+      steps = cloneSteps(fallbackSteps);
+      renderSteps();
+    }
+
+    function insertTokenIntoActiveTextarea(token) {
+      if (!activeTextarea) return;
+      const start = activeTextarea.selectionStart ?? activeTextarea.value.length;
+      const end = activeTextarea.selectionEnd ?? activeTextarea.value.length;
+      const oldValue = activeTextarea.value;
+
+      activeTextarea.value = oldValue.slice(0, start) + token + oldValue.slice(end);
+      activeTextarea.dispatchEvent(new Event("input", { bubbles: true }));
+
+      const newCursor = start + token.length;
+      activeTextarea.setSelectionRange(newCursor, newCursor);
+      activeTextarea.focus();
+    }
+
+    function buildCard(step, index) {
+      const card = document.createElement("div");
+      card.className = "workflow-step-card";
+      card.draggable = true;
+      card.dataset.stepId = step.id;
+
+      card.innerHTML = `
+        <div class="workflow-step-header">
+          <div class="workflow-step-left">
+            <div class="workflow-step-badge">Step ${index + 1}</div>
+            <div>
+              <div class="workflow-step-title-row">
+                <button type="button" class="drag-handle" title="Drag to reorder">⋮⋮</button>
+                <h3 class="workflow-step-title">${escapeHtml(step.title)}</h3>
+              </div>
+              <p class="workflow-step-description">${escapeHtml(step.description)}</p>
+            </div>
+          </div>
+
+          <div class="workflow-step-actions">
+            <button type="button" class="icon-btn move-up-btn" title="Move up">↑</button>
+            <button type="button" class="icon-btn move-down-btn" title="Move down">↓</button>
+            <button type="button" class="delete-btn">Delete</button>
+          </div>
+        </div>
+
+        <div class="workflow-field-group">
+          <label>When should this send?</label>
+          <select class="trigger-select">
+            <option value="missed_call" ${step.trigger === "missed_call" ? "selected" : ""}>Immediately after missed call</option>
+            <option value="after_reply" ${step.trigger === "after_reply" ? "selected" : ""}>After customer replies</option>
+          </select>
+        </div>
+
+        <div class="advanced-timing-wrap">
+          <button type="button" class="advanced-toggle subtle-toggle">
+            <span>Advanced timing</span>
+            <span class="advanced-summary">${getDelayLabel(step.delayMinutes)}</span>
+          </button>
+
+          <div class="advanced-panel ${step.delayMinutes > 0 ? "open" : ""}">
+            <div class="advanced-panel-inner">
+              <div class="workflow-field-group compact-field-group">
+                <label>When should this text send?</label>
+                <select class="delay-select">
+                  <option value="0" ${step.delayMinutes === 0 ? "selected" : ""}>Immediately (recommended)</option>
+                  <option value="1" ${step.delayMinutes === 1 ? "selected" : ""}>1 minute later</option>
+                  <option value="5" ${step.delayMinutes === 5 ? "selected" : ""}>5 minutes later</option>
+                  <option value="10" ${step.delayMinutes === 10 ? "selected" : ""}>10 minutes later</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="workflow-field-group">
+          <label>Text message</label>
+          <div class="field-helper">
+            Auto-filled details like <span class="token-chip-inline">{business_name}</span> will be replaced automatically.
+          </div>
+          <textarea class="message-textarea" rows="4" placeholder="Type your follow-up message here.">${escapeHtml(step.message)}</textarea>
+        </div>
+
+        <div class="step-variable-box">
+          <div class="step-variable-title">Auto-filled details</div>
+          <div class="step-variable-row">
+            <button type="button" class="variable-chip" data-token="{business_name}">Business Name</button>
+            <button type="button" class="variable-chip" data-token="{customer_name}">Customer Name</button>
+            <button type="button" class="variable-chip" data-token="{job_type}">Job Type</button>
+            <button type="button" class="variable-chip" data-token="{postal_code}">Postal Code</button>
+            <button type="button" class="variable-chip" data-token="{urgency}">Urgency</button>
+          </div>
+        </div>
+      `;
+
+      const moveUpBtn = card.querySelector(".move-up-btn");
+      const moveDownBtn = card.querySelector(".move-down-btn");
+      const deleteBtn = card.querySelector(".delete-btn");
+      const triggerSelect = card.querySelector(".trigger-select");
+      const delaySelect = card.querySelector(".delay-select");
+      const textarea = card.querySelector(".message-textarea");
+      const advancedToggle = card.querySelector(".advanced-toggle");
+      const advancedPanel = card.querySelector(".advanced-panel");
+
+      moveUpBtn.addEventListener("click", () => moveStep(index, -1));
+      moveDownBtn.addEventListener("click", () => moveStep(index, 1));
+      deleteBtn.addEventListener("click", () => deleteStep(step.id));
+
+      triggerSelect.addEventListener("change", (e) => {
+        steps[index].trigger = e.target.value;
+        updateHiddenInput();
+      });
+
+      delaySelect.addEventListener("change", (e) => {
+        steps[index].delayMinutes = Number(e.target.value);
+        renderSteps();
+      });
+
+      textarea.addEventListener("focus", () => {
+        activeTextarea = textarea;
+      });
+
+      textarea.addEventListener("input", (e) => {
+        steps[index].message = e.target.value;
+        updateHiddenInput();
+      });
+
+      advancedToggle.addEventListener("click", () => {
+        advancedPanel.classList.toggle("open");
+      });
+
+      card.addEventListener("dragstart", () => {
+        draggedId = step.id;
+        card.classList.add("dragging");
+      });
+
+      card.addEventListener("dragend", () => {
+        draggedId = null;
+        card.classList.remove("dragging");
+      });
+
+      card.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        card.classList.add("drag-over");
+      });
+
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("drag-over");
+      });
+
+      card.addEventListener("drop", (e) => {
+        e.preventDefault();
+        card.classList.remove("drag-over");
+
+        if (!draggedId || draggedId === step.id) return;
+
+        const fromIndex = steps.findIndex(s => s.id === draggedId);
+        const toIndex = steps.findIndex(s => s.id === step.id);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const [moved] = steps.splice(fromIndex, 1);
+        steps.splice(toIndex, 0, moved);
+        renderSteps();
+      });
+
+      return card;
+    }
+
+    function renderSteps() {
+      if (!stepsContainer) return;
+      stepsContainer.innerHTML = "";
+
+      steps.forEach((step, index) => {
+        const card = buildCard(step, index);
+        stepsContainer.appendChild(card);
+      });
+
+      stepsContainer.querySelectorAll(".variable-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          insertTokenIntoActiveTextarea(chip.dataset.token);
+        });
+      });
+
+      updateHiddenInput();
+    }
+
+    if (addStepBtn) addStepBtn.addEventListener("click", addCustomStep);
+    if (resetStepsBtn) resetStepsBtn.addEventListener("click", resetRecommended);
+    if (workflowForm) workflowForm.addEventListener("submit", updateHiddenInput);
+
+    renderSteps();
+
+    const coverageMode = document.getElementById('coverage_mode');
+    const afterHoursFields = document.getElementById('after_hours_fields');
+    const businessDays = document.getElementById('business_days');
+    const coverageScheduleRow = document.getElementById('coverage_schedule_row');
+
+    const syncCoverageUI = () => {
+      const afterHours = coverageMode && coverageMode.value === 'after_hours';
+      if (afterHoursFields) afterHoursFields.style.display = afterHours ? 'grid' : 'none';
+      if (coverageScheduleRow) coverageScheduleRow.style.display = afterHours ? 'block' : 'none';
+      if (businessDays) businessDays.disabled = !afterHours;
+    };
+
+    if (coverageMode) {
+      coverageMode.addEventListener('change', syncCoverageUI);
+      syncCoverageUI();
+    }
+  })();
+</script>
 {% endblock %}
