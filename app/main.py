@@ -4,6 +4,7 @@ import secrets
 import hashlib
 import smtplib
 from pathlib import Path
+from urllib.parse import quote_plus
 from typing import Optional
 from datetime import datetime, timedelta
 from email.message import EmailMessage
@@ -102,6 +103,7 @@ templates.env.globals["note_preview"] = note_preview
 PILOT_GROWTH_UPGRADE_COPY = {
     "pipeline_reporting": "Pipeline and reporting are available on Growth. Upgrade to Growth to unlock this view.",
     "advanced_stage_management": "Advanced pipeline stage management is available on Growth. Upgrade to Growth to move leads beyond Qualified.",
+    "lead_limit": "Monthly recovered lead limit reached on your current plan. Upgrade to continue capturing new leads.",
 }
 PILOT_BLOCKED_STAGE_UPDATES = {"contacted", "booked", "closed", "lost"}
 
@@ -1795,6 +1797,7 @@ def app_inbox(
     priority_filter: str = Query("all"),
     insurance_filter: str = Query("all"),
     upgrade_required: str = Query(""),
+    limit_message: str = Query(""),
     db: Session = Depends(get_db),
 ):
     current_user = get_current_user_from_cookie(request, db)
@@ -1860,7 +1863,7 @@ def app_inbox(
             "priority_filter": priority_filter,
             "insurance_filter": insurance_filter,
             "search": search,
-            "upgrade_message": pilot_upgrade_message(upgrade_required),
+            "upgrade_message": (limit_message or pilot_upgrade_message(upgrade_required)),
             "high_priority_count": high_priority_count,
             "qualified_count": qualified_count,
             "booked_count": booked_count,
@@ -2499,17 +2502,24 @@ def ui_create_lead(
     if latest and not logic.is_finished_lead(latest):
         return RedirectResponse(url=f"{route_prefix}/inbox?lead_id={latest.id}", status_code=303)
 
-    if workspace:
-        lead = models.Lead(
-            workspace_id=workspace.id,
-            phone_number=normalized_phone,
-            source="manual",
+    try:
+        if workspace:
+            logic.enforce_workspace_recovered_lead_limit(db, workspace.id)
+            lead = models.Lead(
+                workspace_id=workspace.id,
+                phone_number=normalized_phone,
+                source="manual",
+            )
+            db.add(lead)
+            db.commit()
+            db.refresh(lead)
+        else:
+            lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
+    except ValueError as exc:
+        return RedirectResponse(
+            url=f"{route_prefix}/inbox?upgrade_required=lead_limit&limit_message={quote_plus(str(exc))}",
+            status_code=303,
         )
-        db.add(lead)
-        db.commit()
-        db.refresh(lead)
-    else:
-        lead = logic.create_missed_call_lead(db, phone_number=normalized_phone)
     return RedirectResponse(url=f"{route_prefix}/inbox?lead_id={lead.id}", status_code=303)
 
 
@@ -2776,11 +2786,14 @@ def api_update_settings(
 
 @app.post("/api/leads/missed-call", response_model=schemas.LeadOut)
 def api_create_missed_call_lead(payload: schemas.LeadCreate, db: Session = Depends(get_db)):
-    return logic.create_missed_call_lead(
-        db,
-        phone_number=payload.phone_number,
-        source=payload.source,
-    )
+    try:
+        return logic.create_missed_call_lead(
+            db,
+            phone_number=payload.phone_number,
+            source=payload.source,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
 
 
 @app.get("/api/leads", response_model=list[schemas.LeadOut])
@@ -2828,7 +2841,12 @@ def twilio_inbound(
     latest_lead = logic.find_latest_lead_for_phone(db, From)
 
     if logic.should_start_new_lead(latest_lead, Body):
-        lead = logic.create_missed_call_lead(db, phone_number=From, source="sms_inbound")
+        try:
+            lead = logic.create_missed_call_lead(db, phone_number=From, source="sms_inbound")
+        except ValueError as exc:
+            resp = MessagingResponse()
+            resp.message(str(exc))
+            return HTMLResponse(content=str(resp), media_type="application/xml")
 
         if text in logic.RESTART_KEYWORDS:
             reply = "Got it — let’s start a new request. Are you looking for a repair, replacement, or inspection?"
