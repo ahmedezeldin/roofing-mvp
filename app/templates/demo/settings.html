@@ -150,34 +150,35 @@
     </div>
   </div>
 
-  <div class="settings-field">
-    <label class="settings-label">Coverage Mode</label>
-    <select class="select" name="coverage_mode" id="coverage_mode">
-      <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
-      <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
-    </select>
-  </div>
-
-  <div id="after_hours_fields">
-    <div class="settings-field">
-      <label class="settings-label">Business Days</label>
-      <select class="select" name="business_days" id="business_days">
-        <option value="" {% if not ws or not ws.business_days %}selected{% endif %}>Not set</option>
-        <option value="mon_fri" {% if ws and ws.business_days == 'mon_fri' %}selected{% endif %}>Mon–Fri</option>
-        <option value="mon_sat" {% if ws and ws.business_days == 'mon_sat' %}selected{% endif %}>Mon–Sat</option>
-        <option value="all_week" {% if ws and ws.business_days == 'all_week' %}selected{% endif %}>All week</option>
-      </select>
-    </div>
-
+  <div class="coverage-panel">
     <div class="settings-two-col">
-    <div class="settings-field">
-      <label class="settings-label">Workday Start</label>
-      <input class="input" type="time" name="workday_start" value="{{ ws.workday_start if ws else '' }}">
+      <div class="settings-field">
+        <label class="settings-label">Coverage Mode</label>
+        <select class="select" name="coverage_mode" id="coverage_mode">
+          <option value="always" {% if not ws or ws.coverage_mode == 'always' %}selected{% endif %}>Always on</option>
+          <option value="after_hours" {% if ws and ws.coverage_mode == 'after_hours' %}selected{% endif %}>After hours only</option>
+        </select>
+      </div>
+      <div class="settings-field" id="coverage_schedule_row">
+        <label class="settings-label">Business Days</label>
+        <select class="select" name="business_days" id="business_days">
+          <option value="" {% if not ws or not ws.business_days %}selected{% endif %}>Not set</option>
+          <option value="mon_fri" {% if ws and ws.business_days == 'mon_fri' %}selected{% endif %}>Mon–Fri</option>
+          <option value="mon_sat" {% if ws and ws.business_days == 'mon_sat' %}selected{% endif %}>Mon–Sat</option>
+          <option value="all_week" {% if ws and ws.business_days == 'all_week' %}selected{% endif %}>All week</option>
+        </select>
+      </div>
     </div>
-    <div class="settings-field">
-      <label class="settings-label">Workday End</label>
-      <input class="input" type="time" name="workday_end" value="{{ ws.workday_end if ws else '' }}">
-    </div>
+
+    <div class="settings-two-col" id="after_hours_fields">
+      <div class="settings-field">
+        <label class="settings-label">Workday Start</label>
+        <input class="input" type="time" name="workday_start" value="{{ ws.workday_start if ws else '' }}">
+      </div>
+      <div class="settings-field">
+        <label class="settings-label">Workday End</label>
+        <input class="input" type="time" name="workday_end" value="{{ ws.workday_end if ws else '' }}">
+      </div>
     </div>
   </div>
 
@@ -521,10 +522,12 @@
     const coverageMode = document.getElementById('coverage_mode');
     const afterHoursFields = document.getElementById('after_hours_fields');
     const businessDays = document.getElementById('business_days');
+    const coverageScheduleRow = document.getElementById('coverage_schedule_row');
 
     const syncCoverageUI = () => {
       const afterHours = coverageMode && coverageMode.value === 'after_hours';
-      if (afterHoursFields) afterHoursFields.style.display = afterHours ? 'block' : 'none';
+      if (afterHoursFields) afterHoursFields.style.display = afterHours ? 'grid' : 'none';
+      if (coverageScheduleRow) coverageScheduleRow.style.display = afterHours ? 'block' : 'none';
       if (businessDays) businessDays.disabled = !afterHours;
     };
 
