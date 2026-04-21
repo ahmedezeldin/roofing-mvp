@@ -128,13 +128,13 @@
           <div class="settings-card-title">Urgent Leads Queue</div>
           <div class="settings-card-subtitle">The highest-priority leads that should be reviewed first.</div>
         </div>
-        <a class="btn btn-secondary" href="/demo/inbox">Open Inbox</a>
+        <a class="btn btn-secondary" href="{{ route_prefix }}/inbox">Open Inbox</a>
       </div>
 
       {% if recent_hot_leads %}
       <div class="queue-list">
         {% for lead in recent_hot_leads %}
-        <a class="queue-item" href="/demo/lead/{{ lead.id }}">
+        <a class="queue-item" href="{{ route_prefix }}/lead/{{ lead.id }}">
           <div class="queue-item-main">
             <div class="queue-item-name">{{ lead.customer_name or lead.phone_number }}</div>
             <div class="queue-item-sub">
@@ -180,7 +180,7 @@
             <div class="settings-card-title">Pipeline Snapshot</div>
             <div class="settings-card-subtitle">Where active leads are currently sitting.</div>
           </div>
-          <a class="btn btn-secondary" href="/demo/pipeline">View Pipeline</a>
+          <a class="btn btn-secondary" href="{{ route_prefix }}/pipeline">View Pipeline</a>
         </div>
 
         <div class="mini-pipeline-grid">
