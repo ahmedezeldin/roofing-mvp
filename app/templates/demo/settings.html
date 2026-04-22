@@ -50,10 +50,6 @@
     </div>
   </div>
 
-  <div class="settings-alert settings-alert-muted" style="margin-top: 12px;">
-    Your current login email is shown above. Use <strong>Change Email</strong> to update it through the popup flow.
-  </div>
-
   <div style="display:flex; gap:10px; margin-top:16px;">
     <button type="button" id="open-email-change-modal" class="btn btn-secondary" {% if not has_account_access %}disabled{% endif %}>Change Email</button>
     <button type="submit" class="btn btn-primary" {% if not has_account_access %}disabled{% endif %}>Save Profile</button>
