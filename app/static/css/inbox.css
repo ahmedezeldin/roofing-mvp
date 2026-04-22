@@ -170,6 +170,29 @@
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
 }
 
+.inbox-item-row {
+  position: relative;
+}
+
+.inbox-delete-form {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+}
+
+.inbox-delete-btn {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fff5f5;
+}
+
+.inbox-delete-btn:hover {
+  border-color: #fca5a5;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .list-item-top {
   display: flex;
   justify-content: space-between;
