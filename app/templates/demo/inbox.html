@@ -1,9 +1,16 @@
 {% extends "demo/app_base.html" %}
 
 {% block content %}
+{% set is_pilot_plan = workspace and (workspace.plan or "")|lower == "pilot" %}
 <div class="page-header">
   <h1 class="page-title">Lead Inbox</h1>
 </div>
+{% if is_pilot_plan %}
+<div class="settings-alert settings-alert-error growth-plan-callout">
+  <strong>Pilot plan detected:</strong> Pipeline view and advanced stage moves (Contacted, Booked, Closed, Lost) are <strong>Growth plan privileges only</strong>.
+  <a href="/pricing" style="margin-left: 8px; font-weight:700;">Upgrade to Growth</a>
+</div>
+{% endif %}
 {% if upgrade_message %}
 <div class="settings-alert settings-alert-muted" style="margin-bottom: 12px;">
   {{ upgrade_message }}
@@ -72,10 +79,10 @@
               <option value="all" {% if crm_status_filter == "all" %}selected{% endif %}>All</option>
               <option value="new" {% if crm_status_filter == "new" %}selected{% endif %}>New</option>
               <option value="qualified" {% if crm_status_filter == "qualified" %}selected{% endif %}>Qualified</option>
-              <option value="contacted" {% if crm_status_filter == "contacted" %}selected{% endif %}>Contacted</option>
-              <option value="booked" {% if crm_status_filter == "booked" %}selected{% endif %}>Booked</option>
-              <option value="closed" {% if crm_status_filter == "closed" %}selected{% endif %}>Closed</option>
-              <option value="lost" {% if crm_status_filter == "lost" %}selected{% endif %}>Lost</option>
+              <option value="contacted" {% if crm_status_filter == "contacted" %}selected{% endif %}>Contacted{% if is_pilot_plan %} (Growth only){% endif %}</option>
+              <option value="booked" {% if crm_status_filter == "booked" %}selected{% endif %}>Booked{% if is_pilot_plan %} (Growth only){% endif %}</option>
+              <option value="closed" {% if crm_status_filter == "closed" %}selected{% endif %}>Closed{% if is_pilot_plan %} (Growth only){% endif %}</option>
+              <option value="lost" {% if crm_status_filter == "lost" %}selected{% endif %}>Lost{% if is_pilot_plan %} (Growth only){% endif %}</option>
             </select>
           </div>
 
@@ -226,6 +233,9 @@
             <input type="hidden" name="search" value="{{ search }}" />
             <button type="submit" class="btn btn-secondary">Qualify</button>
           </form>
+          {% if is_pilot_plan %}
+          <button type="button" class="btn btn-secondary" disabled title="Growth plan privilege only">Book Estimate (Growth only)</button>
+          {% else %}
           <form method="post" action="/ui/leads/update-stage">
             <input type="hidden" name="lead_id" value="{{ selected.id }}" />
             <input type="hidden" name="crm_status" value="booked" />
@@ -237,6 +247,7 @@
             <input type="hidden" name="search" value="{{ search }}" />
             <button type="submit" class="btn btn-secondary">Book Estimate</button>
           </form>
+          {% endif %}
         </div>
       </div>
 
