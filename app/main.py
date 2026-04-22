@@ -2942,7 +2942,9 @@ def ui_send_message(
     if not lead:
         return RedirectResponse(url=f"{route_prefix}/inbox", status_code=303)
 
-    logic.process_inbound_message(db, lead, body)
+    message_text = body.strip()
+    if message_text:
+        logic.create_outbound_message(db, lead.id, message_text, lead.phone_number)
 
     return RedirectResponse(
         url=(
