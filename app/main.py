@@ -2505,8 +2505,6 @@ def ui_update_account(
     request: Request,
     first_name: str = Form(...),
     last_name: str = Form(""),
-    email: str = Form(...),
-    email_otp: str = Form(""),
     db: Session = Depends(get_db),
 ):
     current_user = get_current_user_from_cookie(request, db)
@@ -2519,8 +2517,6 @@ def ui_update_account(
 
     normalized_first_name = (first_name or "").strip()
     normalized_last_name = (last_name or "").strip()
-    normalized_email = (email or "").strip().lower()
-    normalized_otp = (email_otp or "").strip()
 
     if not normalized_first_name:
         return render_app_settings_template(
@@ -2531,69 +2527,10 @@ def ui_update_account(
             account_error="First name is required.",
             profile_first_name=normalized_first_name,
             profile_last_name=normalized_last_name,
-            profile_email=normalized_email,
+            profile_email=(current_user.email or "").strip().lower(),
         )
-
-    if not normalized_email:
-        return render_app_settings_template(
-            request,
-            db,
-            current_user,
-            workspace,
-            account_error="Email is required.",
-            profile_first_name=normalized_first_name,
-            profile_last_name=normalized_last_name,
-            profile_email=normalized_email,
-        )
-
-    existing_user = (
-        db.query(models.AppUser)
-        .filter(models.AppUser.email == normalized_email, models.AppUser.id != current_user.id)
-        .first()
-    )
-    if existing_user:
-        return render_app_settings_template(
-            request,
-            db,
-            current_user,
-            workspace,
-            account_error="That email is already used by another account.",
-            profile_first_name=normalized_first_name,
-            profile_last_name=normalized_last_name,
-            profile_email=normalized_email,
-        )
-
-    current_email = (current_user.email or "").strip().lower()
-
-    if normalized_email != current_email:
-        email_change = (
-            db.query(models.EmailChangeCode)
-            .filter(
-                models.EmailChangeCode.user_id == current_user.id,
-                models.EmailChangeCode.new_email == normalized_email,
-                models.EmailChangeCode.used_at.is_not(None),
-                models.EmailChangeCode.expires_at >= datetime.utcnow(),
-            )
-            .order_by(models.EmailChangeCode.used_at.desc(), models.EmailChangeCode.created_at.desc())
-            .first()
-        )
-
-        if not email_change:
-            return render_app_settings_template(
-                request,
-                db,
-                current_user,
-                workspace,
-                account_error="Please verify your new email with the Change Email popup before saving profile changes.",
-                profile_first_name=normalized_first_name,
-                profile_last_name=normalized_last_name,
-                profile_email=normalized_email,
-            )
-
-        email_change.expires_at = datetime.utcnow()
 
     current_user.full_name = f"{normalized_first_name} {normalized_last_name}".strip()
-    current_user.email = normalized_email
     db.commit()
 
     return render_app_settings_template(
@@ -2707,6 +2644,7 @@ def ui_verify_email_change_otp(
     if not email_change or hash_reset_code(normalized_otp) != email_change.code_hash:
         return JSONResponse({"ok": False, "error": "Invalid or expired OTP."}, status_code=400)
 
+    current_user.email = normalized_new_email
     email_change.used_at = datetime.utcnow()
     email_change.expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_VERIFY_MINUTES)
     db.commit()

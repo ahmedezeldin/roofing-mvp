@@ -37,10 +37,6 @@
 
   <div class="settings-three-col">
     <div class="settings-field">
-      <label class="settings-label">Email Verification Code</label>
-      <input class="input" name="email_otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Enter 6-digit OTP if changing email">
-    </div>
-    <div class="settings-field">
       <label class="settings-label">First Name</label>
       <input class="input" name="first_name" value="{{ profile_first_name or '' }}" required>
     </div>
@@ -49,14 +45,13 @@
       <input class="input" name="last_name" value="{{ profile_last_name or '' }}">
     </div>
     <div class="settings-field">
-      <label class="settings-label">Email (Verified)</label>
+      <label class="settings-label">Current Email</label>
       <input id="account-email-display" class="input" type="email" value="{{ profile_email if has_account_access else '' }}" readonly>
-      <input id="account-email-value" name="email" type="hidden" value="{{ profile_email if has_account_access else '' }}">
     </div>
   </div>
 
   <div class="settings-alert settings-alert-muted" style="margin-top: 12px;">
-    Your current login email is shown above. Use <strong>Change Email</strong> to verify a new email with OTP before saving.
+    Your current login email is shown above. Use <strong>Change Email</strong> to update it through the popup flow.
   </div>
 
   <div style="display:flex; gap:10px; margin-top:16px;">
@@ -828,7 +823,6 @@
     const confirmEmailInput = document.getElementById('email-change-confirm-email');
     const otpInput = document.getElementById('email-change-otp');
     const accountEmailDisplay = document.getElementById('account-email-display');
-    const accountEmailValue = document.getElementById('account-email-value');
     let pendingNewEmail = '';
 
     const showFeedback = (message, type = 'muted') => {
@@ -941,7 +935,6 @@
 
         const verifiedEmail = payload.new_email || pendingNewEmail;
         if (accountEmailDisplay) accountEmailDisplay.value = verifiedEmail;
-        if (accountEmailValue) accountEmailValue.value = verifiedEmail;
         closeEmailModal();
       });
     }
