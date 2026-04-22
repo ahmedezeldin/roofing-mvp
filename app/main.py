@@ -81,6 +81,7 @@ STRIPE_PRICE_GROWTH_SETUP = _env_first(
     f"STRIPE_{STRIPE_MODE.upper()}_PRICE_GROWTH_SETUP",
     "STRIPE_PRICE_GROWTH_SETUP",
 )
+NUMBER_CHANGE_FEE_CENTS = 2500
 
 
 # --------------------------------------------------
@@ -606,6 +607,32 @@ def get_subscription_snapshot(workspace: Optional[models.Workspace]) -> dict:
         pass
 
     return snapshot
+
+
+def create_number_change_invoice_item(workspace: models.Workspace, old_number: str, new_number: str) -> tuple[bool, Optional[str]]:
+    customer_id = (workspace.stripe_customer_id or "").strip()
+    if not stripe.api_key:
+        return False, "Stripe is not configured for number-change billing."
+    if not customer_id:
+        return False, "No Stripe customer is linked to this workspace."
+
+    description = f"Service number change fee ({old_number or 'Not set'} → {new_number})"
+    try:
+        stripe.InvoiceItem.create(
+            customer=customer_id,
+            amount=NUMBER_CHANGE_FEE_CENTS,
+            currency="usd",
+            description=description,
+            metadata={
+                "workspace_id": str(workspace.id),
+                "fee_type": "phone_number_change",
+            },
+        )
+        return True, None
+    except stripe.error.StripeError as exc:
+        stripe_message = stripe_attr(exc, "user_message") or stripe_attr(exc, "code") or "unknown_error"
+        print(f"[NUMBER CHANGE FEE ERROR] workspace={workspace.id} stripe_error={stripe_message}")
+        return False, f"Stripe could not add the $25 change fee ({stripe_message})."
 
 
 # --------------------------------------------------
@@ -2527,6 +2554,12 @@ def ui_change_service_number(
     workspace.pending_twilio_number = None
     workspace.active_twilio_number = activated_number
     workspace.business_phone = activated_number
+
+    fee_added, fee_message = create_number_change_invoice_item(
+        workspace=workspace,
+        old_number=old_number,
+        new_number=activated_number,
+    )
     db.commit()
 
     release_suffix = (
@@ -2536,11 +2569,15 @@ def ui_change_service_number(
     )
     old_number_display = old_number or "Not set"
 
+    fee_suffix = " We added the $25 number-change fee to your next Stripe invoice." if fee_added else (
+        f" {fee_message}" if fee_message else ""
+    )
+
     return RedirectResponse(
         url=(
             "/app/settings?number_success="
             + quote_plus(
-                f"Service number updated from {old_number_display} to {activated_number}. {release_suffix}"
+                f"Service number updated from {old_number_display} to {activated_number}. {release_suffix}{fee_suffix}"
             )
         ),
         status_code=303,

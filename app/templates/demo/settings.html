@@ -311,16 +311,16 @@
     </div>
     <div id="available-numbers" class="settings-available-numbers"></div>
 
-    <form method="post" action="/ui/settings/phone-number/change" id="change-service-number-form">
+    <div id="change-service-number-form">
       <input type="hidden" name="selected_twilio_number" id="selected_twilio_number" value="">
       <label class="cancel-checkbox" style="margin-top:14px;">
         <input type="checkbox" name="confirm_new_number_fee" value="yes" id="confirm-new-number-fee" required>
         I understand I will be charged <strong>$25</strong> to switch to a new service number.
       </label>
       <div style="display:flex; gap:10px; margin-top:14px;">
-        <button type="submit" class="btn btn-primary">Confirm & Switch Number</button>
+        <button type="submit" class="btn btn-primary" form="change-service-number-post-form">Confirm & Switch Number</button>
       </div>
-    </form>
+    </div>
   </div>
   {% endif %}
 
@@ -382,6 +382,12 @@
     <a href="{{ route_prefix }}/dashboard" class="btn btn-secondary">Back to Dashboard</a>
   </div>
 </form>
+{% if ws %}
+<form method="post" action="/ui/settings/phone-number/change" id="change-service-number-post-form">
+  <input type="hidden" name="selected_twilio_number" id="selected_twilio_number_post" value="">
+  <input type="hidden" name="confirm_new_number_fee" id="confirm_new_number_fee_post" value="">
+</form>
+{% endif %}
 
 <script>
   (() => {
@@ -719,6 +725,8 @@
     const newNumberStatus = document.getElementById('new-number-status');
     const availableNumbersContainer = document.getElementById('available-numbers');
     const selectedTwilioNumberInput = document.getElementById('selected_twilio_number');
+    const selectedTwilioNumberPostInput = document.getElementById('selected_twilio_number_post');
+    const confirmNewNumberFeePost = document.getElementById('confirm_new_number_fee_post');
     const changeServiceNumberForm = document.getElementById('change-service-number-form');
     const confirmNewNumberFee = document.getElementById('confirm-new-number-fee');
 
@@ -804,6 +812,13 @@
         if (!confirmNewNumberFee || !confirmNewNumberFee.checked) {
           event.preventDefault();
           if (newNumberStatus) newNumberStatus.textContent = "Please confirm the $25 charge to continue.";
+          return;
+        }
+        if (selectedTwilioNumberPostInput) {
+          selectedTwilioNumberPostInput.value = selectedTwilioNumberInput.value;
+        }
+        if (confirmNewNumberFeePost) {
+          confirmNewNumberFeePost.value = confirmNewNumberFee && confirmNewNumberFee.checked ? "yes" : "";
         }
       });
     }
