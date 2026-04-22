@@ -307,9 +307,10 @@
 }
 
 .settings-billing-actions .btn-danger-outline {
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
 .cancel-modal {
@@ -366,6 +367,13 @@
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+
+.cancel-modal-actions .btn {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
 /* =========================================================
