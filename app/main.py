@@ -438,6 +438,22 @@ def get_checkout_prices(plan: str) -> tuple[str, list[dict]]:
     raise HTTPException(status_code=400, detail="Invalid plan")
 
 
+def get_subscription_price_for_plan(plan: str) -> tuple[str, str]:
+    normalized = (plan or "").strip().lower()
+
+    if normalized == "pilot":
+        if not STRIPE_PRICE_PILOT:
+            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_PILOT")
+        return "Pilot", STRIPE_PRICE_PILOT
+
+    if normalized == "growth":
+        if not STRIPE_PRICE_GROWTH:
+            raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_GROWTH")
+        return "Growth", STRIPE_PRICE_GROWTH
+
+    raise HTTPException(status_code=400, detail="Invalid plan")
+
+
 # --------------------------------------------------
 # WORKSPACE HELPERS
 # --------------------------------------------------
@@ -2820,6 +2836,98 @@ def ui_settings_billing_portal(
         return RedirectResponse(
             url="/app/settings?billing_error=We+could+not+open+the+billing+portal.+Please+try+again.",
             status_code=303,
+        )
+
+
+@app.post("/ui/settings/billing/change-plan")
+def ui_settings_change_plan(
+    request: Request,
+    plan: str = Form("pilot"),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    workspace = get_current_workspace(request, db)
+    if not workspace:
+        return RedirectResponse(url="/signup", status_code=303)
+
+    if not stripe.api_key:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error="Stripe is not configured yet.",
+        )
+
+    if not workspace.stripe_subscription_id:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error="No active Stripe subscription was found for this workspace.",
+        )
+
+    normalized_plan = (plan or "").strip().lower()
+    try:
+        selected_plan_label, selected_price_id = get_subscription_price_for_plan(normalized_plan)
+    except HTTPException:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error="Please choose a valid plan.",
+        )
+
+    try:
+        subscription = stripe.Subscription.retrieve(workspace.stripe_subscription_id)
+        subscription_items = stripe_attr(subscription, "items")
+        subscription_items_data = stripe_attr(subscription_items, "data", []) if subscription_items else []
+        if not subscription_items_data:
+            raise ValueError("missing_subscription_items")
+
+        first_item = subscription_items_data[0]
+        item_id = stripe_attr(first_item, "id")
+        current_price = stripe_attr(first_item, "price")
+        current_price_id = stripe_attr(current_price, "id")
+
+        if current_price_id == selected_price_id:
+            return render_app_settings_template(
+                request,
+                db,
+                current_user,
+                workspace,
+                billing_success=f"Your workspace is already on the {selected_plan_label} plan.",
+            )
+
+        stripe.Subscription.modify(
+            workspace.stripe_subscription_id,
+            cancel_at_period_end=False,
+            proration_behavior="create_prorations",
+            items=[{"id": item_id, "price": selected_price_id}],
+            metadata={"plan": normalized_plan},
+        )
+
+        workspace.plan = normalized_plan
+        db.commit()
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_success=f"Plan updated to {selected_plan_label}. Stripe will handle any proration automatically.",
+        )
+    except Exception:
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error="We could not change your plan right now. Please try again or use Stripe Billing Portal.",
         )
 
 

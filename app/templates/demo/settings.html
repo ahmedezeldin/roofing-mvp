@@ -196,6 +196,13 @@
   {% endif %}
 
   <div class="settings-billing-actions">
+    <form method="post" action="/ui/settings/billing/change-plan" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <select class="select" name="plan" aria-label="Select plan">
+        <option value="pilot" {% if ws and ws.plan == 'pilot' %}selected{% endif %}>Pilot — $499/mo</option>
+        <option value="growth" {% if ws and ws.plan == 'growth' %}selected{% endif %}>Growth — $999/mo</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Change Plan</button>
+    </form>
     <form method="post" action="/ui/settings/billing/portal">
       <button type="submit" class="btn btn-secondary">Manage Plan, Billing Info, and Card</button>
     </form>
