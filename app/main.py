@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from twilio.twiml.messaging_response import MessagingResponse
+from twilio.twiml.voice_response import VoiceResponse
 
 from .db import Base, engine, get_db
 from . import models, schemas, logic
@@ -3345,6 +3346,23 @@ def twilio_inbound(
     resp.message(reply)
     return HTMLResponse(content=str(resp), media_type="application/xml")
 
+
+@app.post("/webhooks/twilio/voice", response_class=HTMLResponse)
+def twilio_voice_missed_call(
+    From: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    try:
+        logic.create_missed_call_lead(db, phone_number=From, source="voice_inbound")
+    except ValueError:
+        pass
+
+    response = VoiceResponse()
+    response.say("Sorry, we missed your call. We'll text you right away.", voice="alice")
+    response.hangup()
+    return HTMLResponse(content=str(response), media_type="application/xml")
+
+
 def validate_password_rules(password: str) -> Optional[str]:
     if len(password) < 8:
         return "Password must be at least 8 characters long."
@@ -3413,14 +3431,29 @@ def provision_twilio_number(number: str):
     client = get_twilio_client()
     existing = client.incoming_phone_numbers.list(phone_number=normalized_number, limit=1)
     if existing:
-        return existing[0]
+        return configure_twilio_number_webhooks(existing[0])
 
     sms_webhook_url = f"{APP_BASE_URL}/webhooks/twilio/inbound"
+    voice_webhook_url = f"{APP_BASE_URL}/webhooks/twilio/voice"
     return client.incoming_phone_numbers.create(
         phone_number=normalized_number,
         sms_url=sms_webhook_url,
         sms_method="POST",
+        voice_url=voice_webhook_url,
+        voice_method="POST",
     )
+
+
+def configure_twilio_number_webhooks(incoming_number):
+    sms_webhook_url = f"{APP_BASE_URL}/webhooks/twilio/inbound"
+    voice_webhook_url = f"{APP_BASE_URL}/webhooks/twilio/voice"
+    incoming_number.update(
+        sms_url=sms_webhook_url,
+        sms_method="POST",
+        voice_url=voice_webhook_url,
+        voice_method="POST",
+    )
+    return incoming_number
 
 
 def release_twilio_number(number: str) -> bool:
