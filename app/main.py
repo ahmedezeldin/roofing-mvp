@@ -621,7 +621,7 @@ def create_number_change_invoice_item(workspace: models.Workspace, old_number: s
         stripe.InvoiceItem.create(
             customer=customer_id,
             amount=NUMBER_CHANGE_FEE_CENTS,
-            currency="usd",
+            currency="cad",
             description=description,
             metadata={
                 "workspace_id": str(workspace.id),
