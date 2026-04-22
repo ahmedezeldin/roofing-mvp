@@ -87,7 +87,7 @@
     <div id="email-change-feedback" class="settings-alert settings-alert-muted" style="margin-top: 12px; display:none;"></div>
 
     <div class="cancel-modal-actions">
-      <button type="button" id="email-change-cancel" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="email-change-cancel" class="btn btn-secondary btn-cancel-compact">Cancel</button>
       <button type="button" id="email-change-request-btn" class="btn btn-primary">Send OTP</button>
       <button type="button" id="email-change-verify-btn" class="btn btn-primary" style="display:none;">Verify OTP</button>
     </div>
@@ -203,7 +203,7 @@
     <form method="post" action="/ui/settings/billing/portal">
       <button type="submit" class="btn btn-secondary">Manage Plan, Billing Info, and Card</button>
     </form>
-    <button type="button" id="open-cancel-modal" class="btn btn-danger-outline">Cancel Membership</button>
+    <button type="button" id="open-cancel-modal" class="btn btn-danger-outline btn-cancel-compact">Cancel Membership</button>
   </div>
 </section>
 
@@ -221,8 +221,8 @@
         I understand cancellation is effective only at the end of this billing cycle.
       </label>
       <div class="cancel-modal-actions">
-        <button type="button" id="close-cancel-modal" class="btn btn-secondary">Keep Membership</button>
-        <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+        <button type="button" id="close-cancel-modal" class="btn btn-secondary btn-cancel-compact">Keep Membership</button>
+        <button type="submit" class="btn btn-danger btn-cancel-compact">Confirm Cancellation</button>
       </div>
     </form>
   </div>
@@ -235,7 +235,7 @@
       You are updating your membership plan.
     </p>
     <div class="cancel-modal-actions">
-      <button type="button" id="change-plan-modal-cancel" class="btn btn-secondary">Go Back</button>
+      <button type="button" id="change-plan-modal-cancel" class="btn btn-secondary btn-cancel-compact">Go Back</button>
       <button type="button" id="change-plan-modal-confirm" class="btn btn-primary">Confirm Plan Change</button>
     </div>
   </div>
