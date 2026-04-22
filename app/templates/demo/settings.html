@@ -145,15 +145,15 @@
     </div>
   </div>
 
+  {% if subscription and subscription.current_period_end %}
   <div class="settings-alert settings-alert-muted" style="margin-top: 14px;">
-    {% if subscription and subscription.cancel_at_period_end and subscription.current_period_end %}
+    {% if subscription.cancel_at_period_end %}
       Your membership is scheduled to end on {{ format_dt(subscription.current_period_end) }} (UTC). Access remains active until then.
-    {% elif subscription and subscription.current_period_end %}
-      Your current billing period renews on {{ format_dt(subscription.current_period_end) }} (UTC).
     {% else %}
-      Billing details are synced from Stripe after your first successful checkout.
+      Your current billing period renews on {{ format_dt(subscription.current_period_end) }} (UTC).
     {% endif %}
   </div>
+  {% endif %}
 
   <div class="settings-billing-actions">
     <form method="post" action="/ui/settings/billing/portal">
@@ -228,9 +228,6 @@
       <label class="settings-label">Number Change Policy</label>
       <input class="input" value="Switching to a new number requires a $25 change fee." readonly>
     </div>
-  </div>
-  <div class="settings-alert settings-alert-muted" style="margin-top: 12px;">
-    Need a different service number? Choose <strong>Provision new number</strong> and we’ll confirm the $25 change fee before updating your routing.
   </div>
   {% if ws %}
   <div id="existing-number-settings-block" class="settings-subcard hidden-block settings-number-change-block">
