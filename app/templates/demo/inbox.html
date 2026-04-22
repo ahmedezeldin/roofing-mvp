@@ -310,13 +310,13 @@
               <form method="post" action="/ui/messages/send" class="composer-row">
                 <input type="hidden" name="lead_id" value="{{ selected.id }}" />
                 <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
-                <div class="form-label">Reply by SMS</div>
+                <div class="form-label">Send SMS as provider</div>
                 <input
                   type="text"
                   name="body"
                   id="composer-body"
                   class="input"
-                  placeholder="Type SMS reply..."
+                  placeholder="Type your SMS to the client..."
                   required
                 />
                 <div style="display:flex; gap:10px; margin-top:10px;">
