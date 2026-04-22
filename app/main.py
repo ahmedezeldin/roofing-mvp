@@ -2924,7 +2924,9 @@ def ui_settings_change_plan(
         stripe.Subscription.modify(
             workspace.stripe_subscription_id,
             cancel_at_period_end=False,
-            proration_behavior="create_prorations",
+            # Bill plan changes right away so upgrades/downgrades are reflected
+            # immediately instead of waiting for the next renewal invoice.
+            proration_behavior="always_invoice",
             items=[{"id": item_id, "price": selected_price_id}],
             metadata={"plan": normalized_plan},
         )
@@ -2936,7 +2938,7 @@ def ui_settings_change_plan(
             db,
             current_user,
             workspace,
-            billing_success=f"Plan updated to {selected_plan_label}. Stripe will handle any proration automatically.",
+            billing_success=f"Plan updated to {selected_plan_label}. Stripe has invoiced the prorated change.",
         )
     except stripe.error.StripeError as exc:
         stripe_message = stripe_attr(exc, "user_message") or stripe_attr(exc, "code") or "unknown_error"
