@@ -2541,85 +2541,31 @@ def ui_update_account(
     current_email = (current_user.email or "").strip().lower()
 
     if normalized_email != current_email:
-        if not normalized_otp:
-            code = generate_reset_code()
-            code_hash = hash_reset_code(code)
-            expires_at = datetime.utcnow() + timedelta(minutes=EMAIL_CHANGE_CODE_MINUTES)
-
-            (
-                db.query(models.EmailChangeCode)
-                .filter(
-                    models.EmailChangeCode.user_id == current_user.id,
-                    models.EmailChangeCode.new_email == normalized_email,
-                    models.EmailChangeCode.used_at.is_(None),
-                )
-                .delete(synchronize_session=False)
-            )
-
-            pending_codes = (
-                db.query(models.EmailChangeCode)
-                .filter(
-                    models.EmailChangeCode.user_id == current_user.id,
-                    models.EmailChangeCode.used_at.is_(None),
-                )
-                .all()
-            )
-            for pending in pending_codes:
-                pending.used_at = datetime.utcnow()
-
-            db.add(
-                models.EmailChangeCode(
-                    user_id=current_user.id,
-                    new_email=normalized_email,
-                    code_hash=code_hash,
-                    expires_at=expires_at,
-                )
-            )
-            db.commit()
-
-            sent_to_email = send_email_change_code(normalized_email, code)
-            preview_code = None if sent_to_email else code
-            info_message = "We sent a one-time code to your new email. Enter it below to confirm this change."
-            if not sent_to_email:
-                info_message = "Email delivery is not configured yet. Use the temporary code below to confirm this change."
-                info_message = f"{info_message} Code: {preview_code}"
-
-            return render_app_settings_template(
-                request,
-                db,
-                current_user,
-                workspace,
-                account_success=info_message,
-                profile_first_name=normalized_first_name,
-                profile_last_name=normalized_last_name,
-                profile_email=normalized_email,
-            )
-
         email_change = (
             db.query(models.EmailChangeCode)
             .filter(
                 models.EmailChangeCode.user_id == current_user.id,
                 models.EmailChangeCode.new_email == normalized_email,
-                models.EmailChangeCode.used_at.is_(None),
+                models.EmailChangeCode.used_at.is_not(None),
                 models.EmailChangeCode.expires_at >= datetime.utcnow(),
             )
-            .order_by(models.EmailChangeCode.created_at.desc())
+            .order_by(models.EmailChangeCode.used_at.desc(), models.EmailChangeCode.created_at.desc())
             .first()
         )
 
-        if not email_change or hash_reset_code(normalized_otp) != email_change.code_hash:
+        if not email_change:
             return render_app_settings_template(
                 request,
                 db,
                 current_user,
                 workspace,
-                account_error="Invalid or expired verification code for the new email.",
+                account_error="Please verify your new email with the Change Email popup before saving profile changes.",
                 profile_first_name=normalized_first_name,
                 profile_last_name=normalized_last_name,
                 profile_email=normalized_email,
             )
 
-        email_change.used_at = datetime.utcnow()
+        email_change.expires_at = datetime.utcnow()
 
     current_user.full_name = f"{normalized_first_name} {normalized_last_name}".strip()
     current_user.email = normalized_email
@@ -2631,6 +2577,121 @@ def ui_update_account(
         current_user,
         workspace,
         account_success="Profile updated successfully.",
+    )
+
+
+@app.post("/ui/settings/account/email-change/request")
+def ui_request_email_change_otp(
+    request: Request,
+    new_email: str = Form(...),
+    confirm_email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return JSONResponse({"ok": False, "error": "Please log in again."}, status_code=401)
+
+    normalized_new_email = (new_email or "").strip().lower()
+    normalized_confirm_email = (confirm_email or "").strip().lower()
+    current_email = (current_user.email or "").strip().lower()
+
+    if not normalized_new_email or not normalized_confirm_email:
+        return JSONResponse({"ok": False, "error": "Both email fields are required."}, status_code=400)
+
+    if normalized_new_email != normalized_confirm_email:
+        return JSONResponse({"ok": False, "error": "New email and confirm email must match."}, status_code=400)
+
+    if normalized_new_email == current_email:
+        return JSONResponse({"ok": False, "error": "The new email must be different from your current email."}, status_code=400)
+
+    existing_user = (
+        db.query(models.AppUser)
+        .filter(models.AppUser.email == normalized_new_email, models.AppUser.id != current_user.id)
+        .first()
+    )
+    if existing_user:
+        return JSONResponse({"ok": False, "error": "That email is already used by another account."}, status_code=400)
+
+    (
+        db.query(models.EmailChangeCode)
+        .filter(
+            models.EmailChangeCode.user_id == current_user.id,
+            models.EmailChangeCode.new_email == normalized_new_email,
+            models.EmailChangeCode.used_at.is_(None),
+        )
+        .delete(synchronize_session=False)
+    )
+
+    code = generate_reset_code()
+    code_hash = hash_reset_code(code)
+    expires_at = datetime.utcnow() + timedelta(minutes=EMAIL_CHANGE_CODE_MINUTES)
+
+    db.add(
+        models.EmailChangeCode(
+            user_id=current_user.id,
+            new_email=normalized_new_email,
+            code_hash=code_hash,
+            expires_at=expires_at,
+        )
+    )
+    db.commit()
+
+    sent_to_email = send_email_change_code(normalized_new_email, code)
+    message = "We sent an OTP to your new email. Enter it to continue."
+    if not sent_to_email:
+        message = f"Email delivery is not configured yet. Use this temporary OTP: {code}"
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "message": message,
+            "new_email": normalized_new_email,
+        }
+    )
+
+
+@app.post("/ui/settings/account/email-change/verify")
+def ui_verify_email_change_otp(
+    request: Request,
+    new_email: str = Form(...),
+    otp: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(request, db)
+    if not current_user:
+        return JSONResponse({"ok": False, "error": "Please log in again."}, status_code=401)
+
+    normalized_new_email = (new_email or "").strip().lower()
+    normalized_otp = (otp or "").strip()
+
+    if not normalized_new_email or not normalized_otp:
+        return JSONResponse({"ok": False, "error": "New email and OTP are required."}, status_code=400)
+
+    email_change = (
+        db.query(models.EmailChangeCode)
+        .filter(
+            models.EmailChangeCode.user_id == current_user.id,
+            models.EmailChangeCode.new_email == normalized_new_email,
+            models.EmailChangeCode.used_at.is_(None),
+            models.EmailChangeCode.expires_at >= datetime.utcnow(),
+        )
+        .order_by(models.EmailChangeCode.created_at.desc())
+        .first()
+    )
+
+    if not email_change or hash_reset_code(normalized_otp) != email_change.code_hash:
+        return JSONResponse({"ok": False, "error": "Invalid or expired OTP."}, status_code=400)
+
+    email_change.used_at = datetime.utcnow()
+    email_change.expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_VERIFY_MINUTES)
+    db.commit()
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "message": "Email verified successfully.",
+            "new_email": normalized_new_email,
+        }
     )
 
 

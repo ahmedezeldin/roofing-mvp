@@ -49,19 +49,59 @@
       <input class="input" name="last_name" value="{{ profile_last_name or '' }}">
     </div>
     <div class="settings-field">
-      <label class="settings-label">Email</label>
-      <input class="input" name="email" type="email" value="{{ profile_email if has_account_access else '' }}" required>
+      <label class="settings-label">Email (Verified)</label>
+      <input id="account-email-display" class="input" type="email" value="{{ profile_email if has_account_access else '' }}" readonly>
+      <input id="account-email-value" name="email" type="hidden" value="{{ profile_email if has_account_access else '' }}">
     </div>
   </div>
 
   <div class="settings-alert settings-alert-muted" style="margin-top: 12px;">
-    If you change your email, click <strong>Save Profile</strong> first to send an OTP to the new address, then enter that OTP and save again.
+    Your current login email is shown above. Use <strong>Change Email</strong> to verify a new email with OTP before saving.
   </div>
 
   <div style="display:flex; gap:10px; margin-top:16px;">
+    <button type="button" id="open-email-change-modal" class="btn btn-secondary" {% if not has_account_access %}disabled{% endif %}>Change Email</button>
     <button type="submit" class="btn btn-primary" {% if not has_account_access %}disabled{% endif %}>Save Profile</button>
   </div>
 </form>
+
+<div id="email-change-modal" class="cancel-modal" aria-hidden="true">
+  <div class="cancel-modal-card">
+    <div class="cancel-modal-title">Change Email</div>
+
+    <div id="email-change-step-request">
+      <p class="cancel-modal-text">
+        Enter your new email and confirm it. We'll send a one-time code to that address.
+      </p>
+      <div class="settings-field">
+        <label class="settings-label">New Email</label>
+        <input id="email-change-new-email" class="input" type="email" placeholder="name@example.com">
+      </div>
+      <div class="settings-field" style="margin-top: 10px;">
+        <label class="settings-label">Confirm New Email</label>
+        <input id="email-change-confirm-email" class="input" type="email" placeholder="name@example.com">
+      </div>
+    </div>
+
+    <div id="email-change-step-otp" style="display:none;">
+      <p class="cancel-modal-text">
+        Enter the OTP sent to your new email.
+      </p>
+      <div class="settings-field">
+        <label class="settings-label">OTP Code</label>
+        <input id="email-change-otp" class="input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit code">
+      </div>
+    </div>
+
+    <div id="email-change-feedback" class="settings-alert settings-alert-muted" style="margin-top: 12px; display:none;"></div>
+
+    <div class="cancel-modal-actions">
+      <button type="button" id="email-change-cancel" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="email-change-request-btn" class="btn btn-primary">Send OTP</button>
+      <button type="button" id="email-change-verify-btn" class="btn btn-primary" style="display:none;">Verify OTP</button>
+    </div>
+  </div>
+</div>
 
 <form method="post" action="/ui/settings/password" class="settings-card">
   <div class="settings-card-head">
@@ -773,6 +813,136 @@
     if (cancelModal) {
       cancelModal.addEventListener('click', (event) => {
         if (event.target === cancelModal) closeCancelModal();
+      });
+    }
+
+    const emailModal = document.getElementById('email-change-modal');
+    const openEmailModalBtn = document.getElementById('open-email-change-modal');
+    const closeEmailModalBtn = document.getElementById('email-change-cancel');
+    const requestStep = document.getElementById('email-change-step-request');
+    const otpStep = document.getElementById('email-change-step-otp');
+    const feedbackBox = document.getElementById('email-change-feedback');
+    const requestBtn = document.getElementById('email-change-request-btn');
+    const verifyBtn = document.getElementById('email-change-verify-btn');
+    const newEmailInput = document.getElementById('email-change-new-email');
+    const confirmEmailInput = document.getElementById('email-change-confirm-email');
+    const otpInput = document.getElementById('email-change-otp');
+    const accountEmailDisplay = document.getElementById('account-email-display');
+    const accountEmailValue = document.getElementById('account-email-value');
+    let pendingNewEmail = '';
+
+    const showFeedback = (message, type = 'muted') => {
+      if (!feedbackBox) return;
+      feedbackBox.style.display = 'block';
+      feedbackBox.textContent = message;
+      feedbackBox.classList.remove('settings-alert-muted', 'settings-alert-success', 'settings-alert-error');
+      feedbackBox.classList.add(
+        type === 'error' ? 'settings-alert-error' :
+        (type === 'success' ? 'settings-alert-success' : 'settings-alert-muted')
+      );
+    };
+
+    const resetEmailModal = () => {
+      pendingNewEmail = '';
+      if (requestStep) requestStep.style.display = 'block';
+      if (otpStep) otpStep.style.display = 'none';
+      if (requestBtn) requestBtn.style.display = 'inline-flex';
+      if (verifyBtn) verifyBtn.style.display = 'none';
+      if (newEmailInput) newEmailInput.value = '';
+      if (confirmEmailInput) confirmEmailInput.value = '';
+      if (otpInput) otpInput.value = '';
+      if (feedbackBox) feedbackBox.style.display = 'none';
+    };
+
+    const closeEmailModal = () => {
+      if (!emailModal) return;
+      emailModal.classList.remove('open');
+      emailModal.setAttribute('aria-hidden', 'true');
+      resetEmailModal();
+    };
+
+    if (openEmailModalBtn && emailModal) {
+      openEmailModalBtn.addEventListener('click', () => {
+        emailModal.classList.add('open');
+        emailModal.setAttribute('aria-hidden', 'false');
+        resetEmailModal();
+      });
+    }
+
+    if (closeEmailModalBtn) {
+      closeEmailModalBtn.addEventListener('click', closeEmailModal);
+    }
+
+    if (emailModal) {
+      emailModal.addEventListener('click', (event) => {
+        if (event.target === emailModal) closeEmailModal();
+      });
+    }
+
+    if (requestBtn) {
+      requestBtn.addEventListener('click', async () => {
+        const newEmail = (newEmailInput?.value || '').trim().toLowerCase();
+        const confirmEmail = (confirmEmailInput?.value || '').trim().toLowerCase();
+        if (!newEmail || !confirmEmail) {
+          showFeedback('Please enter and confirm your new email.', 'error');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('new_email', newEmail);
+        formData.append('confirm_email', confirmEmail);
+
+        const response = await fetch('/ui/settings/account/email-change/request', {
+          method: 'POST',
+          body: formData,
+        });
+        const payload = await response.json();
+
+        if (!response.ok || !payload.ok) {
+          showFeedback(payload.error || 'Could not send OTP. Please try again.', 'error');
+          return;
+        }
+
+        pendingNewEmail = payload.new_email || newEmail;
+        if (requestStep) requestStep.style.display = 'none';
+        if (otpStep) otpStep.style.display = 'block';
+        if (requestBtn) requestBtn.style.display = 'none';
+        if (verifyBtn) verifyBtn.style.display = 'inline-flex';
+        showFeedback(payload.message || 'OTP sent. Enter it to verify your new email.', 'muted');
+      });
+    }
+
+    if (verifyBtn) {
+      verifyBtn.addEventListener('click', async () => {
+        const otp = (otpInput?.value || '').trim();
+        if (!pendingNewEmail) {
+          showFeedback('Start by entering your new email first.', 'error');
+          return;
+        }
+        if (!otp) {
+          showFeedback('Please enter the OTP code.', 'error');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('new_email', pendingNewEmail);
+        formData.append('otp', otp);
+
+        const response = await fetch('/ui/settings/account/email-change/verify', {
+          method: 'POST',
+          body: formData,
+        });
+        const payload = await response.json();
+
+        if (!response.ok || !payload.ok) {
+          showFeedback(payload.error || 'Could not verify OTP. Please try again.', 'error');
+          return;
+        }
+
+        const verifiedEmail = payload.new_email || pendingNewEmail;
+        if (accountEmailDisplay) accountEmailDisplay.value = verifiedEmail;
+        if (accountEmailValue) accountEmailValue.value = verifiedEmail;
+        closeEmailModal();
       });
     }
   })();
