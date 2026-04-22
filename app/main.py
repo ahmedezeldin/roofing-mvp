@@ -2830,9 +2830,20 @@ def ui_settings_change_plan(
         if not subscription_items_data:
             raise ValueError("missing_subscription_items")
 
-        first_item = subscription_items_data[0]
-        item_id = stripe_attr(first_item, "id")
-        current_price = stripe_attr(first_item, "price")
+        known_plan_price_ids = {price_id for price_id in (STRIPE_PRICE_PILOT, STRIPE_PRICE_GROWTH) if price_id}
+        target_item = subscription_items_data[0]
+        for sub_item in subscription_items_data:
+            price = stripe_attr(sub_item, "price")
+            sub_item_price_id = stripe_attr(price, "id")
+            if sub_item_price_id in known_plan_price_ids:
+                target_item = sub_item
+                break
+
+        item_id = stripe_attr(target_item, "id")
+        if not item_id:
+            raise ValueError("missing_subscription_item_id")
+
+        current_price = stripe_attr(target_item, "price")
         current_price_id = stripe_attr(current_price, "id")
 
         if current_price_id == selected_price_id:
@@ -2861,7 +2872,18 @@ def ui_settings_change_plan(
             workspace,
             billing_success=f"Plan updated to {selected_plan_label}. Stripe will handle any proration automatically.",
         )
-    except Exception:
+    except stripe.error.StripeError as exc:
+        stripe_message = stripe_attr(exc, "user_message") or stripe_attr(exc, "code") or "unknown_error"
+        print(f"[BILLING PLAN CHANGE ERROR] workspace={workspace.id} stripe_error={stripe_message}")
+        return render_app_settings_template(
+            request,
+            db,
+            current_user,
+            workspace,
+            billing_error=f"We could not change your plan right now ({stripe_message}). Please try again or use Stripe Billing Portal.",
+        )
+    except Exception as exc:
+        print(f"[BILLING PLAN CHANGE ERROR] workspace={workspace.id} error={exc}")
         return render_app_settings_template(
             request,
             db,
