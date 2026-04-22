@@ -336,6 +336,11 @@
   box-shadow: var(--shadow-md);
 }
 
+.cancel-modal-card-compact {
+  width: min(460px, 100%);
+  padding: 18px;
+}
+
 .cancel-modal-title {
   font-size: 26px;
   font-weight: 800;
