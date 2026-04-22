@@ -169,11 +169,23 @@ def twilio_enabled() -> bool:
     return all([
         os.getenv("TWILIO_ACCOUNT_SID"),
         os.getenv("TWILIO_AUTH_TOKEN"),
-        os.getenv("TWILIO_FROM_NUMBER"),
     ])
 
 
-def send_sms_if_configured(to_number: str, body: str) -> bool:
+def resolve_workspace_from_number(workspace: Optional[models.Workspace]) -> Optional[str]:
+    if not workspace:
+        return None
+    for candidate in (
+        workspace.active_twilio_number,
+        workspace.business_phone,
+    ):
+        normalized = (candidate or "").strip()
+        if normalized:
+            return normalized
+    return None
+
+
+def send_sms_if_configured(to_number: str, body: str, from_number: Optional[str] = None) -> bool:
     if not twilio_enabled():
         print("[SMS DEBUG] Twilio not enabled - missing env vars")
         return False
@@ -182,7 +194,12 @@ def send_sms_if_configured(to_number: str, body: str) -> bool:
         print("[SMS DEBUG] Twilio client import failed")
         return False
 
-    print(f"[SMS DEBUG] FROM={os.getenv('TWILIO_FROM_NUMBER')}")
+    resolved_from = (from_number or "").strip() or os.getenv("TWILIO_FROM_NUMBER")
+    if not resolved_from:
+        print("[SMS DEBUG] No FROM number configured")
+        return False
+
+    print(f"[SMS DEBUG] FROM={resolved_from}")
     print(f"[SMS DEBUG] TO={to_number}")
     print(f"[SMS DEBUG] BODY={body}")
 
@@ -193,7 +210,7 @@ def send_sms_if_configured(to_number: str, body: str) -> bool:
 
     message = client.messages.create(
         body=body,
-        from_=os.getenv("TWILIO_FROM_NUMBER"),
+        from_=resolved_from,
         to=to_number,
     )
 
@@ -226,7 +243,8 @@ def send_owner_sms_alert(lead: models.Lead, business_name: str) -> bool:
     )
 
     try:
-        sent = send_sms_if_configured(owner_number, body)
+        from_number = resolve_workspace_from_number(lead.workspace)
+        sent = send_sms_if_configured(owner_number, body, from_number=from_number)
         print(f"[OWNER ALERT DEBUG] Owner SMS alert sent={sent} to {owner_number}")
         return sent
     except Exception as e:
@@ -255,7 +273,8 @@ def send_team_handoff_alert(lead: models.Lead, business_name: str) -> bool:
     )
 
     try:
-        sent = send_sms_if_configured(team_number, body)
+        from_number = resolve_workspace_from_number(lead.workspace)
+        sent = send_sms_if_configured(team_number, body, from_number=from_number)
         print(f"[HANDOFF ALERT DEBUG] Team handoff SMS sent={sent} to {team_number}")
         return sent
     except Exception as e:
@@ -292,9 +311,11 @@ def create_outbound_message(db: Session, lead_id: int, body: str, phone_number: 
     print("[SMS DEBUG] create_outbound_message called")
 
     msg = create_message(db, lead_id, "outbound", body)
+    lead = db.query(models.Lead).filter(models.Lead.id == lead_id).first()
+    from_number = resolve_workspace_from_number(lead.workspace if lead else None)
 
     try:
-        sent = send_sms_if_configured(phone_number, body)
+        sent = send_sms_if_configured(phone_number, body, from_number=from_number)
         print(f"[SMS DEBUG] attempted send to {phone_number}, success={sent}")
     except Exception as e:
         print(f"[SMS ERROR] Failed to send SMS to {phone_number}: {e}")
