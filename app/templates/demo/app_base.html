@@ -17,6 +17,7 @@
 </head>
 <body>
   {% set route_prefix = "/app" if workspace else "/demo" %}
+  {% set is_pilot_plan = workspace and (workspace.plan or "")|lower == "pilot" %}
   <div class="app-shell">
     <!-- Sidebar -->
     <aside class="app-sidebar">
@@ -48,6 +49,9 @@
           class="sidebar-link {% if active_page == 'pipeline' %}active{% endif %}"
         >
           Pipeline
+          {% if is_pilot_plan %}
+            <span class="sidebar-growth-lock">Growth privilege</span>
+          {% endif %}
         </a>
 
         <a
@@ -61,6 +65,11 @@
       <div class="sidebar-mode">
         <div class="sidebar-mode-label">Workspace mode</div>
         <div class="sidebar-mode-pill">{{ "Live Workspace" if workspace else "Simulation" }}</div>
+        {% if workspace %}
+          <div class="sidebar-plan-pill {{ "sidebar-plan-pill-pilot" if is_pilot_plan else "sidebar-plan-pill-growth" }}">
+            {{ "Pilot Plan" if is_pilot_plan else "Growth Plan" }}
+          </div>
+        {% endif %}
       </div>
 
       <div class="sidebar-footer">
