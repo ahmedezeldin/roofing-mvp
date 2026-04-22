@@ -191,7 +191,13 @@
   {% endif %}
 
   <div class="settings-billing-actions">
-    <form method="post" action="/ui/settings/billing/change-plan" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <form
+      id="change-plan-form"
+      method="post"
+      action="/ui/settings/billing/change-plan"
+      data-renewal-date="{% if subscription and subscription.current_period_end %}{{ format_dt(subscription.current_period_end) }} (UTC){% endif %}"
+      style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;"
+    >
       <select class="select" name="plan" aria-label="Select plan">
         <option value="pilot" {% if ws and ws.plan == 'pilot' %}selected{% endif %}>Pilot — $499/mo</option>
         <option value="growth" {% if ws and ws.plan == 'growth' %}selected{% endif %}>Growth — $999/mo</option>
@@ -223,6 +229,19 @@
         <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div id="change-plan-modal" class="cancel-modal" aria-hidden="true">
+  <div class="cancel-modal-card">
+    <div class="cancel-modal-title">Confirm Plan Change</div>
+    <p class="cancel-modal-text" id="change-plan-modal-message">
+      You are updating your membership plan.
+    </p>
+    <div class="cancel-modal-actions">
+      <button type="button" id="change-plan-modal-cancel" class="btn btn-secondary">Go Back</button>
+      <button type="button" id="change-plan-modal-confirm" class="btn btn-primary">Confirm Plan Change</button>
+    </div>
   </div>
 </div>
 
@@ -796,6 +815,12 @@
     const cancelModal = document.getElementById('cancel-membership-modal');
     const openCancelModalBtn = document.getElementById('open-cancel-modal');
     const closeCancelModalBtn = document.getElementById('close-cancel-modal');
+    const changePlanForm = document.getElementById('change-plan-form');
+    const changePlanModal = document.getElementById('change-plan-modal');
+    const changePlanModalMessage = document.getElementById('change-plan-modal-message');
+    const changePlanModalCancel = document.getElementById('change-plan-modal-cancel');
+    const changePlanModalConfirm = document.getElementById('change-plan-modal-confirm');
+    let changePlanSubmissionArmed = false;
 
     const closeCancelModal = () => {
       if (!cancelModal) return;
@@ -815,6 +840,74 @@
     if (cancelModal) {
       cancelModal.addEventListener('click', (event) => {
         if (event.target === cancelModal) closeCancelModal();
+      });
+    }
+
+    const openChangePlanModal = () => {
+      if (!changePlanModal) return;
+      changePlanModal.classList.add('open');
+      changePlanModal.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeChangePlanModal = () => {
+      if (!changePlanModal) return;
+      changePlanModal.classList.remove('open');
+      changePlanModal.setAttribute('aria-hidden', 'true');
+    };
+
+    const planPricingByValue = {
+      pilot: 499,
+      growth: 999
+    };
+
+    if (changePlanForm) {
+      changePlanForm.addEventListener('submit', (event) => {
+        if (changePlanSubmissionArmed) {
+          changePlanSubmissionArmed = false;
+          return;
+        }
+
+        event.preventDefault();
+        const planSelect = changePlanForm.querySelector('select[name="plan"]');
+        if (!planSelect) {
+          changePlanSubmissionArmed = true;
+          changePlanForm.submit();
+          return;
+        }
+
+        const selectedOption = planSelect.options[planSelect.selectedIndex];
+        const selectedPlanName = selectedOption ? selectedOption.text.split('—')[0].trim() : 'selected plan';
+        const selectedPlanValue = planSelect.value || '';
+        const selectedAmount = planPricingByValue[selectedPlanValue];
+        const renewalDate = (changePlanForm.dataset.renewalDate || '').trim();
+        const billingCycleStart = renewalDate || 'the start of your next billing cycle';
+
+        if (changePlanModalMessage) {
+          const amountText = typeof selectedAmount === 'number'
+            ? `$${selectedAmount}`
+            : 'the selected amount';
+          changePlanModalMessage.textContent = `Please confirm you want to switch to ${selectedPlanName}. You will be charged ${amountText} at ${billingCycleStart}.`;
+        }
+
+        openChangePlanModal();
+      });
+    }
+
+    if (changePlanModalCancel) {
+      changePlanModalCancel.addEventListener('click', closeChangePlanModal);
+    }
+
+    if (changePlanModalConfirm && changePlanForm) {
+      changePlanModalConfirm.addEventListener('click', () => {
+        closeChangePlanModal();
+        changePlanSubmissionArmed = true;
+        changePlanForm.requestSubmit();
+      });
+    }
+
+    if (changePlanModal) {
+      changePlanModal.addEventListener('click', (event) => {
+        if (event.target === changePlanModal) closeChangePlanModal();
       });
     }
 
