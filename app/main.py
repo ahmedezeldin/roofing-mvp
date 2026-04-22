@@ -2130,6 +2130,7 @@ def app_settings(
             "current_user": current_user,
             "profile_first_name": first_name,
             "profile_last_name": last_name,
+            "profile_email": current_user.email or "",
             "workflow_steps": workflow_steps,
             "subscription_snapshot": subscription_snapshot,
             "billing_success": billing_success,
