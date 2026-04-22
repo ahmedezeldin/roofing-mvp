@@ -37,6 +37,10 @@
 
   <div class="settings-three-col">
     <div class="settings-field">
+      <label class="settings-label">Email Verification Code</label>
+      <input class="input" name="email_otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Enter 6-digit OTP if changing email">
+    </div>
+    <div class="settings-field">
       <label class="settings-label">First Name</label>
       <input class="input" name="first_name" value="{{ profile_first_name or '' }}" required>
     </div>
@@ -139,6 +143,8 @@
 </form>
 
 {% set subscription = subscription_snapshot if subscription_snapshot is defined and subscription_snapshot else None %}
+{% set subscription_status_label = (subscription.status_label if subscription else 'Pending') %}
+{% set subscription_status_normalized = subscription_status_label|lower %}
 <section class="settings-card">
   <div class="settings-card-head">
     <div>
@@ -162,29 +168,36 @@
     </div>
     <div class="settings-field">
       <label class="settings-label">Subscription Status</label>
-      <input class="input" value="{{ subscription.status_label if subscription else 'Pending' }}" readonly>
+      <div
+        class="subscription-status-box
+        {% if subscription_status_normalized == 'active' %}
+          status-active
+        {% elif subscription_status_normalized in ['pending', 'incomplete', 'trialing', 'past due', 'unpaid'] %}
+          status-pending
+        {% elif subscription_status_normalized in ['canceled', 'cancelled', 'incomplete expired', 'not working', 'inactive'] %}
+          status-inactive
+        {% else %}
+          status-pending
+        {% endif %}"
+      >
+        {{ subscription_status_label }}
+      </div>
     </div>
   </div>
 
+  {% if subscription and subscription.current_period_end %}
   <div class="settings-alert settings-alert-muted" style="margin-top: 14px;">
-    {% if subscription and subscription.cancel_at_period_end and subscription.current_period_end %}
+    {% if subscription.cancel_at_period_end %}
       Your membership is scheduled to end on {{ format_dt(subscription.current_period_end) }} (UTC). Access remains active until then.
-    {% elif subscription and subscription.current_period_end %}
-      Your current billing period renews on {{ format_dt(subscription.current_period_end) }} (UTC).
     {% else %}
-      Billing details are synced from Stripe after your first successful checkout.
+      Your current billing period renews on {{ format_dt(subscription.current_period_end) }} (UTC).
     {% endif %}
   </div>
+  {% endif %}
 
   <div class="settings-billing-actions">
     <form method="post" action="/ui/settings/billing/portal">
-      <button type="submit" class="btn btn-secondary">Change Plan</button>
-    </form>
-    <form method="post" action="/ui/settings/billing/portal">
-      <button type="submit" class="btn btn-secondary">Adjust Billing Info</button>
-    </form>
-    <form method="post" action="/ui/settings/billing/portal">
-      <button type="submit" class="btn btn-secondary">Update Card</button>
+      <button type="submit" class="btn btn-secondary">Manage Plan, Billing Info, and Card</button>
     </form>
     <button type="button" id="open-cancel-modal" class="btn btn-danger-outline">Cancel Membership</button>
   </div>
@@ -240,6 +253,12 @@
   </div>
 
   {% set service_phone = (ws.business_phone if ws and ws.business_phone else (ws.pending_twilio_number if ws and ws.pending_twilio_number else 'Not set')) %}
+  {% if number_error %}
+  <div class="settings-alert settings-alert-error" style="margin-top: 12px;">{{ number_error }}</div>
+  {% endif %}
+  {% if number_success %}
+  <div class="settings-alert settings-alert-success" style="margin-top: 12px;">{{ number_success }}</div>
+  {% endif %}
   <div class="settings-two-col">
     <div class="settings-field">
       <label class="settings-label">Current Service Number</label>
@@ -250,9 +269,43 @@
       <input class="input" value="Switching to a new number requires a $25 change fee." readonly>
     </div>
   </div>
-  <div class="settings-alert settings-alert-muted" style="margin-top: 12px;">
-    Need a different service number? Choose <strong>Provision new number</strong> and we’ll confirm the $25 change fee before updating your routing.
+  {% if ws %}
+  <div id="existing-number-settings-block" class="settings-subcard hidden-block settings-number-change-block">
+    <div class="settings-number-change-title">Use your existing service number</div>
+    <div class="settings-field" style="margin-top: 12px;">
+      <label class="settings-label" for="existing_business_phone">Existing Phone Number</label>
+      <input
+        class="input"
+        id="existing_business_phone"
+        name="existing_business_phone"
+        value="{{ ws.business_phone if ws and ws.business_phone else '' }}"
+        placeholder="+1 555 555 5555"
+      >
+    </div>
   </div>
+  {% endif %}
+  {% if ws %}
+  <div id="new-number-settings-block" class="settings-subcard hidden-block settings-number-change-block">
+    <div class="settings-number-change-title">Choose your new service number</div>
+    <div class="settings-number-toolbar">
+      <button type="button" class="btn btn-secondary" id="find-numbers-btn">Load available numbers</button>
+      <button type="button" class="btn btn-secondary hidden-block" id="refresh-numbers-btn">Refresh list</button>
+      <div class="settings-number-status" id="new-number-status"></div>
+    </div>
+    <div id="available-numbers" class="settings-available-numbers"></div>
+
+    <form method="post" action="/ui/settings/phone-number/change" id="change-service-number-form">
+      <input type="hidden" name="selected_twilio_number" id="selected_twilio_number" value="">
+      <label class="cancel-checkbox" style="margin-top:14px;">
+        <input type="checkbox" name="confirm_new_number_fee" value="yes" id="confirm-new-number-fee" required>
+        I understand I will be charged <strong>$25</strong> to switch to a new service number.
+      </label>
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button type="submit" class="btn btn-primary">Confirm & Switch Number</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
 
   <section class="workflow-main-card settings-workflow-main-card">
     <div class="workflow-kicker">Workflow Management</div>
@@ -637,9 +690,20 @@
     renderSteps();
 
     const coverageMode = document.getElementById('coverage_mode');
+    const phoneMode = document.querySelector('select[name="phone_mode"]');
     const afterHoursFields = document.getElementById('after_hours_fields');
     const businessDays = document.getElementById('business_days');
     const coverageScheduleRow = document.getElementById('coverage_schedule_row');
+    const existingNumberSettingsBlock = document.getElementById('existing-number-settings-block');
+    const existingBusinessPhoneInput = document.getElementById('existing_business_phone');
+    const newNumberSettingsBlock = document.getElementById('new-number-settings-block');
+    const findNumbersBtn = document.getElementById('find-numbers-btn');
+    const refreshNumbersBtn = document.getElementById('refresh-numbers-btn');
+    const newNumberStatus = document.getElementById('new-number-status');
+    const availableNumbersContainer = document.getElementById('available-numbers');
+    const selectedTwilioNumberInput = document.getElementById('selected_twilio_number');
+    const changeServiceNumberForm = document.getElementById('change-service-number-form');
+    const confirmNewNumberFee = document.getElementById('confirm-new-number-fee');
 
     const syncCoverageUI = () => {
       const afterHours = coverageMode && coverageMode.value === 'after_hours';
@@ -651,6 +715,80 @@
     if (coverageMode) {
       coverageMode.addEventListener('change', syncCoverageUI);
       syncCoverageUI();
+    }
+
+    const syncPhoneModeUI = () => {
+      if (!phoneMode) return;
+      const isNew = phoneMode.value === 'new';
+      if (newNumberSettingsBlock) newNumberSettingsBlock.classList.toggle('hidden-block', !isNew);
+      if (existingNumberSettingsBlock) existingNumberSettingsBlock.classList.toggle('hidden-block', isNew);
+      if (existingBusinessPhoneInput) existingBusinessPhoneInput.disabled = isNew;
+    };
+
+    async function loadAvailableNumbers() {
+      if (!newNumberStatus || !availableNumbersContainer || !selectedTwilioNumberInput) return;
+      newNumberStatus.textContent = "Loading available numbers...";
+      availableNumbersContainer.innerHTML = "";
+
+      try {
+        const response = await fetch(`/api/twilio/available-numbers?refresh=${Date.now()}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          newNumberStatus.textContent = data.detail || "Could not load numbers right now.";
+          return;
+        }
+
+        if (!data.numbers || data.numbers.length === 0) {
+          newNumberStatus.textContent = "No numbers found right now. Please refresh and try again.";
+          return;
+        }
+
+        newNumberStatus.textContent = "Choose the number you want and confirm the change fee.";
+
+        if (findNumbersBtn) findNumbersBtn.classList.add("hidden-block");
+        if (refreshNumbersBtn) refreshNumbersBtn.classList.remove("hidden-block");
+
+        data.numbers.forEach((number) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "settings-available-number-card";
+          btn.textContent = number;
+
+          btn.addEventListener("click", () => {
+            availableNumbersContainer.querySelectorAll(".settings-available-number-card").forEach(card => {
+              card.classList.remove("selected");
+            });
+            btn.classList.add("selected");
+            selectedTwilioNumberInput.value = number;
+          });
+
+          availableNumbersContainer.appendChild(btn);
+        });
+      } catch (error) {
+        console.error("Failed to load available numbers:", error);
+        newNumberStatus.textContent = "Could not load numbers right now.";
+      }
+    }
+
+    if (phoneMode) {
+      phoneMode.addEventListener('change', syncPhoneModeUI);
+      syncPhoneModeUI();
+    }
+    if (findNumbersBtn) findNumbersBtn.addEventListener("click", loadAvailableNumbers);
+    if (refreshNumbersBtn) refreshNumbersBtn.addEventListener("click", loadAvailableNumbers);
+    if (changeServiceNumberForm) {
+      changeServiceNumberForm.addEventListener("submit", (event) => {
+        if (!selectedTwilioNumberInput || !selectedTwilioNumberInput.value) {
+          event.preventDefault();
+          if (newNumberStatus) newNumberStatus.textContent = "Please choose a number before confirming.";
+          return;
+        }
+        if (!confirmNewNumberFee || !confirmNewNumberFee.checked) {
+          event.preventDefault();
+          if (newNumberStatus) newNumberStatus.textContent = "Please confirm the $25 charge to continue.";
+        }
+      });
     }
 
     const cancelModal = document.getElementById('cancel-membership-modal');
