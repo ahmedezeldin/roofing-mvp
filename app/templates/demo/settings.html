@@ -103,6 +103,8 @@
 </form>
 
 {% set subscription = subscription_snapshot if subscription_snapshot is defined and subscription_snapshot else None %}
+{% set subscription_status_label = (subscription.status_label if subscription else 'Pending') %}
+{% set subscription_status_normalized = subscription_status_label|lower %}
 <section class="settings-card">
   <div class="settings-card-head">
     <div>
@@ -126,7 +128,20 @@
     </div>
     <div class="settings-field">
       <label class="settings-label">Subscription Status</label>
-      <input class="input" value="{{ subscription.status_label if subscription else 'Pending' }}" readonly>
+      <div
+        class="subscription-status-box
+        {% if subscription_status_normalized == 'active' %}
+          status-active
+        {% elif subscription_status_normalized in ['pending', 'incomplete', 'trialing', 'past due', 'unpaid'] %}
+          status-pending
+        {% elif subscription_status_normalized in ['canceled', 'cancelled', 'incomplete expired', 'not working', 'inactive'] %}
+          status-inactive
+        {% else %}
+          status-pending
+        {% endif %}"
+      >
+        {{ subscription_status_label }}
+      </div>
     </div>
   </div>
 
