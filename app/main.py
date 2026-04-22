@@ -42,16 +42,45 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 # ENV / CONFIG
 # --------------------------------------------------
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "").strip()
+STRIPE_MODE = os.getenv("STRIPE_MODE", "live").strip().lower()
+
+
+def _env_first(*keys: str) -> str:
+    for key in keys:
+        value = os.getenv(key, "").strip()
+        if value:
+            return value
+    return ""
+
+
+stripe.api_key = _env_first(
+    f"STRIPE_{STRIPE_MODE.upper()}_SECRET_KEY",
+    "STRIPE_SECRET_KEY",
+)
 
 APP_BASE_URL = os.getenv("APP_BASE_URL", "https://www.roofingfrontdesk.com").strip()
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+STRIPE_WEBHOOK_SECRET = _env_first(
+    f"STRIPE_{STRIPE_MODE.upper()}_WEBHOOK_SECRET",
+    "STRIPE_WEBHOOK_SECRET",
+)
 
-STRIPE_PRICE_PILOT = os.getenv("STRIPE_PRICE_PILOT", "").strip()
-STRIPE_PRICE_PILOT_SETUP = os.getenv("STRIPE_PRICE_PILOT_SETUP", "").strip()
+STRIPE_PRICE_PILOT = _env_first(
+    f"STRIPE_{STRIPE_MODE.upper()}_PRICE_PILOT",
+    "STRIPE_PRICE_PILOT",
+)
+STRIPE_PRICE_PILOT_SETUP = _env_first(
+    f"STRIPE_{STRIPE_MODE.upper()}_PRICE_PILOT_SETUP",
+    "STRIPE_PRICE_PILOT_SETUP",
+)
 
-STRIPE_PRICE_GROWTH = os.getenv("STRIPE_PRICE_GROWTH", "").strip()
-STRIPE_PRICE_GROWTH_SETUP = os.getenv("STRIPE_PRICE_GROWTH_SETUP", "").strip()
+STRIPE_PRICE_GROWTH = _env_first(
+    f"STRIPE_{STRIPE_MODE.upper()}_PRICE_GROWTH",
+    "STRIPE_PRICE_GROWTH",
+)
+STRIPE_PRICE_GROWTH_SETUP = _env_first(
+    f"STRIPE_{STRIPE_MODE.upper()}_PRICE_GROWTH_SETUP",
+    "STRIPE_PRICE_GROWTH_SETUP",
+)
 
 
 # --------------------------------------------------
