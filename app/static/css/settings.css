@@ -561,6 +561,36 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
+.subscription-status-box {
+  min-height: 48px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.subscription-status-box.status-active {
+  background: var(--green-soft);
+  color: #166534;
+  border-color: rgba(22, 163, 74, 0.22);
+}
+
+.subscription-status-box.status-pending {
+  background: var(--amber-soft);
+  color: #92400e;
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
+.subscription-status-box.status-inactive {
+  background: var(--red-soft);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.22);
+}
+
 .workflow-step-textarea {
   min-height: 118px;
 }
