@@ -451,8 +451,6 @@ def get_checkout_prices(plan: str) -> tuple[str, list[dict]]:
             raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_PILOT")
 
         line_items = [{"price": STRIPE_PRICE_PILOT, "quantity": 1}]
-        if STRIPE_PRICE_PILOT_SETUP:
-            line_items.append({"price": STRIPE_PRICE_PILOT_SETUP, "quantity": 1})
 
         return "Roofing Front Desk Pilot", line_items
 
@@ -461,8 +459,6 @@ def get_checkout_prices(plan: str) -> tuple[str, list[dict]]:
             raise HTTPException(status_code=500, detail="Missing STRIPE_PRICE_GROWTH")
 
         line_items = [{"price": STRIPE_PRICE_GROWTH, "quantity": 1}]
-        if STRIPE_PRICE_GROWTH_SETUP:
-            line_items.append({"price": STRIPE_PRICE_GROWTH_SETUP, "quantity": 1})
 
         return "Roofing Front Desk Growth", line_items
 
