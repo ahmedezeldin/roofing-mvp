@@ -131,59 +131,75 @@
     <div class="inbox-items inbox-items-pro">
       {% if leads %}
         {% for lead in leads %}
-        <a
-          href="{{ route_prefix }}/inbox?lead_id={{ lead.id }}&crm_status_filter={{ crm_status_filter }}&priority_filter={{ priority_filter }}&insurance_filter={{ insurance_filter }}&search={{ search }}"
-          class="inbox-item inbox-item-pro {% if selected and selected.id == lead.id %}active{% endif %}"
-        >
-          <div class="list-item-top">
-            <div style="min-width:0;">
-              <div class="list-item-title">{{ lead.customer_name or lead.phone_number }}</div>
-              <div class="inbox-lead-line">
-                {{ (lead.job_type or "unknown job")|replace('_', ' ')|title }}
-                {% if lead.postal_code %} • {{ lead.postal_code }}{% endif %}
-                {% if lead.urgency %} • {{ lead.urgency|replace('_', ' ')|title }}{% endif %}
+        <div class="inbox-item-row">
+          <a
+            href="{{ route_prefix }}/inbox?lead_id={{ lead.id }}&crm_status_filter={{ crm_status_filter }}&priority_filter={{ priority_filter }}&insurance_filter={{ insurance_filter }}&search={{ search }}"
+            class="inbox-item inbox-item-pro {% if selected and selected.id == lead.id %}active{% endif %}"
+          >
+            <div class="list-item-top">
+              <div style="min-width:0;">
+                <div class="list-item-title">{{ lead.customer_name or lead.phone_number }}</div>
+                <div class="inbox-lead-line">
+                  {{ (lead.job_type or "unknown job")|replace('_', ' ')|title }}
+                  {% if lead.postal_code %} • {{ lead.postal_code }}{% endif %}
+                  {% if lead.urgency %} • {{ lead.urgency|replace('_', ' ')|title }}{% endif %}
+                </div>
+              </div>
+
+              <div class="inbox-mini-tags">
+                {% if lead.priority == "high" %}
+                  <span class="badge red">High</span>
+                {% elif lead.priority == "medium" %}
+                  <span class="badge amber">Medium</span>
+                {% else %}
+                  <span class="badge gray">Low</span>
+                {% endif %}
               </div>
             </div>
 
-            <div class="inbox-mini-tags">
-              {% if lead.priority == "high" %}
-                <span class="badge red">High</span>
-              {% elif lead.priority == "medium" %}
-                <span class="badge amber">Medium</span>
+            <div class="inbox-preview-line">
+              {% if lead.messages and lead.messages[-1] %}
+                {{ lead.messages[-1].body[:90] }}{% if lead.messages[-1].body|length > 90 %}...{% endif %}
+              {% elif lead.notes %}
+                Internal notes saved
               {% else %}
-                <span class="badge gray">Low</span>
+                No conversation yet.
               {% endif %}
             </div>
-          </div>
 
-          <div class="inbox-preview-line">
-            {% if lead.messages and lead.messages[-1] %}
-              {{ lead.messages[-1].body[:90] }}{% if lead.messages[-1].body|length > 90 %}...{% endif %}
-            {% elif lead.notes %}
-              Internal notes saved
-            {% else %}
-              No conversation yet.
-            {% endif %}
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px;">
-            <div class="deal-time">{{ format_dt(lead.updated_at) }}</div>
-            <div class="inbox-mini-tags">
-              {% if lead.insurance_claim == "yes" %}
-                <span class="badge purple">Insurance</span>
-              {% endif %}
-              {% if lead.status == "qualified" %}
-                <span class="badge blue">Qualified</span>
-              {% elif lead.crm_status == "contacted" %}
-                <span class="badge purple">Contacted</span>
-              {% elif lead.crm_status == "booked" %}
-                <span class="badge green">Booked</span>
-              {% elif lead.crm_status == "new" %}
-                <span class="badge gray">New</span>
-              {% endif %}
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px;">
+              <div class="deal-time">{{ format_dt(lead.updated_at) }}</div>
+              <div class="inbox-mini-tags">
+                {% if lead.insurance_claim == "yes" %}
+                  <span class="badge purple">Insurance</span>
+                {% endif %}
+                {% if lead.status == "qualified" %}
+                  <span class="badge blue">Qualified</span>
+                {% elif lead.crm_status == "contacted" %}
+                  <span class="badge purple">Contacted</span>
+                {% elif lead.crm_status == "booked" %}
+                  <span class="badge green">Booked</span>
+                {% elif lead.crm_status == "new" %}
+                  <span class="badge gray">New</span>
+                {% endif %}
+              </div>
             </div>
-          </div>
-        </a>
+          </a>
+          <form method="post" action="/ui/leads/delete-conversation" class="inbox-delete-form">
+            <input type="hidden" name="lead_id" value="{{ lead.id }}" />
+            <input type="hidden" name="crm_status_filter" value="{{ crm_status_filter }}" />
+            <input type="hidden" name="priority_filter" value="{{ priority_filter }}" />
+            <input type="hidden" name="insurance_filter" value="{{ insurance_filter }}" />
+            <input type="hidden" name="search" value="{{ search }}" />
+            <button
+              type="submit"
+              class="btn btn-secondary btn-xs inbox-delete-btn"
+              onclick="return confirm('Delete this conversation permanently?');"
+            >
+              Delete
+            </button>
+          </form>
+        </div>
         {% endfor %}
       {% else %}
         <div class="inbox-empty-state">

@@ -3124,6 +3124,37 @@ def ui_delete_lead_note(
     return RedirectResponse(url=f"{route_prefix}/lead/{lead_id}", status_code=303)
 
 
+@app.post("/ui/leads/delete-conversation")
+def ui_delete_lead_conversation(
+    request: Request,
+    lead_id: int = Form(...),
+    crm_status_filter: str = Form("all"),
+    priority_filter: str = Form("all"),
+    insurance_filter: str = Form("all"),
+    search: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    _, workspace, route_prefix = get_ui_context(request, db)
+    lead_query = db.query(models.Lead).filter(models.Lead.id == lead_id)
+    if workspace:
+        lead_query = lead_query.filter(models.Lead.workspace_id == workspace.id)
+    lead = lead_query.first()
+    if lead:
+        db.delete(lead)
+        db.commit()
+
+    return RedirectResponse(
+        url=(
+            f"{route_prefix}/inbox"
+            f"?crm_status_filter={crm_status_filter}"
+            f"&priority_filter={priority_filter}"
+            f"&insurance_filter={insurance_filter}"
+            f"&search={search}"
+        ),
+        status_code=303,
+    )
+
+
 @app.post("/ui/leads/update-stage")
 def ui_update_lead_stage(
     request: Request,
