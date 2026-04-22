@@ -2455,20 +2455,45 @@ def ui_change_service_number(
             status_code=303,
         )
 
-    old_number = workspace.business_phone or workspace.active_twilio_number or "Not set"
+    old_number = (workspace.active_twilio_number or workspace.business_phone or "").strip()
+
+    try:
+        purchased_number = provision_twilio_number(normalized_number)
+        activated_number = getattr(purchased_number, "phone_number", normalized_number)
+    except Exception as exc:
+        return RedirectResponse(
+            url=(
+                "/app/settings?number_error="
+                + quote_plus(f"Could not purchase the selected number. Please try again. ({exc})")
+            ),
+            status_code=303,
+        )
+
+    released_old_number = False
+    if old_number and old_number != activated_number:
+        try:
+            released_old_number = release_twilio_number(old_number)
+        except Exception as exc:
+            print(f"twilio.release.failed workspace={workspace.id} number={old_number} error={exc}")
+
     workspace.phone_mode = "new"
     workspace.pending_twilio_number = None
-    workspace.active_twilio_number = normalized_number
-    workspace.business_phone = normalized_number
-
+    workspace.active_twilio_number = activated_number
+    workspace.business_phone = activated_number
     db.commit()
+
+    release_suffix = (
+        "Your old number has been removed from your Twilio account."
+        if released_old_number
+        else "We switched your active number. If the previous number was hosted with Twilio, it may still appear in your account."
+    )
+    old_number_display = old_number or "Not set"
 
     return RedirectResponse(
         url=(
             "/app/settings?number_success="
             + quote_plus(
-                f"Service number updated from {old_number} to {normalized_number}. "
-                "Your old number has been removed."
+                f"Service number updated from {old_number_display} to {activated_number}. {release_suffix}"
             )
         ),
         status_code=303,
@@ -3255,6 +3280,20 @@ def provision_twilio_number(number: str):
         sms_url=sms_webhook_url,
         sms_method="POST",
     )
+
+
+def release_twilio_number(number: str) -> bool:
+    normalized_number = (number or "").strip()
+    if not normalized_number:
+        return False
+
+    client = get_twilio_client()
+    existing = client.incoming_phone_numbers.list(phone_number=normalized_number, limit=1)
+    if not existing:
+        return False
+
+    existing[0].delete()
+    return True
 
 
 CITY_AREA_CODE_MAP: Dict[str, List[str]] = {
